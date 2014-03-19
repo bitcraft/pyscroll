@@ -7,7 +7,7 @@ import pygame
 def generate_default_image(size):
     i = pygame.Surface(size)
     i.fill((0, 0, 0))
-    i.set_alpha(128)
+    #i.set_alpha(128)
     return i
 
 
