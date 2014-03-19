@@ -2,7 +2,7 @@
 This is tested on pygame 1.9 and python 3.3.
 bitcraft (leif dot theden at gmail.com)
 
-Simple rendering demo for the pyscroll.
+Rendering demo (pixelated) for the pyscroll.
 """
 import pytmx
 import pyscroll
@@ -17,9 +17,11 @@ def init_screen(width, height):
 
 class ScrollTest:
     def __init__(self, filename):
+        self.init_buffer([screen.get_width() / 2, screen.get_height() / 2])
+
         tmx_data = pytmx.load_pygame("desert.tmx")
         map_data = pyscroll.TiledMapData(tmx_data)
-        self.map_layer = pyscroll.BufferedRenderer(map_data, screen.get_size())
+        self.map_layer = pyscroll.BufferedRenderer(map_data, self.buffer_size)
 
         f = pygame.font.Font(pygame.font.get_default_font(), 20)
         t = ["scroll demo. press escape to quit",
@@ -30,8 +32,13 @@ class ScrollTest:
         self.camera_vector = [0, 0, 0]
         self.running = False
 
+    def init_buffer(self, size):
+        self.map_buffer = pygame.Surface(size)
+        self.buffer_size = self.map_buffer.get_size()
+
     def draw(self, surface):
-        self.map_layer.draw(surface, surface.get_rect())
+        self.map_layer.draw(self.map_buffer, surface.get_rect())
+        pygame.transform.scale(self.map_buffer, surface.get_size(), surface)
         self.draw_text(surface)
 
     def draw_text(self, surface):
@@ -61,7 +68,8 @@ class ScrollTest:
 
             elif event.type == VIDEORESIZE:
                 init_screen(event.w, event.h)
-                self.map_layer.set_size((event.w, event.h))
+                self.init_buffer([screen.get_width() / 2, screen.get_height() / 2])
+                self.map_layer.set_size(self.buffer_size)
 
     def update(self, td):
 
@@ -73,6 +81,7 @@ class ScrollTest:
         self.center[1] += self.camera_vector[1] * td
 
         # make sure the movement vector stops when scrolling off the screen
+        # not perfect, though.
         if self.center[0] < 0: self.camera_vector[0] = 0
         if self.center[0] >= self.map_layer.width: self.camera_vector[0] = 0
 
@@ -98,10 +107,11 @@ class ScrollTest:
 
 if __name__ == "__main__":
     import sys
+    sys.path.append('..')
 
     pygame.init()
     pygame.font.init()
-    screen = init_screen(900, 700)
+    screen = init_screen(700, 700)
     pygame.display.set_caption('pyscroll Test')
 
     try:
