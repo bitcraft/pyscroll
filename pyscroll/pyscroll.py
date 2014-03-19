@@ -11,30 +11,6 @@ def generate_default_image(size):
     return i
 
 
-class Camera:
-    def center(self):
-        hsw = self.size[0] / 2
-        hsh = self.size[1] / 2
-
-        if self.width > self.size[0]:
-            if x < hsw:
-                x = hsw
-            elif x > self.width - hsw - 1:
-                x = self.width - hsw - 1
-        else:
-            x = self.width / 2
-
-        if self.height > self.size[1]:
-            if y < hsh:
-                y = hsh
-            elif y > self.height - hsh - 1:
-                y = self.height - hsh - 1
-        else:
-            y = self.height / 2
-
-        x = int(x)
-        y = int(y)
-
 class TiledMapData:
     def __init__(self, tmx):
         self.tmx = tmx
