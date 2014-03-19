@@ -37,7 +37,7 @@ class ScrollTest:
         self.buffer_size = self.map_buffer.get_size()
 
     def draw(self, surface):
-        self.map_layer.draw(self.map_buffer, self.map_buffer.get_rect())
+        self.map_layer.draw(self.map_buffer, surface.get_rect())
         pygame.transform.scale(self.map_buffer, surface.get_size(), surface)
         self.draw_text(surface)
 

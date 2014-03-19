@@ -309,7 +309,9 @@ class BufferedRenderer:
         """
         draw the map onto a surface.
 
-        a rect must be passed that defines the area to draw the map
+        pass a rect that defines the draw area for:
+            dirty screen update support
+            drawing to an area smaller that the whole window/screen
 
         surfaces may optionally be passed that will be blited onto the surface.
         this must be a list of tuples containing a layer number, image, and
@@ -325,13 +327,13 @@ class BufferedRenderer:
         surblit = surface.blit
         left, top = self.view.topleft
         ox, oy = self.xoffset, self.yoffset
-        ox -= rect.left
-        oy -= rect.top
         get_tile = self.data.get_tile_image
 
         # need to set clipping otherwise the map will draw outside its defined area
-        origClip = surface.get_clip()
+        original_clip = surface.get_clip()
         surface.set_clip(rect)
+        ox -= rect.left
+        oy -= rect.top
 
         if self.queue:
             self.flush()
@@ -354,8 +356,7 @@ class BufferedRenderer:
                     if tile:
                         surblit(tile, (x-ox, y-oy))
 
-        # restore clipping area
-        surface.set_clip(origClip)
+        surface.set_clip(original_clip)
 
         if self.idle:
             return [ i[0] for i in dirty ]
