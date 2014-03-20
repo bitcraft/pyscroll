@@ -44,7 +44,7 @@ class TiledMapData:
         x, y, l = map(int, position)
         try:
             return self.tmx.get_tile_image(x, y, l)
-        except:
+        except ValueError:
             return self.default_image
 
     def convert(self, surface=None, depth=None, flags=0):
@@ -55,14 +55,13 @@ class TiledMapData:
         Using this function ensures all tiles are the same pixel format for fast blitting,
         """
 
-        if (surface==depth==None) and (flags==0):
+        if (surface == depth is None) and (flags == 0):
             print("Need to pass a surface, depth, for flags")
             raise ValueError
 
         if surface:
             for i, t in enumerate(self.tmx.images):
                 if t: self.tmx.images[i] = t.convert(surface)
-
         elif depth or flags:
             for i, t in enumerate(self.tmx.images):
                 if t:
@@ -82,9 +81,7 @@ class BufferedRenderer:
     Combine with a data class to get a useful map renderer
     """
 
-    time_update = True
-
-    def __init__(self, data, size, **kwargs):
+    def __init__(self, data, size):
         self.set_data(data)
         self.set_size(size)
 
@@ -99,7 +96,7 @@ class BufferedRenderer:
         """
 
         self.view = pygame.Rect(0, 0, (size[0] / self.data.tilewidth),
-                                      (size[1] / self.data.tileheight))
+                                (size[1] / self.data.tileheight))
 
         buffer_width = size[0] + self.data.tilewidth * 2
         buffer_height = size[1] + self.data.tileheight * 2
@@ -109,7 +106,7 @@ class BufferedRenderer:
         self.width = self.data.width * self.data.tilewidth
         self.height = self.data.height * self.data.tileheight
 
-        self.half_width  = size[0] / 2
+        self.half_width = size[0] / 2
         self.half_height = size[1] / 2
 
         # how many tiles are blitted to the buffer during an update
@@ -117,10 +114,10 @@ class BufferedRenderer:
 
         # quadtree is used to correctly draw tiles that cover 'sprites'
         def make_rect(x, y):
-            return pygame.Rect((x*self.data.tilewidth,y*self.data.tileheight),
+            return pygame.Rect((x * self.data.tilewidth, y * self.data.tileheight),
                                (self.data.tilewidth, self.data.tileheight))
 
-        rects = [ make_rect(x, y) for x, y in product(range(self.view.width+2), range(self.view.height+2)) ]
+        rects = [make_rect(x, y) for x, y in product(range(self.view.width + 2), range(self.view.height + 2))]
 
         self.layer_quadtree = quadtree.FastQuadTree(rects, 4)
 
@@ -156,17 +153,15 @@ class BufferedRenderer:
         self.idle = False
 
         # calc the new postion in tiles and offset
-        left, self.xoffset = divmod(x-self.half_width,  self.data.tilewidth)
-        top,  self.yoffset = divmod(y-self.half_height, self.data.tileheight)
+        left, self.xoffset = divmod(x - self.half_width, self.data.tilewidth)
+        top, self.yoffset = divmod(y - self.half_height, self.data.tileheight)
 
         # determine if tiles should be redrawn
         dx = left - self.view.left
         dy = top - self.view.top
 
-        # determine which direction the map is moving, then
-        # adjust the offsets to compensate for it:
-        #    make sure the leading "edge" always has extra row/column of tiles
-
+        # determine which direction the map is moving, then adjust the offsets to compensate for it
+        # make sure the leading "edge" always has extra row/column of tiles
         if self.old_x > x:
             if self.xoffset < self.data.tilewidth:
                 self.xoffset += self.data.tilewidth
@@ -177,7 +172,7 @@ class BufferedRenderer:
                 self.yoffset += self.data.tileheight
                 dy -= 1
 
-        # adjust the view of the view has changed
+        # adjust the view if the view has changed
         if not (dx, dy) == (0, 0):
             dx = int(dx)
             dy = int(dy)
@@ -185,7 +180,7 @@ class BufferedRenderer:
             self.flush()
             self.view = self.view.move((dx, dy))
 
-            # scroll the image (much faster than reblitting the tiles!)
+            # scroll the image (much faster than redrawing the tiles!)
             self.buffer.scroll(-dx * self.data.tilewidth, -dy * self.data.tileheight)
             self.queue_edge_tiles((dx, dy))
 
@@ -227,7 +222,7 @@ class BufferedRenderer:
 
         # right
         if x > 0:
-            p = product(range(self.view.right+1, self.view.right-x,-1),
+            p = product(range(self.view.right + 1, self.view.right - x, -1),
                         range(self.view.top, self.view.bottom + 2),
                         range(len(self.data.visible_layers)))
             self.queue = chain(p, self.queue)
@@ -242,7 +237,7 @@ class BufferedRenderer:
         # bottom
         if y > 0:
             p = product(range(self.view.left, self.view.right + 2),
-                        range(self.view.bottom+1, self.view.bottom-y, -1),
+                        range(self.view.bottom + 1, self.view.bottom - y, -1),
                         range(len(self.data.visible_layers)))
             self.queue = chain(p, self.queue)
 
@@ -256,9 +251,10 @@ class BufferedRenderer:
     def update(self, time=None):
         """
         the drawing operations and management of the buffer is handled here.
-        if you notice that the tiles are being drawn while the screen
-        is scrolling, you will need to adjust the number of tiles that are
-        bilt per update or increase update frequency.
+        if you are updating more than drawing, then updating here will draw
+        off screen tiles.  this will limit expensive tile blits during screen
+        draws.  if your draw and update happens every game loop, then you will
+        not benefit from updates, but it won't hurt either.
         """
 
         if self.queue:
@@ -271,14 +267,11 @@ class BufferedRenderer:
 
             for i in range(self.blits_per_update):
                 try:
-                    x,y,l = next(self.queue)
+                    x, y, l = next(self.queue)
+                    bufblit(get_tile((x, y, l)), (x * tw - ltw, y * th - tth))
                 except StopIteration:
                     self.queue = None
                     break
-
-                image = get_tile((x, y, l))
-                if image:
-                    bufblit(image, (x * tw - ltw, y * th - tth))
 
     def draw(self, surface, rect, surfaces=[]):
         """
@@ -318,25 +311,24 @@ class BufferedRenderer:
 
         # TODO: new sorting method for surfaces
         # TODO: make sure to filter out surfaces outside the screen
-        dirty = [ (surblit(a[0], a[1]), a[2]) for a in surfaces ]
+        dirty = [(surblit(a[0], a[1]), a[2]) for a in surfaces]
 
         # redraw tiles that overlap surfaces that were passed in
         for dirtyRect, layer in dirty:
             dirtyRect = dirtyRect.move(ox, oy)
             for r in self.layer_quadtree.hit(dirtyRect):
                 x, y, tw, th = r
-                layers = range(layer+1, len(self.data.visible_layers))
+                layers = range(layer + 1, len(self.data.visible_layers))
                 for l in layers:
-                    tile = get_tile((x/tw + left, y/th + top, l))
-                    if tile:
-                        surblit(tile, (x-ox, y-oy))
+                    tile = get_tile((x / tw + left, y / th + top, l))
+                    surblit(tile, (x - ox, y - oy))
 
         surface.set_clip(original_clip)
 
         if self.idle:
-            return [ i[0] for i in dirty ]
+            return [i[0] for i in dirty]
         else:
-            return [ rect ]
+            return [rect]
 
     def flush(self):
         """
@@ -350,8 +342,7 @@ class BufferedRenderer:
             ltw = self.view.left * tw
             tth = self.view.top * th
             get_tile = self.data.get_tile_image
-            images = filter(lambda x: x[1], ((i, get_tile(i)) for i in self.queue))
-            [ blit(image, (x*tw-ltw, y*th-tth)) for ((x,y,l), image) in images ]
+            [blit(get_tile((x, y, l)), (x * tw - ltw, y * th - tth)) for (x, y, l) in self.queue]
             self.queue = None
 
     def redraw(self):
