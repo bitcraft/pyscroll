@@ -44,8 +44,12 @@ class TiledMapData:
 
         x, y, l = map(int, position)
         try:
-            return self.tmx.get_tile_image(x, y, l)
-        except:
+            t = self.tmx.get_tile_image(x, y, l)
+            if t:
+                return t
+            else:
+                return self.default_image
+        except ValueError:
             return self.default_image
 
     def convert(self, surface=None, depth=None, flags=0):
