@@ -5,8 +5,9 @@ bitcraft (leif dot theden at gmail.com)
 Simple rendering demo for the pyscroll.
 """
 import pytmx
-import pyscroll
 import pygame
+import pyscroll
+import collections
 from pygame.locals import *
 
 
@@ -41,7 +42,8 @@ class ScrollTest:
             y += text.get_height()
 
     def handle_input(self):
-        for event in pygame.event.get():
+        event = pygame.event.poll()
+        while event:
             if event.type == QUIT:
                 self.running = False
                 break
@@ -62,6 +64,8 @@ class ScrollTest:
             elif event.type == VIDEORESIZE:
                 init_screen(event.w, event.h)
                 self.map_layer.set_size((event.w, event.h))
+
+            event = pygame.event.poll()
 
     def update(self, td):
 
@@ -84,12 +88,23 @@ class ScrollTest:
     def run(self):
         clock = pygame.time.Clock()
         self.running = True
+        fps = 60.
+        fps_log = collections.deque(maxlen=20)
 
         try:
             while self.running:
-                td = clock.tick(60) / 1000.0
+
+                # somewhat smoother way to get fps
+                clock.tick(fps*2)
+                try:
+                    fps_log.append(clock.get_fps())
+                    fps = sum(fps_log)/len(fps_log)
+                    dt = 1/fps
+                except ZeroDivisionError:
+                    dt = 1/60.
+
                 self.handle_input()
-                self.update(td)
+                self.update(dt)
                 self.draw(screen)
                 pygame.display.flip()
 
@@ -110,7 +125,9 @@ if __name__ == "__main__":
         print("no TMX map specified, using default")
         filename = "desert.tmx"
 
-    test = ScrollTest(filename)
-    test.run()
-
-    pygame.quit()
+    try:
+        test = ScrollTest(filename)
+        test.run()
+    except:
+        pygame.quit()
+        raise

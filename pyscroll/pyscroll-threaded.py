@@ -1,6 +1,41 @@
 from itertools import islice, product, chain
 import pygame
+import threading
+import time
 from . import quadtree
+
+
+def tile_thread(renderer):
+    tw = renderer.data.tilewidth
+    th = renderer.data.tileheight
+    blit = renderer.buffer.blit
+    ltw = renderer.view.left * tw
+    tth = renderer.view.top * th
+    get_tile = renderer.data.get_tile_image
+
+    fill = renderer.buffer.fill
+    old_tiles = set()
+
+    while 1:
+        try:
+            x, y, l = next(renderer.queue)
+        except (StopIteration, TypeError):
+            time.sleep(.5)
+
+        if renderer.colorkey:
+            tile = get_tile((x, y, l))
+            if tile:
+                if l == 0:
+                    fill(renderer.colorkey, (x*tw-ltw, y*th-tth, tw, th))
+                old_tiles.add((x, y, l))
+                blit(tile, (x*tw-ltw, y*th-tth))
+            else:
+                if (x, y, l-1) not in old_tiles:
+                    fill(renderer.colorkey, (x*tw-ltw, y*th-tth, tw, th))
+        else:
+            tile = get_tile((x, y, l))
+            if tile:
+                blit(tile, (x*tw-ltw, y*th-tth))
 
 
 # this image will be used when a tile cannot be loaded
@@ -83,9 +118,12 @@ class BufferedRenderer:
 
     def __init__(self, data, size, colorkey=None):
         self.colorkey = colorkey
-        self.update_rate = 100
+        self.update_rate = 30
         self.set_data(data)
         self.set_size(size)
+
+        self.thread = threading.Thread(target=tile_thread, args=(self,))
+        self.thread.start()
 
     def set_data(self, data):
         self.data = data
@@ -105,7 +143,7 @@ class BufferedRenderer:
         self.buffer = pygame.Surface((buffer_width, buffer_height))
 
         if self.colorkey:
-            self.buffer.set_colorkey(self.colorkey)
+            self.buffer.set_colorkey(self.colorkey, pygame.RLEACCEL)
 
         # this is the pixel size of the entire map
         self.width = self.data.width * self.data.tilewidth
@@ -258,6 +296,8 @@ class BufferedRenderer:
         not benefit from updates, but it won't hurt either.
         """
 
+        return
+
         if self.queue:
             self.blit_tiles(islice(self.queue, self.update_rate))
 
@@ -323,6 +363,8 @@ class BufferedRenderer:
         draw all tiles that are sitting in the queue
         """
 
+        return
+
         if self.queue:
             self.blit_tiles(self.queue)
             self.queue = None
@@ -366,4 +408,3 @@ class BufferedRenderer:
         self.queue = product(range(self.view.left, self.view.right + 2),
                              range(self.view.top, self.view.bottom + 2),
                              range(len(self.data.visible_layers)))
-        self.flush()
