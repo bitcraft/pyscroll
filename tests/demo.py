@@ -18,7 +18,7 @@ def init_screen(width, height):
 
 class ScrollTest:
     def __init__(self, filename):
-        tmx_data = pytmx.load_pygame("desert.tmx")
+        tmx_data = pytmx.load_pygame(filename)
         map_data = pyscroll.TiledMapData(tmx_data)
         self.map_layer = pyscroll.BufferedRenderer(map_data, screen.get_size())
 
