@@ -353,7 +353,8 @@ class BufferedRenderer:
                     if (x, y, l-1) not in old_tiles:
                         fill(self.colorkey, (x*tw-ltw, y*th-tth, tw, th))
         else:
-            [blit(get_tile((x, y, l)), (x * tw - ltw, y * th - tth)) for (x, y, l) in iterator]
+            images = filter(lambda x: x[1], ((i, get_tile(i)) for i in iterator))
+            [blit(get_tile((x, y, l)), (x * tw - ltw, y * th - tth)) for (x, y, l) in images]
 
     def redraw(self):
         """
