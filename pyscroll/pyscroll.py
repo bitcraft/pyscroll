@@ -1,4 +1,4 @@
-from itertools import islice, product, chain
+from itertools import islice, product, chain, ifilter
 import pygame
 from . import quadtree
 
@@ -6,11 +6,11 @@ from . import quadtree
 # this image will be used when a tile cannot be loaded
 def generate_default_image(size):
     i = pygame.Surface(size)
-    i.fill((0, 0, 0))
+    i.fill((128, 128, 0))
     return i
 
 
-class TiledMapData:
+class TiledMapData(object):
     def __init__(self, tmx):
         self.tmx = tmx
         self.default_image = generate_default_image((tmx.tilewidth, tmx.tileheight))
@@ -33,7 +33,7 @@ class TiledMapData:
 
     @property
     def visible_layers(self):
-        return list(self.tmx.visible_layers)
+        return self.tmx.visibleTileLayers
 
     def get_tile_image(self, position):
         """
@@ -41,9 +41,10 @@ class TiledMapData:
         position is x, y, layer tuple
         """
 
-        x, y, l = map(int, position)
+        x, y, l = position
         try:
-            return self.tmx.get_tile_image(x, y, l)
+            tile = self.tmx.getTileImage(x, y, l)
+            return tile
         except ValueError:
             return self.default_image
 
@@ -56,7 +57,7 @@ class TiledMapData:
         """
 
         if (surface == depth is None) and (flags == 0):
-            print("Need to pass a surface, depth, for flags")
+            print "Need to pass a surface, depth, for flags"
             raise ValueError
 
         if surface:
@@ -68,7 +69,7 @@ class TiledMapData:
                     self.tmx.images[i] = t.convert(depth, flags)
 
 
-class BufferedRenderer:
+class BufferedRenderer(object):
     """
     Base class to render a map onto a buffer that is suitable for blitting onto
     the screen as one surface, rather than a collection of tiles.
@@ -108,8 +109,8 @@ class BufferedRenderer:
             self.buffer.set_colorkey(self.colorkey)
 
         # this is the pixel size of the entire map
-        self.width = self.data.width * self.data.tilewidth
-        self.height = self.data.height * self.data.tileheight
+        #self.width = self.data.width * self.data.tilewidth
+        #self.height = self.data.height * self.data.tileheight
 
         self.half_width = size[0] / 2
         self.half_height = size[1] / 2
@@ -199,7 +200,7 @@ class BufferedRenderer:
         """
 
         if (surface == depth is None) and (flags == 0):
-            print("Need to pass a surface, depth, for flags")
+            print "Need to pass a surface, depth, for flags"
             raise ValueError
 
         self.data.convert(surface, depth, flags)
@@ -353,7 +354,8 @@ class BufferedRenderer:
                     if (x, y, l-1) not in old_tiles:
                         fill(self.colorkey, (x*tw-ltw, y*th-tth, tw, th))
         else:
-            [blit(get_tile((x, y, l)), (x * tw - ltw, y * th - tth)) for (x, y, l) in iterator]
+            images = ifilter(lambda x: x[1], ((i, get_tile(i)) for i in iterator))
+            [blit(image, (x*tw-ltw, y*th-tth)) for ((x,y,l), image) in images]
 
     def redraw(self):
         """
