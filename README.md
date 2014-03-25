@@ -1,13 +1,13 @@
 pyscroll
 ======
 
-for Python 3 and Pygame 1.9
+for Python 2.7 and Pygame 1.9
 
 A simple, fast module for adding scrolling maps to your new or existing game.
 
 
 
-Compatible with pytmx:
+Compatible with pytmx (use the python2 branch):
 https://github.com/bitcraft/pytmx
 
 
@@ -24,7 +24,7 @@ more memory than a typical map would, but gives much better performance.
 Features
 ========
 
-- Fast and lightweight
+- Fast and small footprint
 - Layered drawing
 - Dirty screen updates
 

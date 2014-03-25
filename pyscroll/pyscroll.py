@@ -1,5 +1,6 @@
 from itertools import islice, product, chain, ifilter
 import pygame
+import math
 from . import quadtree
 
 
@@ -98,8 +99,8 @@ class BufferedRenderer(object):
         This isn't a very quick operation, so try to avoid doing it often
         """
 
-        self.view = pygame.Rect(0, 0, (size[0] / self.data.tilewidth),
-                                      (size[1] / self.data.tileheight))
+        self.view = pygame.Rect(0, 0, math.ceil(size[0] / self.data.tilewidth),
+                                      math.ceil(size[1] / self.data.tileheight))
 
         buffer_width = size[0] + self.data.tilewidth * 2
         buffer_height = size[1] + self.data.tileheight * 2
@@ -109,8 +110,8 @@ class BufferedRenderer(object):
             self.buffer.set_colorkey(self.colorkey)
 
         # this is the pixel size of the entire map
-        #self.width = self.data.width * self.data.tilewidth
-        #self.height = self.data.height * self.data.tileheight
+        #self.pixel_width = self.data.width * self.data.tilewidth
+        #self.pixel_height = self.data.height * self.data.tileheight
 
         self.half_width = size[0] / 2
         self.half_height = size[1] / 2
@@ -362,7 +363,6 @@ class BufferedRenderer(object):
         redraw the visible portion of the buffer -- it is slow.
 
         should be called right after the map is created to initialize the the buffer.
-        will be slow, you've been warned.
         """
 
         self.queue = product(range(self.view.left, self.view.right + 2),
