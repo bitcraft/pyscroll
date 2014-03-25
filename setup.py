@@ -14,11 +14,11 @@ def read(file_name):
 setup(name="pyscroll",
       version=pyscroll.__version__,
       description='Tilemap scrolling utils',
-      author='bitcraft',
+      author=pyscroll.__author__,
       packages=['pyscroll'],
       install_requires=['pygame'],
       license="LGPLv3",
-      long_description='see https://github.com/bitcraft/pyscroll',
+      long_description='https://github.com/bitcraft/pyscroll',
       classifiers=[
           "Intended Audience :: Developers",
           "Development Status :: 4 - Beta",

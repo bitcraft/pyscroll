@@ -47,26 +47,6 @@ class TiledMapData:
         except ValueError:
             return self.default_image
 
-    def convert(self, surface=None, depth=None, flags=0):
-        """
-        The display may have changed since the map was loaded.
-        Calling this on will convert() all the surfaces to the same format as the surface passed.
-
-        Using this function ensures all tiles are the same pixel format for fast blitting,
-        """
-
-        if (surface == depth is None) and (flags == 0):
-            print("Need to pass a surface, depth, for flags")
-            raise ValueError
-
-        if surface:
-            for i, t in enumerate(self.tmx.images):
-                if t: self.tmx.images[i] = t.convert(surface)
-        elif depth or flags:
-            for i, t in enumerate(self.tmx.images):
-                if t:
-                    self.tmx.images[i] = t.convert(depth, flags)
-
 
 class BufferedRenderer:
     """
@@ -190,25 +170,6 @@ class BufferedRenderer:
         self.idle = False
         self.old_x, self.old_y = x, y
 
-    def convert(self, surface=None, depth=None, flags=0):
-        """
-        The display may have changed since the map was loaded.
-        Calling this on will convert() all the surfaces to the same format as the surface passed.
-
-        Using this function ensures all tiles are the same pixel format for fast blitting,
-        """
-
-        if (surface == depth is None) and (flags == 0):
-            print("Need to pass a surface, depth, for flags")
-            raise ValueError
-
-        self.data.convert(surface, depth, flags)
-
-        # TODO: this needs to be the same as in set_size()
-        if surface:
-            self.buffer = self.buffer.convert(surface)
-        elif depth or flags:
-            self.buffer = self.buffer.convert(depth, flags)
 
     def queue_edge_tiles(self, tiles):
         """
