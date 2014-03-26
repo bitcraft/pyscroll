@@ -27,7 +27,7 @@ class ScrollTest:
              "arrow keys move"]
 
         self.text_overlay = [f.render(i, 1, (180, 180, 0)) for i in t]
-        self.center = [self.map_layer.width/2,self.map_layer.height/2]
+        self.center = [self.map_layer.pixel_width/2,self.map_layer.pixel_height/2]
         self.camera_vector = [0, 0, 0]
         self.running = False
 
@@ -78,10 +78,10 @@ class ScrollTest:
 
         # make sure the movement vector stops when scrolling off the screen
         if self.center[0] < 0: self.camera_vector[0] = 0
-        if self.center[0] >= self.map_layer.width: self.camera_vector[0] = 0
+        if self.center[0] >= self.map_layer.pixel_width: self.camera_vector[0] = 0
 
         if self.center[1] < 0: self.camera_vector[1] = 0
-        if self.center[1] >= self.map_layer.height: self.camera_vector[1] = 0
+        if self.center[1] >= self.map_layer.pixel_height: self.camera_vector[1] = 0
 
         self.map_layer.center(self.center)
 

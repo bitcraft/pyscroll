@@ -4,17 +4,9 @@ import math
 from . import quadtree
 
 
-# this image will be used when a tile cannot be loaded
-def generate_default_image(size):
-    i = pygame.Surface(size)
-    i.fill((128, 128, 0))
-    return i
-
-
 class TiledMapData(object):
     def __init__(self, tmx):
         self.tmx = tmx
-        self.default_image = generate_default_image((tmx.tilewidth, tmx.tileheight))
 
     @property
     def tilewidth(self):
@@ -43,31 +35,7 @@ class TiledMapData(object):
         """
 
         x, y, l = position
-        try:
-            tile = self.tmx.getTileImage(x, y, l)
-            return tile
-        except ValueError:
-            return self.default_image
-
-    def convert(self, surface=None, depth=None, flags=0):
-        """
-        The display may have changed since the map was loaded.
-        Calling this on will convert() all the surfaces to the same format as the surface passed.
-
-        Using this function ensures all tiles are the same pixel format for fast blitting,
-        """
-
-        if (surface == depth is None) and (flags == 0):
-            print "Need to pass a surface, depth, for flags"
-            raise ValueError
-
-        if surface:
-            for i, t in enumerate(self.tmx.images):
-                if t: self.tmx.images[i] = t.convert(surface)
-        elif depth or flags:
-            for i, t in enumerate(self.tmx.images):
-                if t:
-                    self.tmx.images[i] = t.convert(depth, flags)
+        return self.tmx.getTileImage(x, y, l)
 
 
 class BufferedRenderer(object):
@@ -91,6 +59,7 @@ class BufferedRenderer(object):
 
     def set_data(self, data):
         self.data = data
+        self.generate_default_image()
 
     def set_size(self, size):
         """
@@ -110,8 +79,8 @@ class BufferedRenderer(object):
             self.buffer.set_colorkey(self.colorkey)
 
         # this is the pixel size of the entire map
-        #self.pixel_width = self.data.width * self.data.tilewidth
-        #self.pixel_height = self.data.height * self.data.tileheight
+        self.pixel_width = self.data.width * self.data.tilewidth
+        self.pixel_height = self.data.height * self.data.tileheight
 
         self.half_width = size[0] / 2
         self.half_height = size[1] / 2
@@ -133,6 +102,16 @@ class BufferedRenderer(object):
         self.yoffset = 0
         self.old_x = 0
         self.old_y = 0
+
+    def generate_default_image(self):
+        self.default_image = pygame.Surface((self.data.tilewidth, self.data.tileheight))
+        self.default_image.fill((0, 0, 0))
+
+    def get_tile_image(self, position):
+        try:
+            return self.data.get_tile_image(position)
+        except ValueError:
+            return self.default_image
 
     def scroll(self, vector):
         """
@@ -192,25 +171,6 @@ class BufferedRenderer(object):
         self.idle = False
         self.old_x, self.old_y = x, y
 
-    def convert(self, surface=None, depth=None, flags=0):
-        """
-        The display may have changed since the map was loaded.
-        Calling this on will convert() all the surfaces to the same format as the surface passed.
-
-        Using this function ensures all tiles are the same pixel format for fast blitting,
-        """
-
-        if (surface == depth is None) and (flags == 0):
-            print "Need to pass a surface, depth, for flags"
-            raise ValueError
-
-        self.data.convert(surface, depth, flags)
-
-        # TODO: this needs to be the same as in set_size()
-        if surface:
-            self.buffer = self.buffer.convert(surface)
-        elif depth or flags:
-            self.buffer = self.buffer.convert(depth, flags)
 
     def queue_edge_tiles(self, tiles):
         """
@@ -285,7 +245,7 @@ class BufferedRenderer(object):
         surblit = surface.blit
         left, top = self.view.topleft
         ox, oy = self.xoffset, self.yoffset
-        get_tile = self.data.get_tile_image
+        get_tile = self.get_tile_image
 
         # need to set clipping otherwise the map will draw outside its defined area
         original_clip = surface.get_clip()
@@ -339,7 +299,7 @@ class BufferedRenderer(object):
         blit = self.buffer.blit
         ltw = self.view.left * tw
         tth = self.view.top * th
-        get_tile = self.data.get_tile_image
+        get_tile = self.get_tile_image
 
         if self.colorkey:
             fill = self.buffer.fill
