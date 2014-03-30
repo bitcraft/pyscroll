@@ -19,7 +19,7 @@ setup(name="pyscroll",
       packages=['pyscroll'],
       install_requires=['pygame'],
       license="LGPLv3",
-      long_description='see https://github.com/bitcraft/pyscroll',
+      long_description=read('README.md'),
       classifiers=[
           "Intended Audience :: Developers",
           "Development Status :: 4 - Beta",
