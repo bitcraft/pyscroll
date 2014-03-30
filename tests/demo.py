@@ -1,5 +1,5 @@
 """
-This is tested on pygame 1.9 and python 3.3.
+This is tested on pygame 1.9 and python 2.7.
 bitcraft (leif dot theden at gmail.com)
 
 Simple rendering demo for the pyscroll.
@@ -18,7 +18,7 @@ def init_screen(width, height):
 
 class ScrollTest:
     def __init__(self, filename):
-        tmx_data = pytmx.load_pygame("desert.tmx")
+        tmx_data = pytmx.load_pygame(filename)
         map_data = pyscroll.TiledMapData(tmx_data)
         self.map_layer = pyscroll.BufferedRenderer(map_data, screen.get_size())
 
