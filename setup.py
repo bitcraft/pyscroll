@@ -18,7 +18,7 @@ setup(name="pyscroll",
       packages=['pyscroll', 'tests'],
       install_requires=['pygame'],
       license="LGPLv3",
-      long_description=read('README.md'),
+      long_description='',
       package_data={
           'pyscroll': ['LICENSE', 'README.md']},
       classifiers=[
