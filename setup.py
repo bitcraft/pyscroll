@@ -6,9 +6,8 @@ from setuptools import setup
 import pyscroll
 
 
-def read(file_name):
-    with open(os.path.join(os.path.dirname(__file__), file_name)) as fd:
-        return fd.read()
+def read(fname):
+    return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
 
 setup(name="pyscroll",
@@ -16,10 +15,12 @@ setup(name="pyscroll",
       description=pyscroll.__description__,
       author=pyscroll.__author__,
       author_email=pyscroll.__author_email__,
-      packages=['pyscroll'],
+      packages=['pyscroll', 'tests'],
       install_requires=['pygame'],
       license="LGPLv3",
       long_description=read('README.md'),
+      package_data={
+          'pyscroll': ['LICENSE', 'README.md']},
       classifiers=[
           "Intended Audience :: Developers",
           "Development Status :: 4 - Beta",
