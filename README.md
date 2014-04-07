@@ -1,46 +1,43 @@
 pyscroll
-======
+===============================================================================
 
-for Python 3 and Pygame 1.9
+### A module for scrolling maps with PyGame.
+##### For python 3.3+
+##### *Use the python2 branch for Python 2.7 support*
 
-A simple, fast module for adding scrolling maps to your new or existing game.
+bitcraft (leif dot theden at gmail.com)
+
+*Released under the LGPL v3*
 
 
-
-Compatible with pytmx:
+Compatible with pytmx:    
 https://github.com/bitcraft/pytmx
 
 
 What the heck is it?
-====================
+===============================================================================
 
 pyscroll is a generic module for making a fast scrolling image with PyGame.  It uses a lot of magic to get reasonable
 framerates out of PyGame.  It only exists to draw a map.  It doesn't load images or data, so you can use your own custom
 data structures, tile storage, ect.
 
-The included class, BufferedRenderer, gives great framerates, supports layered rendering and can draw itself.  It uses
-more memory than a typical map would, but gives much better performance.
+The included class, BufferedRenderer, supports layered rendering and can draw itself.  It uses more memory than a typical map would, but gives good performance.
 
 Features
-========
+===============================================================================
 
 - Fast and lightweight
 - Layered drawing
 - Dirty screen updates
 
 
-Usage
-=====
+Using pyscroll with a new project
+===============================================================================
 
-Basically, you need an object that conforms to a simple protocol defined in pyscroll.TiledMapData.  And as luck would
-have it, I've included an object that works with my Tiled TMX library.  https://github.com/bitcraft/pytmx
+pyscroll isn't a replacement for any PyGame objects.  You can it it along with
+your Sprites and SpriteGroups.
 
-
-# Using a pyscroll map layer
-
-pyscroll isn't a replacement for any PyGame objects.  You can it it along with your Sprites and SpriteGroups.
-
-    # Load TMX data (optional)
+    # Load TMX data
     tmx_data = pytmx.load_pygame("desert.tmx")
 
     # Make data source for the map
@@ -50,7 +47,7 @@ pyscroll isn't a replacement for any PyGame objects.  You can it it along with y
     size = (400, 400)
     map_layer = pyscroll.BufferedRenderer(map_data, size)
 
-    # Center the layer on a pixel
+    # Center the layer on a pixel for scroll that map
     map_layer.center((200, 200))
 
     # Draw the layer
@@ -64,11 +61,18 @@ See the demo in tests for code.
 
 
 Adapting Existing Games / Map Data
-==================================
+===============================================================================
 
-pyscroll can be used with existing map data, but you will have to create a class to interact with pyscroll
-or adapt your data handler to have these functions / attributes:
+pyscroll can be used with existing map data.  You will have to create a class
+to interact with pyscroll or adapt your data handler to have that data
+interface.  If you don't have an existing map object, I've included a class
+that works with my Tiled TMX library.   
 
+https://github.com/bitcraft/pytmx
+
+
+Heres a basic Data class that you can extend to use PyScroll with your existing
+project:
 
     class MyData:
         def __init__(self, tmx):
@@ -111,10 +115,5 @@ or adapt your data handler to have these functions / attributes:
             Return self.default_image if there is not map data for the position.
 
             position is x, y, layer tuple
-            """
-
-        def convert(self, surface=None, depth=None, flags=0):
-            """
-            Optional.  Convert the surfaces to match the display.
             """
 
