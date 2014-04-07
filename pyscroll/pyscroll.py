@@ -88,8 +88,9 @@ class BufferedRenderer:
             self.buffer.set_colorkey(self.colorkey)
 
         # this is the pixel size of the entire map
-        self.width = self.data.width * self.data.tilewidth
-        self.height = self.data.height * self.data.tileheight
+        self.rect = pygame.Rect(0, 0,
+                                self.data.width * self.data.tilewidth,
+                                self.data.height * self.data.tileheight)
 
         self.half_width = size[0] / 2
         self.half_height = size[1] / 2
@@ -231,10 +232,10 @@ class BufferedRenderer:
             drawing to an area smaller that the whole window/screen
 
         surfaces may optionally be passed that will be blited onto the surface.
-        this must be a list of tuples containing a layer number, image, and
-        rect in screen coordinates.  surfaces will be drawn in order passed,
-        and will be correctly drawn with tiles from a higher layer overlap
-        the surface.
+        this must be a list of tuples containing:
+            an image, rect in screen coordinates, and layer number
+        surfaces will be drawn in order passed, and will be correctly drawn
+        with tiles from a higher layer overlaping the surface.
         """
 
         if self.blank:
@@ -246,15 +247,16 @@ class BufferedRenderer:
         ox, oy = self.xoffset, self.yoffset
         get_tile = self.data.get_tile_image
 
-        # need to set clipping otherwise the map will draw outside its defined area
+        # need to set clipping otherwise the map will draw outside the surface
         original_clip = surface.get_clip()
         surface.set_clip(rect)
         ox -= rect.left
         oy -= rect.top
 
+        # make sure all the tiles are drawn before drawing
         self.flush()
 
-        # draw the entire map to the surface, taking in account the scrolling offset
+        # blit the entire map to the surface using the scrolling offset
         surblit(self.buffer, (-ox, -oy))
 
         # TODO: new sorting method for surfaces
