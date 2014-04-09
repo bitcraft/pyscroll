@@ -1,48 +1,14 @@
-from itertools import islice, product, chain, ifilter
+from itertools import islice, product, chain
 import pygame
 import math
 import threading
-import Queue
+from six.moves import filter, queue, range
 from . import quadtree
 
 
-
-class TiledMapData(object):
-    def __init__(self, tmx):
-        self.tmx = tmx
-
-    @property
-    def tilewidth(self):
-        return self.tmx.tilewidth
-
-    @property
-    def tileheight(self):
-        return self.tmx.tileheight
-
-    @property
-    def width(self):
-        return self.tmx.width
-
-    @property
-    def height(self):
-        return self.tmx.height
-
-    @property
-    def visible_layers(self):
-        return self.tmx.visibleTileLayers
-
-    def get_tile_image(self, position):
-        """
-        Return a surface for this position.  Returns a blank tile if cannot be loaded.
-        position is x, y, layer tuple
-        """
-
-        x, y, l = position
-        return self.tmx.getTileImage(x, y, l)
-
-
 class BufferedRenderer(object):
-    """
+    """ Renderer that can be updated incrementally
+
     Base class to render a map onto a buffer that is suitable for blitting onto
     the screen as one surface, rather than a collection of tiles.
 
@@ -53,11 +19,11 @@ class BufferedRenderer(object):
 
     Combine with a data class to get a useful map renderer
     """
-
     def __init__(self, data, size, colorkey=None, padding=4):
         # defaults
         self.clipping = True
-        self.update_rate = 100
+        self.flush_on_draw = True
+        self.update_rate = 25
 
         self.colorkey = colorkey
         self.padding = padding
@@ -66,17 +32,16 @@ class BufferedRenderer(object):
         self.set_size(size)
         self.queue = iter([])
 
+    def close(self):
+        pass
+
     def set_data(self, data):
         self.data = data
         self.generate_default_image()
 
     def set_size(self, size):
+        """ Set the size of the map in pixels
         """
-        Set the size of the map in pixels
-
-        This isn't a very quick operation, so try to avoid doing it often
-        """
-
         tw = self.data.tilewidth
         th = self.data.tileheight
 
@@ -92,20 +57,20 @@ class BufferedRenderer(object):
             self.buffer.set_colorkey(self.colorkey)
 
         # this is the pixel size of the entire map
-        self.pixel_width = self.data.width * tw
-        self.pixel_height = self.data.height * th
+        self.rect = pygame.Rect(0, 0,
+                                self.data.width * tw,
+                                self.data.height * th)
 
         self.half_width = size[0] / 2
         self.half_height = size[1] / 2
 
         # quadtree is used to correctly draw tiles that cover 'sprites'
         def make_rect(x, y):
-            return pygame.Rect((x * tw, y * th),
-                               (tw, th))
+            return pygame.Rect((x * tw, y * th), (tw, th))
 
         rects = [make_rect(x, y)
-                 for x, y in product(range(self.view.width + self.padding),
-                                     range(self.view.height + self.padding))]
+                 for x, y in product(range(self.view.width),
+                                     range(self.view.height))]
 
         self.layer_quadtree = quadtree.FastQuadTree(rects, 4)
 
@@ -128,18 +93,13 @@ class BufferedRenderer(object):
             return self.default_image
 
     def scroll(self, vector):
+        """ scroll the background in pixels
         """
-        scroll the background in pixels
-        """
-
         self.center((int(vector[0] + self.old_x), int(vector[1] + self.old_y)))
 
     def center(self, coords):
+        """ center the map on a pixel
         """
-        center the map on a pixel
-        pixel coordinates have the origin on the upper-left corner
-        """
-
         x, y = [round(i, 0) for i in coords]
 
         if self.old_x == x and self.old_y == y:
@@ -147,56 +107,54 @@ class BufferedRenderer(object):
             return
 
         hpad = int(self.padding / 2)
+        tw = self.data.tilewidth
+        th = self.data.tileheight
+        self.idle = False
 
         # calc the new postion in tiles and offset
-        left, self.xoffset = divmod(x - self.half_width, self.data.tilewidth)
-        top, self.yoffset = divmod(y - self.half_height, self.data.tileheight)
+        left, self.xoffset = divmod(x - self.half_width, tw)
+        top, self.yoffset = divmod(y - self.half_height, th)
 
         # determine if tiles should be redrawn
-        dx = left - self.view.left
-        dy = top - self.view.top
+        dx = int(left - hpad - self.view.left)
+        dy = int(top - hpad - self.view.top)
 
-        self.xoffset += hpad * self.data.tilewidth
-        self.yoffset += hpad * self.data.tileheight
+        # adjust the offsets of the buffer is placed correctly
+        #self.xoffset += (hpad / 2 - 1) * tw
+        #self.yoffset += (hpad / 2 - 1) * th
+        self.xoffset += hpad * tw
+        self.yoffset += hpad * th
 
         # adjust the view if the view has changed
         if (abs(dx) >= 1) or (abs(dy) >= 1):
-            dx = int(dx)
-            dy = int(dy)
-
             self.flush()
             self.view = self.view.move((dx, dy))
 
             # scroll the image (much faster than redrawing the tiles!)
-            self.buffer.scroll(-dx * self.data.tilewidth,
-                               -dy * self.data.tileheight)
-
+            self.buffer.scroll(-dx * tw, -dy * th)
             self.update_queue(self.get_edge_tiles((dx, dy)))
 
-        self.idle = False
         self.old_x, self.old_y = x, y
 
     def update_queue(self, iterator):
+        """ Add some tiles to the queue
+        """
         self.queue = chain(self.queue, iterator)
 
     def get_edge_tiles(self, offset):
+        """ Get the tile coordinates that need to be redrawn
         """
-        add the tiles on the edge that need to be redrawn to the queue.
-        for internal use
-        """
-
         x, y = map(int, offset)
-
         queue = None
-
-        pad = self.padding
-        hpad = int(self.padding / 2)
-
         layers = len(self.data.visible_layers)
+
+        # NOTE: i'm not sure why the the -1 in right and bottom are required
+        #       for python 3.  it may have some performance implications, but
+        #       i'll benchmark it later.
 
         # right
         if x > 0:
-            queue = product(range(self.view.right - x, self.view.right),
+            queue = product(range(self.view.right - x - 1, self.view.right),
                             range(self.view.top, self.view.bottom),
                             range(layers))
 
@@ -209,7 +167,7 @@ class BufferedRenderer(object):
         # bottom
         if y > 0:
             p = product(range(self.view.left, self.view.right),
-                        range(self.view.bottom - y, self.view.bottom),
+                        range(self.view.bottom - y - 1, self.view.bottom),
                         range(layers))
             if queue is None:
                 queue = p
@@ -229,7 +187,8 @@ class BufferedRenderer(object):
         return queue
 
     def update(self, dt=None):
-        """
+        """ Draw tiles in the background
+
         the drawing operations and management of the buffer is handled here.
         if you are updating more than drawing, then updating here will draw
         off screen tiles.  this will limit expensive tile blits during screen
@@ -240,8 +199,7 @@ class BufferedRenderer(object):
         self.blit_tiles(islice(self.queue, self.update_rate))
 
     def draw(self, surface, rect, surfaces=[]):
-        """
-        draw the map onto a surface.
+        """ Draw the map onto a surface
 
         pass a rect that defines the draw area for:
             dirty screen update support
@@ -255,15 +213,18 @@ class BufferedRenderer(object):
         """
 
         if self.blank:
-            self.redraw()
             self.blank = False
+            self.redraw()
 
+        get_tile = self.get_tile_image
         surblit = surface.blit
         left, top = self.view.topleft
         ox, oy = self.xoffset, self.yoffset
-        get_tile = self.get_tile_image
         ox -= rect.left
         oy -= rect.top
+
+        if self.flush_on_draw:
+            self.flush()
 
         with self.lock:
             # need to set clipping otherwise the map will draw
@@ -300,18 +261,14 @@ class BufferedRenderer(object):
             return [rect]
 
     def flush(self):
+        """ Blit the tiles and block until the tile queue is empty
         """
-        blit the tiles and block until the tile queue is empty
-        """
-
         if self.queue:
             self.blit_tiles(self.queue)
 
     def blit_tiles(self, iterator):
+        """ Bilts (x, y, layer) tuples to buffer from iterator
         """
-        Accepts an iterator of (x, y, layer) tuples and blits them to the buffer
-        """
-
         tw = self.data.tilewidth
         th = self.data.tileheight
         blit = self.buffer.blit
@@ -338,14 +295,10 @@ class BufferedRenderer(object):
                 [blit(image, (x*tw-ltw, y*th-tth)) for ((x,y,l), image) in images]
 
     def redraw(self):
+        """ redraw the visible portion of the buffer -- it is slow.
         """
-        redraw the visible portion of the buffer -- it is slow.
-
-        should be called right after the map is created to initialize the the buffer.
-        """
-
-        queue = product(range(self.view.left, self.view.right + self.padding),
-                        range(self.view.top, self.view.bottom + self.padding),
+        queue = product(range(self.view.left, self.view.right),
+                        range(self.view.top, self.view.bottom),
                         range(len(self.data.visible_layers)))
 
         self.update_queue(queue)
@@ -354,11 +307,13 @@ class BufferedRenderer(object):
 
 class ThreadedRenderer(BufferedRenderer):
     """ Off-screen tiling is handled in a thread
-    """
 
+    This class MUST be closed before the program terminates, or the thread will
+    never close and you will have a bad time.
+    """
     def __init__(self, *args, **kwargs):
         BufferedRenderer.__init__(self, *args, **kwargs)
-        self.queue = Queue.Queue()
+        self.queue = queue.Queue()
         self.thread = threading.Thread(target=tile_thread, args=(self,))
         self.thread.start()
 
@@ -372,10 +327,10 @@ class ThreadedRenderer(BufferedRenderer):
         [self.queue.put(i) for i in iterator]
 
     def close(self):
+        """ Stop the thread that is running in the background
+        """
         self.thread.running = False
 
-    def __del__(self):
-        self.close()
 
 def tile_thread(renderer):
     """ poll the tile queue for new tiles and draw them to the buffer
