@@ -1,18 +1,13 @@
 pyscroll
 ========
 
-for Python 2.7 and Pygame 1.9
+for Python 2.7 & 3.3 and Pygame 1.9
 
 A simple, fast module for adding scrolling maps to your new or existing game.
 
 
-
-Compatible with pytmx (use the python2 branch):
-https://github.com/bitcraft/pytmx
-
-
-What the heck is it?
-====================
+Introduction
+============
 
 pyscroll is a generic module for making a fast scrolling image with PyGame.  It uses a lot of magic to get reasonable
 framerates out of PyGame.  It only exists to draw a map.  It doesn't load images or data, so you can use your own custom
@@ -21,24 +16,23 @@ data structures, tile storage, ect.
 The included class, BufferedRenderer, gives great framerates, supports layered rendering and can draw itself.  It uses
 more memory than a typical map would, but gives much better performance.
 
+pyscroll is compatible with pytmx (https://github.com/bitcraft/pytmx), so you can use your Tiled maps.  It also has out-of-the-box support for PyGame Sprites.
+
 Features
 ========
 
 - Fast and small footprint
 - Layered drawing
 - Dirty screen updates
+- Pygame Group included
 
 
-Usage
-=====
+Tutorial
+========
 
-Basically, you need an object that conforms to a simple protocol defined in pyscroll.TiledMapData.  And as luck would
-have it, I've included an object that works with my Tiled TMX library.  https://github.com/bitcraft/pytmx
+Open quest.py in the tutorial folder for a gentle introduction to pyscroll and the PyscrollGroup for PyGame.  There are plenty of comments to get you started.
 
-
-# Using a pyscroll map layer
-
-pyscroll isn't a replacement for any PyGame objects.  You can it it along with your Sprites and SpriteGroups.
+## pyscroll and pytmx and load your maps from Tiled and use you PyGame Sprites.
 
     # Load TMX data (optional)
     tmx_data = pytmx.load_pygame("desert.tmx")
@@ -47,20 +41,24 @@ pyscroll isn't a replacement for any PyGame objects.  You can it it along with y
     map_data = pyscroll.TiledMapData(tmx_data)
 
     # Make the scrolling layer
-    size = (400, 400)
+    # this size must match your screen size
+    size = (400, 400)            
     map_layer = pyscroll.BufferedRenderer(map_data, size)
 
-    # Center the layer on a pixel
-    map_layer.center((200, 200))
+    # make the PyGame SpriteGroup with a scrolling map
+    group = PyscrollGroup(map_layer=map_layer)
+
+    # Add sprites to the group
+    group.add(srite)
+    
+    # Center the layer and sprites on a sprite
+    group.center(sprite.rect.center)
 
     # Draw the layer
-    rect = pygame.Rect(0,0,200,200)
-    map_layer.draw(screen, rect)
+    group.draw(screen)
 
-    # Draw the layer in the background (optional)
-    map_layer.update()
 
-See the demo in tests for code.
+Look in tutorial/code/quest.py for full source code and a simple demo.
 
 
 Adapting Existing Games / Map Data
@@ -71,50 +69,36 @@ or adapt your data handler to have these functions / attributes:
 
 
     class MyData:
-        def __init__(self, tmx):
-            self.default_image = generate_default_image((tmx.tilewidth, tmx.tileheight))
 
         @property
         def tilewidth(self):
-            """
-            Return pixel width of map tiles
+            """ Return pixel width of map tiles
             """
 
         @property
         def tileheight(self):
-            """
-            Return pixel height of map tiles
+            """ Return pixel height of map tiles
             """
 
         @property
         def width(self):
-            """
-            Return number of tiles on X axis
+            """ Return number of tiles on X axis
             """
 
         @property
         def height(self):
-            """
-            Return number of tiles on Y axis
+            """ Return number of tiles on Y axis
             """
 
         @property
         def visible_layers(self):
-            """
-            Return a list of layer numbers that are visible.
+            """ Return a list or iterator of layer numbers that are visible.
             If using a single layer map, just return [0]
             """
 
         def get_tile_image(self, position):
-            """
-            Return a surface for this position.
+            """ Return a surface for this position.
             Return self.default_image if there is not map data for the position.
-
             position is x, y, layer tuple
-            """
-
-        def convert(self, surface=None, depth=None, flags=0):
-            """
-            Optional.  Convert the surfaces to match the display.
             """
 
