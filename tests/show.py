@@ -20,7 +20,14 @@ class ScrollTest:
     def __init__(self, filename):
         tmx_data = pytmx.load_pygame(filename)
         map_data = pyscroll.TiledMapData(tmx_data)
-        self.map_layer = pyscroll.BufferedRenderer(map_data, screen.get_size())
+
+        w, h = screen.get_size()
+        w = int(w*.50)
+        h = int(h*.50)
+        self.map_layer = pyscroll.BufferedRenderer(map_data, (w, h), padding=8)
+
+        self.map_layer.update_rate = 1
+        self.map_layer.clipping = False
 
         f = pygame.font.Font(pygame.font.get_default_font(), 20)
         t = ["scroll demo. press escape to quit",
@@ -32,8 +39,15 @@ class ScrollTest:
         self.running = False
 
     def draw(self, surface):
-        self.map_layer.draw(surface, surface.get_rect())
-        self.draw_text(surface)
+        surface.fill((0, 0, 0))
+
+        w, h = screen.get_size()
+        w = int(w*.50)
+        h = int(h*.50)
+
+        rect = pygame.Rect(w/2, h/2, w, h)
+        self.map_layer.draw(surface, rect)
+        pygame.draw.rect(surface, (255, 255, 255), rect, 1)
 
     def draw_text(self, surface):
         y = 0
@@ -50,27 +64,30 @@ class ScrollTest:
 
             elif event.type == KEYDOWN:
                 if event.key == K_UP:
-                    self.camera_vector[1] -= 100
+                    self.camera_vector[1] -= 10
                 elif event.key == K_DOWN:
-                    self.camera_vector[1] += 100
+                    self.camera_vector[1] += 10
                 elif event.key == K_LEFT:
-                    self.camera_vector[0] -= 100
+                    self.camera_vector[0] -= 10
                 elif event.key == K_RIGHT:
-                    self.camera_vector[0] += 100
+                    self.camera_vector[0] += 10
                 elif event.key == K_ESCAPE:
                     self.running = False
                     break
 
             elif event.type == VIDEORESIZE:
                 init_screen(event.w, event.h)
-                self.map_layer.set_size((event.w, event.h))
+                w, h = screen.get_size()
+                w = int(w*.50)
+                h = int(h*.50)
+                self.map_layer.set_size((w, h))
 
             event = pygame.event.poll()
 
     def update(self, td):
 
         # map can be updated to lazily blit the off-screen tiles to the buffer
-        #self.map_layer.update()
+        self.map_layer.update()
 
         # update the camera vector
         self.center[0] += self.camera_vector[0] * td
@@ -110,6 +127,8 @@ class ScrollTest:
 
         except KeyboardInterrupt:
             self.running = False
+
+        #self.map_layer.close()
 
 if __name__ == "__main__":
     import sys
