@@ -1,5 +1,5 @@
 pyscroll
-======
+========
 
 for Python 2.7 and Pygame 1.9
 
