@@ -32,7 +32,7 @@ Tutorial
 
 Open quest.py in the tutorial folder for a gentle introduction to pyscroll and the PyscrollGroup for PyGame.  There are plenty of comments to get you started.
 
-## pyscroll and pytmx and load your maps from Tiled and use you PyGame Sprites.
+pyscroll and pytmx can load your maps from Tiled and use you PyGame Sprites.
 
     # Load TMX data (optional)
     tmx_data = pytmx.load_pygame("desert.tmx")
