@@ -1,4 +1,7 @@
-__author__ = 'Leif Theden (leif.theden@gmail.com)'
-__version__ = "3.04"
+from .pyscroll import BufferedRenderer, ThreadedRenderer
+from .util import *
 
-from .pyscroll import BufferedRenderer, TiledMapData
+__version__ = '2.08'
+__author__ = 'bitcraft'
+__author_email__ = 'leif.theden@gmail.com'
+__description__ = 'Pygame Scrolling - Python 2.7'

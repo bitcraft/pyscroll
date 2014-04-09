@@ -62,7 +62,6 @@ class QuestGame:
         map_data = pyscroll.TiledMapData(tmx_data)
 
         # create new renderer
-        # currently, pyscroll only has one renderer, the BufferedRenderer
         self.map_layer = pyscroll.BufferedRenderer(map_data, screen.get_size())
 
         # use the pyscroll Group for easy rendering
@@ -146,7 +145,7 @@ class QuestGame:
 if __name__ == "__main__":
     pygame.init()
     pygame.font.init()
-    screen = init_screen(900, 700)
+    screen = init_screen(800, 600)
     pygame.display.set_caption('Quest - An epic journey.')
 
     try:

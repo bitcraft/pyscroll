@@ -8,10 +8,22 @@ import pytmx
 import pygame
 import pyscroll
 import collections
+import logging
 from pygame.locals import *
 
 
+# pyscroll is a python 2.7/3.3 project
+# using the logging module simplifies "print" statements and has nice output.
+# the following sets the logger up for this app.
+# NOTE: it is not necessary for your app to do this, but it is a good practice.
+logger = logging.getLogger(__name__)
+ch = logging.StreamHandler()
+ch.setLevel(logging.INFO)
+logger.addHandler(ch)
+logger.setLevel(logging.INFO)
+
 SCROLL_SPEED = 5000
+
 
 # simple wrapper to keep the screen resizeable
 def init_screen(width, height):
@@ -34,7 +46,11 @@ class ScrollTest:
         map_data = pyscroll.TiledMapData(tmx_data)
 
         # create new renderer
-        # currently, pyscroll only has one renderer, the BufferedRenderer
+        # pyscroll only has two renderers: BufferedRenderer
+        #                                  ThreadedRenderer
+        # the threaded renderer is an experimental feature
+
+        #self.map_layer = pyscroll.ThreadedRenderer(map_data, screen.get_size())
         self.map_layer = pyscroll.BufferedRenderer(map_data, screen.get_size())
 
         # create a font and pre-render some text to be displayed over the map
@@ -46,8 +62,8 @@ class ScrollTest:
         self.text_overlay = [f.render(i, 1, (180, 180, 0)) for i in t]
 
         # set our initial viewpoint in the center of the map
-        self.center = [self.map_layer.pixel_width / 2,
-                       self.map_layer.pixel_height / 2]
+        self.center = [self.map_layer.rect.width / 2,
+                       self.map_layer.rect.height / 2]
 
         # the camera vector is used to handle camera movement
         self.camera_acc = [0, 0, 0]
@@ -130,14 +146,12 @@ class ScrollTest:
         self.camera_vel[0] *= friction
         self.camera_vel[1] *= friction
 
-        print(self.camera_vel, self.camera_acc)
-
         # make sure the movement vector stops when scrolling off the screen
         if self.center[0] < 0:
             self.center[0] -= self.camera_vel[0]
             self.camera_acc[0] = 0
             self.camera_vel[0] = 0
-        if self.center[0] >= self.map_layer.pixel_width:
+        if self.center[0] >= self.map_layer.rect.width :
             self.center[0] -= self.camera_vel[0]
             self.camera_acc[0] = 0
             self.camera_vel[0] = 0
@@ -146,7 +160,7 @@ class ScrollTest:
             self.center[1] -= self.camera_vel[1]
             self.camera_acc[1] = 0
             self.camera_vel[1] = 0
-        if self.center[1] >= self.map_layer.pixel_height:
+        if self.center[1] >= self.map_layer.rect.height:
             self.center[1] -= self.camera_vel[1]
             self.camera_acc[1] = 0
             self.camera_vel[1] = 0
@@ -184,18 +198,20 @@ class ScrollTest:
         except KeyboardInterrupt:
             self.running = False
 
+        self.map_layer.close()
+
 if __name__ == "__main__":
     import sys
 
     pygame.init()
     pygame.font.init()
-    screen = init_screen(900, 700)
+    screen = init_screen(800, 600)
     pygame.display.set_caption('pyscroll Test')
 
     try:
         filename = sys.argv[1]
     except IndexError:
-        print("no TMX map specified, using default")
+        logger.info("no TMX map specified, using default")
         filename = "desert.tmx"
 
     try:

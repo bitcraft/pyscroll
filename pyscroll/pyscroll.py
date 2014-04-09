@@ -1,55 +1,14 @@
 from itertools import islice, product, chain
 import pygame
+import math
+import threading
+from six.moves import filter, queue, range
 from . import quadtree
 
 
-# this image will be used when a tile cannot be loaded
-def generate_default_image(size):
-    i = pygame.Surface(size)
-    i.fill((0, 0, 0))
-    return i
+class BufferedRenderer(object):
+    """ Renderer that can be updated incrementally
 
-
-class TiledMapData:
-    def __init__(self, tmx):
-        self.tmx = tmx
-        self.default_image = generate_default_image((tmx.tilewidth, tmx.tileheight))
-
-    @property
-    def tilewidth(self):
-        return self.tmx.tilewidth
-
-    @property
-    def tileheight(self):
-        return self.tmx.tileheight
-
-    @property
-    def width(self):
-        return self.tmx.width
-
-    @property
-    def height(self):
-        return self.tmx.height
-
-    @property
-    def visible_layers(self):
-        return list(self.tmx.visible_layers)
-
-    def get_tile_image(self, position):
-        """
-        Return a surface for this position.  Returns a blank tile if cannot be loaded.
-        position is x, y, layer tuple
-        """
-
-        x, y, l = map(int, position)
-        try:
-            return self.tmx.get_tile_image(x, y, l)
-        except ValueError:
-            return self.default_image
-
-
-class BufferedRenderer:
-    """
     Base class to render a map onto a buffer that is suitable for blitting onto
     the screen as one surface, rather than a collection of tiles.
 
@@ -60,159 +19,176 @@ class BufferedRenderer:
 
     Combine with a data class to get a useful map renderer
     """
+    def __init__(self, data, size, colorkey=None, padding=4):
+        # defaults
+        self.clipping = True
+        self.flush_on_draw = True
+        self.update_rate = 25
 
-    def __init__(self, data, size, colorkey=None):
         self.colorkey = colorkey
-        self.update_rate = 100
+        self.padding = padding
+        self.lock = threading.Lock()
         self.set_data(data)
         self.set_size(size)
+        self.queue = iter([])
+
+    def close(self):
+        pass
 
     def set_data(self, data):
         self.data = data
+        self.generate_default_image()
 
     def set_size(self, size):
+        """ Set the size of the map in pixels
         """
-        Set the size of the map in pixels
+        tw = self.data.tilewidth
+        th = self.data.tileheight
 
-        This isn't a very quick operation, so try to avoid doing it often
-        """
-
-        self.view = pygame.Rect(0, 0, (size[0] / self.data.tilewidth),
-                                      (size[1] / self.data.tileheight))
-
-        buffer_width = size[0] + self.data.tilewidth * 2
-        buffer_height = size[1] + self.data.tileheight * 2
+        buffer_width = size[0] + tw * self.padding
+        buffer_height = size[1] + th * self.padding
         self.buffer = pygame.Surface((buffer_width, buffer_height))
+
+        self.view = pygame.Rect(0, 0,
+                                math.ceil(buffer_width / tw),
+                                math.ceil(buffer_height / th))
 
         if self.colorkey:
             self.buffer.set_colorkey(self.colorkey)
 
         # this is the pixel size of the entire map
         self.rect = pygame.Rect(0, 0,
-                                self.data.width * self.data.tilewidth,
-                                self.data.height * self.data.tileheight)
+                                self.data.width * tw,
+                                self.data.height * th)
 
         self.half_width = size[0] / 2
         self.half_height = size[1] / 2
 
         # quadtree is used to correctly draw tiles that cover 'sprites'
         def make_rect(x, y):
-            return pygame.Rect((x * self.data.tilewidth, y * self.data.tileheight),
-                               (self.data.tilewidth, self.data.tileheight))
+            return pygame.Rect((x * tw, y * th), (tw, th))
 
-        rects = [make_rect(x, y) for x, y in product(range(self.view.width + 2), range(self.view.height + 2))]
+        rects = [make_rect(x, y)
+                 for x, y in product(range(self.view.width),
+                                     range(self.view.height))]
 
         self.layer_quadtree = quadtree.FastQuadTree(rects, 4)
 
         self.size = size
         self.idle = False
         self.blank = True
-        self.queue = None
         self.xoffset = 0
         self.yoffset = 0
         self.old_x = 0
         self.old_y = 0
 
-    def scroll(self, vector):
-        """
-        scroll the background in pixels
-        """
+    def generate_default_image(self):
+        self.default_image = pygame.Surface((self.data.tilewidth, self.data.tileheight))
+        self.default_image.fill((0, 0, 0))
 
+    def get_tile_image(self, position):
+        try:
+            return self.data.get_tile_image(position)
+        except ValueError:
+            return self.default_image
+
+    def scroll(self, vector):
+        """ scroll the background in pixels
+        """
         self.center((int(vector[0] + self.old_x), int(vector[1] + self.old_y)))
 
     def center(self, coords):
+        """ center the map on a pixel
         """
-        center the map on a pixel
-        pixel coordinates have the origin on the upper-left corner
-        """
-
         x, y = [round(i, 0) for i in coords]
 
         if self.old_x == x and self.old_y == y:
             self.idle = True
             return
 
+        hpad = int(self.padding / 2)
+        tw = self.data.tilewidth
+        th = self.data.tileheight
+        self.idle = False
+
         # calc the new postion in tiles and offset
-        left, self.xoffset = divmod(x - self.half_width, self.data.tilewidth)
-        top, self.yoffset = divmod(y - self.half_height, self.data.tileheight)
+        left, self.xoffset = divmod(x - self.half_width, tw)
+        top, self.yoffset = divmod(y - self.half_height, th)
 
         # determine if tiles should be redrawn
-        dx = left - self.view.left
-        dy = top - self.view.top
+        dx = int(left - hpad - self.view.left)
+        dy = int(top - hpad - self.view.top)
 
-        # determine which direction the map is moving, then adjust the offsets to compensate for it
-        # make sure the leading "edge" always has extra row/column of tiles
-        if self.old_x > x:
-            if self.xoffset < self.data.tilewidth:
-                self.xoffset += self.data.tilewidth
-                dx -= 1
-
-        if self.old_y > y:
-            if self.yoffset < self.data.tileheight:
-                self.yoffset += self.data.tileheight
-                dy -= 1
+        # adjust the offsets of the buffer is placed correctly
+        #self.xoffset += (hpad / 2 - 1) * tw
+        #self.yoffset += (hpad / 2 - 1) * th
+        self.xoffset += hpad * tw
+        self.yoffset += hpad * th
 
         # adjust the view if the view has changed
-        if not (dx, dy) == (0, 0):
-            dx = int(dx)
-            dy = int(dy)
-
+        if (abs(dx) >= 1) or (abs(dy) >= 1):
             self.flush()
             self.view = self.view.move((dx, dy))
 
             # scroll the image (much faster than redrawing the tiles!)
-            self.buffer.scroll(-dx * self.data.tilewidth, -dy * self.data.tileheight)
-            self.queue_edge_tiles((dx, dy))
+            self.buffer.scroll(-dx * tw, -dy * th)
+            self.update_queue(self.get_edge_tiles((dx, dy)))
 
-            # prevent edges on the screen if moving too fast or camera is shaking
-            if (abs(dx) > 1) or (abs(dy) > 1):
-                self.flush()
-
-        self.idle = False
         self.old_x, self.old_y = x, y
 
-
-    def queue_edge_tiles(self, tiles):
+    def update_queue(self, iterator):
+        """ Add some tiles to the queue
         """
-        add the tiles on the edge that need to be redrawn to the queue.
-        for internal use
+        self.queue = chain(self.queue, iterator)
+
+    def get_edge_tiles(self, offset):
+        """ Get the tile coordinates that need to be redrawn
         """
+        x, y = map(int, offset)
+        queue = None
+        layers = len(self.data.visible_layers)
 
-        x, y = map(int, tiles)
-
-        if self.queue is None:
-            self.queue = iter([])
+        # NOTE: i'm not sure why the the -1 in right and bottom are required
+        #       for python 3.  it may have some performance implications, but
+        #       i'll benchmark it later.
 
         # right
         if x > 0:
-            p = product(range(self.view.right + 1, self.view.right - x, -1),
-                        range(self.view.top, self.view.bottom + 2),
-                        range(len(self.data.visible_layers)))
-            self.queue = chain(p, self.queue)
+            queue = product(range(self.view.right - x - 1, self.view.right),
+                            range(self.view.top, self.view.bottom),
+                            range(layers))
 
         # left
         elif x < 0:
-            p = product(range(self.view.left, self.view.left - x),
-                        range(self.view.top, self.view.bottom + 2),
-                        range(len(self.data.visible_layers)))
-            self.queue = chain(p, self.queue)
+            queue = product(range(self.view.left, self.view.left - x),
+                            range(self.view.top, self.view.bottom),
+                            range(layers))
 
         # bottom
         if y > 0:
-            p = product(range(self.view.left, self.view.right + 2),
-                        range(self.view.bottom + 1, self.view.bottom - y, -1),
-                        range(len(self.data.visible_layers)))
-            self.queue = chain(p, self.queue)
+            p = product(range(self.view.left, self.view.right),
+                        range(self.view.bottom - y - 1, self.view.bottom),
+                        range(layers))
+            if queue is None:
+                queue = p
+            else:
+                queue = chain(p, queue)
 
         # top
         elif y < 0:
-            p = product(range(self.view.left, self.view.right + 2),
+            p = product(range(self.view.left, self.view.right),
                         range(self.view.top, self.view.top - y),
-                        range(len(self.data.visible_layers)))
-            self.queue = chain(p, self.queue)
+                        range(layers))
+            if queue is None:
+                queue = p
+            else:
+                queue = chain(p, queue)
+
+        return queue
 
     def update(self, dt=None):
-        """
+        """ Draw tiles in the background
+
         the drawing operations and management of the buffer is handled here.
         if you are updating more than drawing, then updating here will draw
         off screen tiles.  this will limit expensive tile blits during screen
@@ -220,61 +196,64 @@ class BufferedRenderer:
         not benefit from updates, but it won't hurt either.
         """
 
-        if self.queue:
-            self.blit_tiles(islice(self.queue, self.update_rate))
+        self.blit_tiles(islice(self.queue, self.update_rate))
 
     def draw(self, surface, rect, surfaces=[]):
-        """
-        draw the map onto a surface.
+        """ Draw the map onto a surface
 
         pass a rect that defines the draw area for:
             dirty screen update support
             drawing to an area smaller that the whole window/screen
 
         surfaces may optionally be passed that will be blited onto the surface.
-        this must be a list of tuples containing:
-            an image, rect in screen coordinates, and layer number
-        surfaces will be drawn in order passed, and will be correctly drawn
-        with tiles from a higher layer overlaping the surface.
+        this must be a list of tuples containing a layer number, image, and
+        rect in screen coordinates.  surfaces will be drawn in order passed,
+        and will be correctly drawn with tiles from a higher layer overlap
+        the surface.
         """
 
         if self.blank:
-            self.redraw()
             self.blank = False
+            self.redraw()
 
+        get_tile = self.get_tile_image
         surblit = surface.blit
         left, top = self.view.topleft
         ox, oy = self.xoffset, self.yoffset
-        get_tile = self.data.get_tile_image
-
-        # need to set clipping otherwise the map will draw outside the surface
-        original_clip = surface.get_clip()
-        surface.set_clip(rect)
         ox -= rect.left
         oy -= rect.top
 
-        # make sure all the tiles are drawn before drawing
-        self.flush()
+        if self.flush_on_draw:
+            self.flush()
 
-        # blit the entire map to the surface using the scrolling offset
-        surblit(self.buffer, (-ox, -oy))
+        with self.lock:
+            # need to set clipping otherwise the map will draw
+            # outside its defined area
+            if self.clipping:
+                original_clip = surface.get_clip()
+                surface.set_clip(rect)
 
-        # TODO: new sorting method for surfaces
-        # TODO: make sure to filter out surfaces outside the screen
-        dirty = [(surblit(a[0], a[1]), a[2]) for a in surfaces]
+            # draw the entire map to the surface,
+            # taking in account the scrolling offset
+            surblit(self.buffer, (-ox, -oy))
 
-        # redraw tiles that overlap surfaces that were passed in
-        for dirty_rect, layer in dirty:
-            dirty_rect = dirty_rect.move(ox, oy)
-            for r in self.layer_quadtree.hit(dirty_rect):
-                x, y, tw, th = r
-                layers = range(layer + 1, len(self.data.visible_layers))
-                for l in layers:
-                    tile = get_tile((x / tw + left, y / th + top, l))
-                    if tile:
-                        surblit(tile, (x - ox, y - oy))
+            # TODO: new sorting method for surfaces
+            # TODO: make sure to filter out surfaces outside the screen
+            dirty = [(surblit(a[0], a[1]), a[2]) for a in surfaces]
 
-        surface.set_clip(original_clip)
+            # redraw tiles that overlap surfaces that were passed in
+            for dirty_rect, layer in dirty:
+                dirty_rect = dirty_rect.move(ox, oy)
+                for r in self.layer_quadtree.hit(dirty_rect):
+                    x, y, tw, th = r
+                    layers = range(layer + 1, len(self.data.visible_layers))
+                    for l in layers:
+                        tile = get_tile((x / tw + left, y / th + top, l))
+                        if tile:
+                                surblit(tile, (x - ox, y - oy))
+
+            if self.clipping:
+                surface.set_clip(original_clip)
 
         if self.idle:
             return [i[0] for i in dirty]
@@ -282,52 +261,114 @@ class BufferedRenderer:
             return [rect]
 
     def flush(self):
+        """ Blit the tiles and block until the tile queue is empty
         """
-        draw all tiles that are sitting in the queue
-        """
-
         if self.queue:
             self.blit_tiles(self.queue)
-            self.queue = None
 
     def blit_tiles(self, iterator):
+        """ Bilts (x, y, layer) tuples to buffer from iterator
         """
-        Accepts an iterator of (x, y, layer) tuples and blits them to the buffer
-        """
-
         tw = self.data.tilewidth
         th = self.data.tileheight
         blit = self.buffer.blit
         ltw = self.view.left * tw
         tth = self.view.top * th
-        get_tile = self.data.get_tile_image
+        get_tile = self.get_tile_image
 
-        if self.colorkey:
-            fill = self.buffer.fill
-            old_tiles = set()
-            for x, y, l in iterator:
-                tile = get_tile((x, y, l))
-                if tile:
-                    if l == 0:
-                        fill(self.colorkey, (x*tw-ltw, y*th-tth, tw, th))
-                    old_tiles.add((x, y, l))
-                    blit(tile, (x*tw-ltw, y*th-tth))
-                else:
-                    if (x, y, l-1) not in old_tiles:
-                        fill(self.colorkey, (x*tw-ltw, y*th-tth, tw, th))
-        else:
-            images = filter(lambda x: x[1], ((i, get_tile(i)) for i in iterator))
-            [blit(image, (x*tw-ltw, y*th-tth)) for ((x,y,l), image) in images]
+        with self.lock:
+            if self.colorkey:
+                fill = self.buffer.fill
+                old_tiles = set()
+                for x, y, l in iterator:
+                    tile = get_tile((x, y, l))
+                    if tile:
+                        if l == 0:
+                            fill(self.colorkey, (x*tw-ltw, y*th-tth, tw, th))
+                        old_tiles.add((x, y, l))
+                        blit(tile, (x*tw-ltw, y*th-tth))
+                    else:
+                        if (x, y, l-1) not in old_tiles:
+                            fill(self.colorkey, (x*tw-ltw, y*th-tth, tw, th))
+            else:
+                images = filter(lambda x: x[1], ((i, get_tile(i)) for i in iterator))
+                [blit(image, (x*tw-ltw, y*th-tth)) for ((x,y,l), image) in images]
 
     def redraw(self):
+        """ redraw the visible portion of the buffer -- it is slow.
         """
-        redraw the visible portion of the buffer -- it is slow.
+        queue = product(range(self.view.left, self.view.right),
+                        range(self.view.top, self.view.bottom),
+                        range(len(self.data.visible_layers)))
 
-        should be called right after the map is created to initialize the the buffer.
-        will be slow, you've been warned.
-        """
-
-        self.queue = product(range(self.view.left, self.view.right + 2),
-                             range(self.view.top, self.view.bottom + 2),
-                             range(len(self.data.visible_layers)))
+        self.update_queue(queue)
         self.flush()
+
+
+class ThreadedRenderer(BufferedRenderer):
+    """ Off-screen tiling is handled in a thread
+
+    This class MUST be closed before the program terminates, or the thread will
+    never close and you will have a bad time.
+    """
+    def __init__(self, *args, **kwargs):
+        BufferedRenderer.__init__(self, *args, **kwargs)
+        self.queue = queue.Queue()
+        self.thread = threading.Thread(target=tile_thread, args=(self,))
+        self.thread.start()
+
+    def update(self, dt=None):
+        pass
+
+    def flush(self):
+        self.queue.join()
+
+    def update_queue(self, iterator):
+        [self.queue.put(i) for i in iterator]
+
+    def close(self):
+        """ Stop the thread that is running in the background
+        """
+        self.thread.running = False
+
+
+def tile_thread(renderer):
+    """ poll the tile queue for new tiles and draw them to the buffer
+    """
+    tw = renderer.data.tilewidth
+    th = renderer.data.tileheight
+    get_tile = renderer.get_tile_image
+    blit = renderer.buffer.blit
+    colorkey = renderer.colorkey
+    fill = renderer.buffer.fill
+    queue = renderer.queue
+    lock = renderer.lock
+
+    running = 1
+
+    while running:
+        x, y, l = queue.get()
+
+        ltw = renderer.view.left * tw
+        tth = renderer.view.top * th
+        old_tiles = set()
+
+        if renderer.colorkey:
+            tile = get_tile((x, y, l))
+            if tile:
+                with lock:
+                    if l == 0:
+                        fill(colorkey, (x*tw-ltw, y*th-tth, tw, th))
+                    old_tiles.add((x, y, l))
+                    blit(tile, (x*tw-ltw, y*th-tth))
+            else:
+                if (x, y, l-1) not in old_tiles:
+                    with lock:
+                        fill(colorkey, (x*tw-ltw, y*th-tth, tw, th))
+        else:
+            tile = get_tile((x, y, l))
+            if tile:
+                with lock:
+                    blit(tile, (x*tw-ltw, y*th-tth))
+
+        queue.task_done()

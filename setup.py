@@ -1,28 +1,24 @@
 #!/usr/bin/env python
 #encoding: utf-8
 
-import os
 from setuptools import setup
-import pyscroll
 
-
-def read(file_name):
-    with open(os.path.join(os.path.dirname(__file__), file_name)) as fd:
-        return fd.read()
-
-
-setup(name="pyscroll",
-      version=pyscroll.__version__,
-      description='Tilemap scrolling utils',
-      author=pyscroll.__author__,
-      packages=['pyscroll'],
-      install_requires=['pygame'],
-      license="LGPLv3",
-      long_description='https://github.com/bitcraft/pyscroll',
+setup(name='pyscroll',
+      version='2.08',
+      description='Scrolling library for pygame and python 2.7 & 3.3',
+      author='bitcraft',
+      author_email='leif.theden@gmail.com',
+      packages=['pyscroll', 'tests'],
+      install_requires=['pygame', 'six'],
+      license='LGPLv3',
+      long_description='see README.md',
+      package_data={
+          'pyscroll': ['LICENSE', 'README.md']},
       classifiers=[
           "Intended Audience :: Developers",
           "Development Status :: 4 - Beta",
           "License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)",
+          "Programming Language :: Python :: 2.7",
           "Programming Language :: Python :: 3.3",
           "Topic :: Games/Entertainment",
           "Topic :: Multimedia :: Graphics",
