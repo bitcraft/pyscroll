@@ -7,6 +7,7 @@ import os.path
 import pytmx
 import pygame
 import pyscroll
+import pyscroll.data
 from pyscroll.util import PyscrollGroup
 from pygame.locals import *
 
@@ -59,7 +60,7 @@ class QuestGame:
         tmx_data = pytmx.load_pygame(self.filename)
 
         # create new data source for pyscroll
-        map_data = pyscroll.TiledMapData(tmx_data)
+        map_data = pyscroll.data.TiledMapData(tmx_data)
 
         # create new renderer
         self.map_layer = pyscroll.BufferedRenderer(map_data, screen.get_size())

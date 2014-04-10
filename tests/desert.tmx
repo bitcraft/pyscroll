@@ -5,7 +5,19 @@
  </tileset>
  <layer name="Ground" width="40" height="40">
   <data encoding="base64" compression="gzip">
-   H4sIAAAAAAAAC+2Y207CQBCGR7nwQAIeEhGNiFYRD2Df/+kcQidtJuvu7HSmtpGLL6Fhy377d7qdsgCAhSMTZIpcOM+jYRvwe+yB11Dy22V1g8yQ2x74hDhCjpER8/aYa47cZXCPnCHnyLiDLJ6Q5wwKR791xO8F+UBe/9Avll8hzLMLv5Wx39bAqWRe3O8L9vW/6Tg/XnP8OJUXr0sLv9B9sGb50eeUH8/VKr83dkw+ufl5X1/uyXmvrp+UTwO/k4pTqJ9FMUbCccRDS78p1P0FrTXGWDgudJ7Eh+8/M6j7i0vkKsG1cFzoPM/ak66daPtbSwj3Ob95Suf8NnBrOlrk1nQj+Hea3szKK5Yf5S7ZO5vPn0I5vxaJ386prMaG/FJ99wrCfYMkUws/CVI/Xteefql7SPK+I/Fr9hdd1R/dL5reImf9bbLT+pWG83v4aebR7uea3szDYwho9khimTme19+Qc83NjWfVt/8Gra7xgQP/lR9YXkJdABkAAA==
+   H4sIAAAAAAAAA+2Y207CQBCGR7nwQAIeEhGNiFYRD2Df/+kcQidtJuvu7HSmtpGLL6Fhy377d7qdsgCAhSMTZIpcOM+jYRvwe+yB11Dy22V1g8yQ2x74hDhCjpER8/aYa47cZXCPnCHnyLiDLJ6Q5wwKR791xO8F+UBe/9Avll8hzLMLv5Wx39bAqWRe3O8L9vW/6Tg/XnP8OJUXr0sLv9B9sGb50eeUH8/VKr83dkw+ufl5X1/uyXmvrp+UTwO/k4pTqJ9FMUbCccRDS78p1P0FrTXGWDgudJ7Eh+8/M6j7i0vkKsG1cFzoPM/ak66daPtbSwj3Ob95Suf8NnBrOlrk1nQj+Hea3szKK5Yf5S7ZO5vPn0I5vxaJ386prMaG/FJ99wrCfYMkUws/CVI/Xteefql7SPK+I/Fr9hdd1R/dL5reImf9bbLT+pWG83v4aebR7uea3szDYwho9khimTme19+Qc83NjWfVt/8Gra7xgQP/lR9YXkJdABkAAA==
   </data>
  </layer>
+ <objectgroup name="Object Layer 1" width="40" height="40">
+  <object x="160" y="768">
+   <polyline points="0,0 128,-96 320,0 384,96 160,192 192,32 0,0"/>
+  </object>
+  <object x="896" y="480" width="192" height="160"/>
+  <object x="128" y="288">
+   <polygon points="0,0 32,192 224,96 160,-96 32,-96"/>
+  </object>
+  <object x="1024" y="256">
+   <polygon points="0,0 -96,64 -32,96 -32,192 64,192 160,160 160,64 96,0 96,-96"/>
+  </object>
+ </objectgroup>
 </map>

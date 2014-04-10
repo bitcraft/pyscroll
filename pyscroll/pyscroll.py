@@ -1,5 +1,6 @@
 from itertools import islice, product, chain
 import pygame
+import pygame.gfxdraw
 import math
 import threading
 from six.moves import filter, queue, range
@@ -17,6 +18,8 @@ class BufferedRenderer(object):
     This class works well for maps that operate on a small display and where
     the map is much larger than the display.
 
+    NOTE: you will get poor performance if the map is smaller than the display.
+
     Combine with a data class to get a useful map renderer
     """
     def __init__(self, data, size, colorkey=None, padding=4):
@@ -31,9 +34,6 @@ class BufferedRenderer(object):
         self.set_data(data)
         self.set_size(size)
         self.queue = iter([])
-
-    def close(self):
-        pass
 
     def set_data(self, data):
         self.data = data
@@ -145,8 +145,8 @@ class BufferedRenderer(object):
         """ Get the tile coordinates that need to be redrawn
         """
         x, y = map(int, offset)
+        layers = list(self.data.visible_tile_layers)
         queue = None
-        layers = len(self.data.visible_layers)
 
         # NOTE: i'm not sure why the the -1 in right and bottom are required
         #       for python 3.  it may have some performance implications, but
@@ -156,19 +156,19 @@ class BufferedRenderer(object):
         if x > 0:
             queue = product(range(self.view.right - x - 1, self.view.right),
                             range(self.view.top, self.view.bottom),
-                            range(layers))
+                            layers)
 
         # left
         elif x < 0:
             queue = product(range(self.view.left, self.view.left - x),
                             range(self.view.top, self.view.bottom),
-                            range(layers))
+                            layers)
 
         # bottom
         if y > 0:
             p = product(range(self.view.left, self.view.right),
                         range(self.view.bottom - y - 1, self.view.bottom),
-                        range(layers))
+                        layers)
             if queue is None:
                 queue = p
             else:
@@ -178,7 +178,7 @@ class BufferedRenderer(object):
         elif y < 0:
             p = product(range(self.view.left, self.view.right),
                         range(self.view.top, self.view.top - y),
-                        range(layers))
+                        layers)
             if queue is None:
                 queue = p
             else:
@@ -195,7 +195,6 @@ class BufferedRenderer(object):
         draws.  if your draw and update happens every game loop, then you will
         not benefit from updates, but it won't hurt either.
         """
-
         self.blit_tiles(islice(self.queue, self.update_rate))
 
     def draw(self, surface, rect, surfaces=[]):
@@ -211,7 +210,6 @@ class BufferedRenderer(object):
         and will be correctly drawn with tiles from a higher layer overlap
         the surface.
         """
-
         if self.blank:
             self.blank = False
             self.redraw()
@@ -246,11 +244,14 @@ class BufferedRenderer(object):
                 dirty_rect = dirty_rect.move(ox, oy)
                 for r in self.layer_quadtree.hit(dirty_rect):
                     x, y, tw, th = r
-                    layers = range(layer + 1, len(self.data.visible_layers))
+                    layers = filter(lambda x: x > layer,
+                                    self.data.visible_tile_layers)
+
                     for l in layers:
-                        tile = get_tile((x / tw + left, y / th + top, l))
+                        tile = get_tile((int(x / tw + left),
+                                         int(y / th + top), int(l)))
                         if tile:
-                                surblit(tile, (x - ox, y - oy))
+                            surblit(tile, (x - ox, y - oy))
 
             if self.clipping:
                 surface.set_clip(original_clip)
@@ -263,8 +264,63 @@ class BufferedRenderer(object):
     def flush(self):
         """ Blit the tiles and block until the tile queue is empty
         """
-        if self.queue:
-            self.blit_tiles(self.queue)
+        self.blit_tiles(self.queue)
+        self.draw_objects()
+
+
+    def draw_objects(self):
+        """ Totally unoptimized drawing of objects to the map
+        """
+        TEXTURE = self.data.tmx.images[2]
+
+        tw = self.data.tilewidth
+        th = self.data.tileheight
+        poly = pygame.gfxdraw.textured_polygon
+        lines = pygame.draw.lines
+        rect = pygame.draw.rect
+        buff = self.buffer
+        blit = buff.blit
+
+        #ox, oy = self.xoffset, self.yoffset
+        ox = self.view.left * tw
+        oy = self.view.top * th
+
+        color = (0, 255, 0)
+        width = 2
+
+        def to_buffer(pt):
+            return pt[0] - ox,  pt[1] - oy
+
+        for layer in self.data.tmx.objectgroups:
+            for o in layer:
+                if hasattr(o, 'points'):
+                    ps = [to_buffer(i) for i in o.points]
+
+                    if o.closed:
+                        try:
+                            poly(buff, ps, TEXTURE, tw, th)
+
+                        # happens when attempting to draw offscreen
+                        except pygame.error:
+                            pass
+                    else:
+                        lines(buff, color, o.closed, ps, width)
+                elif o.gid:
+                    tile = self.data.tmx.getTileImageByGid(o.gid)
+                    if tile:
+                        pt = to_buffer((o.x, o.y))
+                        blit(tile, pt)
+                else:
+                    x, y = to_buffer((o.x, o.y))
+                    try:
+                        poly(buff,
+                             ((x, y), (x + o.width, y),
+                             (x + o.width, y + o.height), (x, y + o.height)),
+                             TEXTURE,
+                             tw, th)
+                    except pygame.error:
+                        pass
+
 
     def blit_tiles(self, iterator):
         """ Bilts (x, y, layer) tuples to buffer from iterator
@@ -276,30 +332,31 @@ class BufferedRenderer(object):
         tth = self.view.top * th
         get_tile = self.get_tile_image
 
-        with self.lock:
-            if self.colorkey:
-                fill = self.buffer.fill
-                old_tiles = set()
-                for x, y, l in iterator:
-                    tile = get_tile((x, y, l))
-                    if tile:
-                        if l == 0:
-                            fill(self.colorkey, (x*tw-ltw, y*th-tth, tw, th))
-                        old_tiles.add((x, y, l))
-                        blit(tile, (x*tw-ltw, y*th-tth))
-                    else:
-                        if (x, y, l-1) not in old_tiles:
-                            fill(self.colorkey, (x*tw-ltw, y*th-tth, tw, th))
-            else:
-                images = filter(lambda x: x[1], ((i, get_tile(i)) for i in iterator))
-                [blit(image, (x*tw-ltw, y*th-tth)) for ((x,y,l), image) in images]
+        if self.colorkey:
+            fill = self.buffer.fill
+            old_tiles = set()
+            for x, y, l in iterator:
+                tile = get_tile((x, y, l))
+                if tile:
+                    if l == 0:
+                        fill(self.colorkey, (x*tw-ltw, y*th-tth, tw, th))
+                    old_tiles.add((x, y, l))
+                    blit(tile, (x*tw-ltw, y*th-tth))
+                else:
+                    if (x, y, l-1) not in old_tiles:
+                        fill(self.colorkey, (x*tw-ltw, y*th-tth, tw, th))
+        else:
+            for x, y, l in iterator:
+                tile = get_tile((x, y, l))
+                if tile:
+                    blit(tile, (x*tw-ltw, y*th-tth))
 
     def redraw(self):
         """ redraw the visible portion of the buffer -- it is slow.
         """
         queue = product(range(self.view.left, self.view.right),
                         range(self.view.top, self.view.bottom),
-                        range(len(self.data.visible_layers)))
+                        self.data.visible_tile_layers)
 
         self.update_queue(queue)
         self.flush()
@@ -313,8 +370,10 @@ class ThreadedRenderer(BufferedRenderer):
     """
     def __init__(self, *args, **kwargs):
         BufferedRenderer.__init__(self, *args, **kwargs)
+        self.flush_on_draw = False
         self.queue = queue.Queue()
-        self.thread = threading.Thread(target=tile_thread, args=(self,))
+
+        self.thread = TileThread(renderer=self)
         self.thread.start()
 
     def update(self, dt=None):
@@ -324,51 +383,61 @@ class ThreadedRenderer(BufferedRenderer):
         self.queue.join()
 
     def update_queue(self, iterator):
-        [self.queue.put(i) for i in iterator]
-
-    def close(self):
-        """ Stop the thread that is running in the background
-        """
-        self.thread.running = False
+        for i in iterator:
+            self.queue.put(i)
 
 
-def tile_thread(renderer):
+class TileThread(threading.Thread):
     """ poll the tile queue for new tiles and draw them to the buffer
     """
-    tw = renderer.data.tilewidth
-    th = renderer.data.tileheight
-    get_tile = renderer.get_tile_image
-    blit = renderer.buffer.blit
-    colorkey = renderer.colorkey
-    fill = renderer.buffer.fill
-    queue = renderer.queue
-    lock = renderer.lock
+    def __init__(self, *args, **kwargs):
+        threading.Thread.__init__(self)
+        self.renderer = kwargs.get('renderer')
+        self.daemon = True
 
-    running = 1
+    def run(self):
+        r = self.renderer
 
-    while running:
-        x, y, l = queue.get()
-
-        ltw = renderer.view.left * tw
-        tth = renderer.view.top * th
+        tw = r.data.tilewidth
+        th = r.data.tileheight
+        get_tile = r.get_tile_image
+        colorkey = r.colorkey
+        tile_queue = r.queue
+        lock = r.lock
         old_tiles = set()
+        old_view = None
 
-        if renderer.colorkey:
-            tile = get_tile((x, y, l))
-            if tile:
-                with lock:
-                    if l == 0:
-                        fill(colorkey, (x*tw-ltw, y*th-tth, tw, th))
-                    old_tiles.add((x, y, l))
-                    blit(tile, (x*tw-ltw, y*th-tth))
-            else:
-                if (x, y, l-1) not in old_tiles:
+        running = 1
+
+        while running:
+            x, y, l = tile_queue.get()
+
+            # pyscroll may change these references to another object
+            # so, while we are defrencing them, we need to create new
+            # references if they change.
+            if old_view is not r.view:
+                fill = r.buffer.fill
+                blit = r.buffer.blit
+                ltw = r.view.left * tw
+                tth = r.view.top * th
+                old_tiles = set()
+
+            if colorkey:
+                tile = get_tile((x, y, l))
+                if tile:
                     with lock:
-                        fill(colorkey, (x*tw-ltw, y*th-tth, tw, th))
-        else:
-            tile = get_tile((x, y, l))
-            if tile:
-                with lock:
-                    blit(tile, (x*tw-ltw, y*th-tth))
+                        if l == 0:
+                            fill(colorkey, (x*tw-ltw, y*th-tth, tw, th))
+                        old_tiles.add((x, y, l))
+                        blit(tile, (x*tw-ltw, y*th-tth))
+                else:
+                    if (x, y, l-1) not in old_tiles:
+                        with lock:
+                            fill(colorkey, (x*tw-ltw, y*th-tth, tw, th))
+            else:
+                tile = get_tile((x, y, l))
+                if tile:
+                    with lock:
+                        blit(tile, (x*tw-ltw, y*th-tth))
 
-        queue.task_done()
+            tile_queue.task_done()
