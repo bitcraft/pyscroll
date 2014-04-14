@@ -227,6 +227,7 @@ class BufferedRenderer(object):
         with self.lock:
             # need to set clipping otherwise the map will draw
             # outside its defined area
+            original_clip = None
             if self.clipping:
                 original_clip = surface.get_clip()
                 surface.set_clip(rect)
@@ -267,10 +268,11 @@ class BufferedRenderer(object):
         self.blit_tiles(self.queue)
         self.draw_objects()
 
-
     def draw_objects(self):
         """ Totally unoptimized drawing of objects to the map
         """
+
+        # HACK: util thiere is a clean methos for picking GID for a polygon
         TEXTURE = self.data.tmx.images[2]
 
         tw = self.data.tilewidth
@@ -300,7 +302,7 @@ class BufferedRenderer(object):
                         try:
                             poly(buff, ps, TEXTURE, tw, th)
 
-                        # happens when attempting to draw offscreen
+                        # happens when attempting to draw off-screen
                         except pygame.error:
                             pass
                     else:
@@ -320,7 +322,6 @@ class BufferedRenderer(object):
                              tw, th)
                     except pygame.error:
                         pass
-
 
     def blit_tiles(self, iterator):
         """ Bilts (x, y, layer) tuples to buffer from iterator
@@ -364,9 +365,6 @@ class BufferedRenderer(object):
 
 class ThreadedRenderer(BufferedRenderer):
     """ Off-screen tiling is handled in a thread
-
-    This class MUST be closed before the program terminates, or the thread will
-    never close and you will have a bad time.
     """
     def __init__(self, *args, **kwargs):
         BufferedRenderer.__init__(self, *args, **kwargs)
