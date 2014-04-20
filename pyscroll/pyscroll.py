@@ -272,7 +272,7 @@ class BufferedRenderer(object):
         """ Totally unoptimized drawing of objects to the map
         """
 
-        # HACK: util thiere is a clean methos for picking GID for a polygon
+        # HACK: util there is a clean methods for picking GID for a polygon
         TEXTURE = self.data.tmx.images[2]
 
         tw = self.data.tilewidth
@@ -294,7 +294,13 @@ class BufferedRenderer(object):
             return pt[0] - ox,  pt[1] - oy
 
         for layer in self.data.tmx.objectgroups:
+            if not layer.visible:
+                continue
+
             for o in layer:
+                if not o.visible:
+                    continue
+
                 if hasattr(o, 'points'):
                     ps = [to_buffer(i) for i in o.points]
 
