@@ -5,12 +5,30 @@
  </tileset>
  <layer name="Ground" width="40" height="40">
   <data encoding="base64" compression="gzip">
-   H4sIAAAAAAAAC+2Y2QrCMBBFo31wA+sCrlirdd/q/3+dIzZUhtAmMRlH6cPBBlJyvDO2g5EQIvJIFwiBnudzbLgp/JYMvH4lv2dWI2AMTBj4qKgBdSBA3j7OmgIzA+ZAC2gDHYIsVsDagMSj36HAbwOcgO0X/YrySzTzpPDbMfS7Iy/sdxGv/r8S++Gew+uyvHBfuvBT/Q4OKD95XeaHc3WV3x6tpY9pfr7riz0xx6x+upwd+DUymiJ/FxURaO6TLD70C0U+X8jvWkRHc5/qPhu/scjniz4wKGGouU91n8/eoyYW6jmHk2dM6GMzm1F43bJPnWfn+/sncXS+Ljp+T6d7tpfSL2Xoh/uam59Nfd/nCyq/1MAPZ8ktP1WtOftR5mczm1H6/QsxA4dfAWfF7b/BqsYVFZ/xABSXR5cAGQAA
+   H4sIAAAAAAAAA92Yyw6CMBBFqyx8kIiPRNyIXSkr4P+/ziGRQJqhjNMHA5OcRMMAh9s2FgulVBGQE5AB58D34VAhfi8BXkvJr83qDuTAQ4APxgbYAonhHeJenDoARyCNkEVMv/fE8XJmP9f8qL6h/YY5S/FrFD7+nKL4aaKXOefM76H8bGOGrYPS6Ok+x/Iz+Yz4h8pPe/KMNf9s7H7sVf9bZCMh9nU8Hf0y1e8vume1kRL7sPM4frnq9xcX4DrBjdiHncddH5S5Fxut8H2OJE/N8OHu3TgVI4NKuN+/+TUz+NWe/Hy+F5jz2ocfhrYcm9qDc/yG5ZoRxa+e0S/E+hhWg1xHj1zfdW5ySnp+Mf3WghbgEAPqerH1mVmN9WLvamsb49D/i0rITWIuc+ZHfbaljl3LFxNcc5oAGQAA
   </data>
  </layer>
  <layer name="Top" width="40" height="40">
   <data encoding="base64" compression="gzip">
-   H4sIAAAAAAAAC+3UOwqAMBBF0dmGWvkr4gfc/+p8MlZp1CbE4R54XYpLIDEDAAAAgFgarf2wrnBfrw0Pm7RFm7Wxwr6r6bjP0hevbzN/G3ulffld0vefvmT+t73dWrgPABDLCdN0CXoAGQAA
+   H4sIAAAAAAAAA+2WWwqAIBBF3UYFQVkfvfa/vQQJBklyNJ/cA5fw73AbdIQAtTB6flPSkhvXsVPpGRl+cOQwqcyMyEA3ruPjt6jsKivTL6Yb9ZPGubT+fP1iulGfU+j5v5h+qfqzxZzLXP3ZYvZaWn+5528T+v+55gh0q+GNS0kN/YE2+WM3i4nL3Unfn7e7M7cf3Tvg154f3S9K9PvaLeBXrl/obgYAAABwuAH+v1XjABkAAA==
   </data>
  </layer>
+ <objectgroup name="Object Layer 1" width="40" height="40">
+  <object x="160" y="800">
+   <properties>
+    <property name="texture" value="34"/>
+   </properties>
+   <polygon points="0,0 160,-128 416,-32 448,128 320,160 160,320 -96,192"/>
+  </object>
+  <object x="544" y="1120">
+   <polygon points="0,0 128,-128 448,-64 448,64 224,128 96,96 -192,128 -128,-32"/>
+  </object>
+  <object x="32" y="32" width="96" height="96">
+   <ellipse/>
+  </object>
+  <object x="160" y="32" width="96" height="96"/>
+  <object x="1120" y="1024">
+   <polyline points="0,0 -32,96 96,160 -32,192 -128,224 -96,160"/>
+  </object>
+ </objectgroup>
 </map>

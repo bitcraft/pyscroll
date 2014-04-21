@@ -1,69 +1,78 @@
-import six
 import pygame
+import pygame.gfxdraw
 
-__all__ = ['TiledMapData', 'LegacyTiledMapData', 'PyscrollGroup']
+__all__ = ['PyscrollGroup', 'draw_shapes']
 
 
-class TiledMapData(object):
-    """ For PyTMX 3.x and 6.x
+def draw_shapes(tmx_data):
+    """ create a new tile layer from a shape layer
+    totally not working
     """
+    import itertools
+    import pytmx
+    import array
 
-    def __init__(self, tmx):
-        self.tmx = tmx
+    cache = []
+    def check_cache(surface, gid):
+        def compare(s0, s1):
+            return s0 == s1
 
-    @property
-    def tilewidth(self):
-        return self.tmx.tilewidth
+        for other in cache:
+            h = hash(pygame.image.tostring(surface, 'RGB'))
+            if compare(surface, other[0]):
+                return other
 
-    @property
-    def tileheight(self):
-        return self.tmx.tileheight
+        cache.append((surface, gid))
+        return surface, gid
 
-    @property
-    def width(self):
-        return self.tmx.width
+    colorkey = (255, 0 , 255)
 
-    @property
-    def height(self):
-        return self.tmx.height
+    size = (int(tmx_data.width * tmx_data.tilewidth),
+            int(tmx_data.height * tmx_data.tileheight))
 
-    @property
-    def visible_layers(self):
-        return list(self.tmx.visible_layers)
+    tw, th = tmx_data.tilewidth, tmx_data.tileheight
 
-    def get_tile_image(self, position):
-        """ Return a surface for this position.
+    surface = pygame.Surface(size)
+    surface.fill(colorkey)
+    surface.set_colorkey(colorkey)
 
-        Returns a blank tile if cannot be loaded.
-        position is x, y, layer tuple
-        """
+    TEXTURE = tmx_data.images[2]
 
-        x, y, l = position
-        return self.tmx.get_tile_image(x, y, l)
+    for layer in tmx_data.objectgroups:
+        draw(surface, tmx_data, *layer)
+        for o in layer:
+            if hasattr(o, 'points'):
+                if o.closed:
+                    pygame.gfxdraw.textured_polygon(surface, o.points, TEXTURE, tw, th)
+                else:
+                    pygame.draw.lines(surface, (255, 128, 128), o.closed, o.points, 2)
+            elif o.gid:
+                tile = tmx_data.getTileImageByGid(o.gid)
+                if tile:
+                    surface.blit(tile, (o.x, o.y))
+            else:
+                pygame.draw.rect(surface, (255, 128, 128), (o.x, o.y, o.width, o.height), 2)
 
+        p = itertools.product(range(tmx_data.height),
+                              range(tmx_data.width))
 
-class LegacyTiledMapData(TiledMapData):
-    """ For PyTMX 2.x series
-    """
+        new_layer = pytmx.TiledLayer()
+        new_layer.visible = 1
+        new_layer.data = tuple(array.array('H', [0]*tmx_data.width)
+                               for i in range(tmx_data.height))
 
-    @property
-    def visible_layers(self):
-        return self.tmx.visibleTileLayers
+        tmx_data.addTileLayer(new_layer)
 
-    def get_tile_image(self, position):
-        """ Return a surface for this position.
+        for y, x in p:
+            gid = len(tmx_data.images)
+            original = surface.subsurface(((x*tw, y*th), (tw, th)))
+            tile, gid = check_cache(original, gid)
+            if original is tile:
+                gid = tmx_data.register_gid(gid)
+                tile = tile.convert()
+                tmx_data.images.append(tile)
 
-        Returns a blank tile if cannot be loaded.
-        position is x, y, layer tuple
-        """
-
-        x, y, l = position
-        return self.tmx.getTileImage(x, y, l)
-
-
-# for old pytmx compatibility
-if six.PY2:
-    TiledMapData = LegacyTiledMapData
+            new_layer.data[y][x] = gid
 
 
 class PyscrollGroup(pygame.sprite.LayeredUpdates):
@@ -93,7 +102,6 @@ class PyscrollGroup(pygame.sprite.LayeredUpdates):
         Group.draw(surface): return None
         Draws all of the member sprites onto the given surface.
         """
-
         xx = -self._center[0] + self._map_layer.half_width
         yy = -self._center[1] + self._map_layer.half_height
 

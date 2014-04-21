@@ -1,12 +1,16 @@
 """
-This is tested on pygame 1.9 and python 3.3.
+This is tested on pygame 1.9 and python 3.3 & 2.7.
 bitcraft (leif dot theden at gmail.com)
 
 Simple rendering demo for the pyscroll.
+
+Use the arrow keys to smoothly scroll the map.
+Window is resizable.
 """
 import pytmx
 import pygame
 import pyscroll
+import pyscroll.data
 import collections
 import logging
 from pygame.locals import *
@@ -34,8 +38,7 @@ class ScrollTest:
     """ Test and demo of pyscroll
 
     Using this class as a guide, you can adopt pyscroll into your new or
-    existing game or app.  I'm using PyTMX as that data provider, but you are
-    free to use and data source that conforms the the pyscroll data api.
+    existing game or app.  I'm using PyTMX as that data provider.
     """
     def __init__(self, filename):
 
@@ -43,12 +46,13 @@ class ScrollTest:
         tmx_data = pytmx.load_pygame(filename)
 
         # create new data source
-        map_data = pyscroll.TiledMapData(tmx_data)
+        map_data = pyscroll.data.TiledMapData(tmx_data)
 
         # create new renderer
-        # pyscroll only has two renderers: BufferedRenderer
-        #                                  ThreadedRenderer
+        # pyscroll has two renderers: BufferedRenderer
+        #                             ThreadedRenderer
         # the threaded renderer is an experimental feature
+        # seems to be picky of OS and python versions
 
         #self.map_layer = pyscroll.ThreadedRenderer(map_data, screen.get_size())
         self.map_layer = pyscroll.BufferedRenderer(map_data, screen.get_size())
@@ -91,8 +95,7 @@ class ScrollTest:
     def handle_input(self):
         """ Simply handle pygame input events
         """
-        event = pygame.event.poll()
-        while event:
+        for event in pygame.event.get():
             if event.type == QUIT:
                 self.running = False
                 break
@@ -106,8 +109,6 @@ class ScrollTest:
             elif event.type == VIDEORESIZE:
                 init_screen(event.w, event.h)
                 self.map_layer.set_size((event.w, event.h))
-
-            event = pygame.event.poll()
 
         # these keys will change the camera vector
         # the camera vector changes the center of the viewport,
@@ -176,19 +177,19 @@ class ScrollTest:
         clock = pygame.time.Clock()
         self.running = True
         fps = 60.
-        fps_log = collections.deque(maxlen=30)
+        fps_log = collections.deque(maxlen=20)
 
         try:
             while self.running:
-
-                # somewhat smoother way to get fps
+                # somewhat smoother way to get fps and limit the framerate
                 clock.tick(fps*2)
+
                 try:
                     fps_log.append(clock.get_fps())
                     fps = sum(fps_log)/len(fps_log)
                     dt = 1/fps
                 except ZeroDivisionError:
-                    dt = 1/60.
+                    continue
 
                 self.handle_input()
                 self.update(dt)
@@ -198,7 +199,6 @@ class ScrollTest:
         except KeyboardInterrupt:
             self.running = False
 
-        self.map_layer.close()
 
 if __name__ == "__main__":
     import sys
