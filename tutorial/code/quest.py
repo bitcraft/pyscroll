@@ -34,9 +34,11 @@ def load_image(filename):
     return pygame.image.load(os.path.join(RESOURCES_DIR, filename))
 
 
-# this is a pretty standard pygame sprite object
-# nothing interesting here
 class Hero(pygame.sprite.Sprite):
+    """ Our Hero
+
+    This is a standard PyGame sprite object for the scrolling game.
+    """
     def __init__(self):
         pygame.sprite.Sprite.__init__(self)
         self.image = load_image('hero.png').convert_alpha()
@@ -48,13 +50,19 @@ class Hero(pygame.sprite.Sprite):
         self.rect.y += self.velocity[1] * dt
 
 
-class QuestGame:
-    """ Where you play
+class QuestGame(object):
+    """ This class is a basic game.
+
+    This class will load data, create a pyscroll group, a hero object.
+    It also reads input and moves the Hero around the map.
+    Finally, it uses a pyscroll group to render the map and Hero.
     """
     filename = get_map('desert.tmx')
 
     def __init__(self):
-        self.running = False  # true when running
+
+        # true while running
+        self.running = False
 
         # load data from pytmx
         tmx_data = pytmx.load_pygame(self.filename)
@@ -62,7 +70,7 @@ class QuestGame:
         # create new data source for pyscroll
         map_data = pyscroll.data.TiledMapData(tmx_data)
 
-        # create new renderer
+        # create new renderer (camera)
         self.map_layer = pyscroll.BufferedRenderer(map_data, screen.get_size())
 
         # use the pyscroll Group for easy rendering
@@ -76,7 +84,11 @@ class QuestGame:
         self.group.add(self.hero)
 
     def draw(self, surface):
+
+        # center the map on our Hero
         self.group.center(self.hero.rect.center)
+
+        # draw the map and all sprites
         self.group.draw(surface)
 
     def handle_input(self):
@@ -120,7 +132,6 @@ class QuestGame:
     def update(self, dt):
         """ Tasks that occur over time should be handled here
         """
-        self.map_layer.center(self.hero.rect.center)
         self.group.update(dt)
 
     def run(self):

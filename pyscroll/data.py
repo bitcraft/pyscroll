@@ -35,6 +35,11 @@ class TiledMapData(object):
     def visible_tile_layers(self):
         return (int(i) for i in self.tmx.visible_tile_layers)
 
+    @property
+    def visible_object_layers(self):
+        return (layer for layer in self.tmx.visible_layers
+                if isinstance(layer, pytmx.TiledObjectGroup))
+
     def get_tile_image(self, position):
         """ Return a surface for this position.
 
@@ -43,6 +48,11 @@ class TiledMapData(object):
         """
         x, y, l = position
         return self.tmx.get_tile_image(x, y, l)
+
+    def get_tile_image_by_gid(self, gid):
+        """ Return surface for a gid (experimental)
+        """
+        return self.tmx.get_tile_image_by_gid(gid)
 
 
 class LegacyTiledMapData(TiledMapData):
@@ -58,6 +68,10 @@ class LegacyTiledMapData(TiledMapData):
     def visible_tile_layers(self):
         return (int(i) for (i, l) in enumerate(self.tmx.visibleTileLayers))
 
+    @property
+    def visible_object_layers(self):
+        return (layer for layer in self.tmx.objectgroups if layer.visible)
+
     def get_tile_image(self, position):
         """ Return a surface for this position.
 
@@ -66,6 +80,11 @@ class LegacyTiledMapData(TiledMapData):
         """
         x, y, l = position
         return self.tmx.getTileImage(x, y, l)
+
+    def get_tile_image_by_gid(self, gid):
+        """ Return surface for a gid (experimental)
+        """
+        return self.tmx.getTileImageByGid(gid)
 
 
 # for old pytmx compatibility

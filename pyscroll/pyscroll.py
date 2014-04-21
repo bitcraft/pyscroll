@@ -27,6 +27,8 @@ class BufferedRenderer(object):
         self.clipping = True
         self.flush_on_draw = True
         self.update_rate = 25
+        self.default_shape_texture_gid = 1
+        self.default_shape_color = (0, 255, 0)
 
         self.colorkey = colorkey
         self.padding = padding
@@ -34,6 +36,7 @@ class BufferedRenderer(object):
         self.set_data(data)
         self.set_size(size)
         self.queue = iter([])
+
 
     def set_data(self, data):
         self.data = data
@@ -272,62 +275,69 @@ class BufferedRenderer(object):
         """ Totally unoptimized drawing of objects to the map
         """
 
-        # HACK: util there is a clean methods for picking GID for a polygon
-        TEXTURE = self.data.tmx.images[2]
-
         tw = self.data.tilewidth
         th = self.data.tileheight
-        poly = pygame.gfxdraw.textured_polygon
-        lines = pygame.draw.lines
-        rect = pygame.draw.rect
         buff = self.buffer
         blit = buff.blit
+        default_color = self.default_shape_color
+        get_image_by_gid = self.data.get_tile_image_by_gid
+        _draw_textured_poly = pygame.gfxdraw.textured_polygon
+        _draw_poly = pygame.draw.polygon
+        _draw_lines = pygame.draw.lines
 
-        #ox, oy = self.xoffset, self.yoffset
         ox = self.view.left * tw
         oy = self.view.top * th
 
-        color = (0, 255, 0)
-        width = 2
+        def draw_textured_poly(texture, points):
+            try:
+                _draw_textured_poly(buff, points, texture, tw, th)
+            except pygame.error:
+                pass
+
+        def draw_poly(color, points, width=0):
+            _draw_poly(buff, color, points, width)
+
+        def draw_lines(color, points, width=2):
+            _draw_lines(buff, color, False, points, width)
 
         def to_buffer(pt):
             return pt[0] - ox,  pt[1] - oy
 
-        for layer in self.data.tmx.objectgroups:
-            if not layer.visible:
-                continue
+        for layer in self.data.visible_object_layers:
+            for o in (o for o in layer if o.visible):
+                texture_gid = getattr(o, "texture", None)
+                color = getattr(o, "color", default_color)
 
-            for o in layer:
-                if not o.visible:
-                    continue
+                # BUG: this is not going to be completely accurate, because it
+                # does not take into account times where texture is flipped.
+                if texture_gid:
+                    texture_gid = self.data.tmx.map_gid(texture_gid)[0][0]
+                    texture = get_image_by_gid(int(texture_gid))
 
                 if hasattr(o, 'points'):
-                    ps = [to_buffer(i) for i in o.points]
-
+                    points = [to_buffer(i) for i in o.points]
                     if o.closed:
-                        try:
-                            poly(buff, ps, TEXTURE, tw, th)
-
-                        # happens when attempting to draw off-screen
-                        except pygame.error:
-                            pass
+                        if texture_gid:
+                            draw_textured_poly(texture, points)
+                        else:
+                            draw_poly(color, points)
                     else:
-                        lines(buff, color, o.closed, ps, width)
+                        draw_lines(color, points)
+
                 elif o.gid:
-                    tile = self.data.tmx.getTileImageByGid(o.gid)
+                    tile = get_image_by_gid(o.gid)
                     if tile:
                         pt = to_buffer((o.x, o.y))
                         blit(tile, pt)
+
                 else:
                     x, y = to_buffer((o.x, o.y))
-                    try:
-                        poly(buff,
-                             ((x, y), (x + o.width, y),
-                             (x + o.width, y + o.height), (x, y + o.height)),
-                             TEXTURE,
-                             tw, th)
-                    except pygame.error:
-                        pass
+                    points = ((x, y), (x + o.width, y),
+                              (x + o.width, y + o.height), (x, y + o.height))
+                    if texture_gid:
+                        draw_textured_poly(texture, points)
+                    else:
+                        draw_poly(color, points)
 
     def blit_tiles(self, iterator):
         """ Bilts (x, y, layer) tuples to buffer from iterator
