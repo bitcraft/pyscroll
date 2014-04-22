@@ -44,6 +44,10 @@ class Hero(pygame.sprite.Sprite):
     The Hero has three collision rects, one for the whole sprite "rect" and
     "old_rect", and another to check collisions with walls, called "feet".
 
+    The position list is used because pygame rects are inaccurate for
+    positioning sprites; because the values they get are 'rounded down' to
+    as integers, the sprite would move faster moving left or up.
+
     Feet is 1/2 as wide as the normal rect, and 8 pixels tall.  This size size
     allows the top of the sprite to overlap walls.
 
@@ -53,22 +57,33 @@ class Hero(pygame.sprite.Sprite):
     def __init__(self):
         pygame.sprite.Sprite.__init__(self)
         self.image = load_image('hero.png').convert_alpha()
-        self.rect = self.image.get_rect()
         self.velocity = [0, 0]
-        self.old_rect = self.rect
+        self._position = [0, 0]
+        self._old_position = self.position
+        self.rect = self.image.get_rect()
         self.feet = pygame.Rect(0, 0, self.rect.width * .5, 8)
 
+    @property
+    def position(self):
+        return list(self._position)
+
+    @position.setter
+    def position(self, value):
+        self._position = list(value)
+
     def update(self, dt):
-        self.old_rect = self.rect.copy()
-        self.rect.x += self.velocity[0] * dt
-        self.rect.y += self.velocity[1] * dt
+        self._old_position = self._position[:]
+        self._position[0] += self.velocity[0] * dt
+        self._position[1] += self.velocity[1] * dt
+        self.rect.topleft = self._position
         self.feet.midbottom = self.rect.midbottom
 
     def move_back(self, dt):
         """ If called after an update, the sprite can move back
         """
-        self.rect = self.old_rect
-
+        self._position = self._old_position
+        self.rect.topleft = self._position
+        self.feet.midbottom = self.rect.midbottom
 
 class QuestGame(object):
     """ This class is a basic game.
@@ -113,7 +128,7 @@ class QuestGame(object):
         self.hero = Hero()
 
         # put the hero in the center of the map
-        self.hero.rect.center = self.map_layer.rect.center
+        self.hero.position = self.map_layer.rect.center
 
         # add our hero to the group
         self.group.add(self.hero)
