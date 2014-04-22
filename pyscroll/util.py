@@ -80,7 +80,6 @@ class PyscrollGroup(pygame.sprite.LayeredUpdates):
     """
     def __init__(self, *args, **kwargs):
         pygame.sprite.LayeredUpdates.__init__(self, *args, **kwargs)
-        self._center = (0, 0)
         self._map_layer = kwargs.get('map_layer')
 
     def update(self, dt):
@@ -93,8 +92,7 @@ class PyscrollGroup(pygame.sprite.LayeredUpdates):
         The basemap and all sprites will be realigned to draw correctly.
         Centering the map will not change the rect of the sprites.
         """
-        self._center = tuple(value)
-        self._map_layer.center(self._center)
+        self._map_layer.center(value)
 
     def draw(self, surface):
         """ Draw all sprites and map onto the surface
@@ -102,8 +100,8 @@ class PyscrollGroup(pygame.sprite.LayeredUpdates):
         Group.draw(surface): return None
         Draws all of the member sprites onto the given surface.
         """
-        xx = -self._center[0] + self._map_layer.half_width
-        yy = -self._center[1] + self._map_layer.half_height
+        xx = -self._map_layer.old_x + self._map_layer.half_width
+        yy = -self._map_layer.old_y + self._map_layer.half_height
 
         spritedict = self.spritedict
         gl = self.get_layer_of_sprite

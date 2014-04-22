@@ -19,8 +19,8 @@ from pygame.locals import *
 # define configuration variables here
 RESOURCES_DIR = 'data'
 
-HERO_MOVE_SPEED = 300
-MAP_FILENAME = 'desert.tmx'
+HERO_MOVE_SPEED = 200            # pixels per second
+MAP_FILENAME = 'grasslands.tmx'
 
 
 # simple wrapper to keep the screen resizeable
@@ -41,17 +41,33 @@ def load_image(filename):
 class Hero(pygame.sprite.Sprite):
     """ Our Hero
 
-    This is a standard PyGame sprite object for the scrolling game.
+    The Hero has three collision rects, one for the whole sprite "rect" and
+    "old_rect", and another to check collisions with walls, called "feet".
+
+    Feet is 1/2 as wide as the normal rect, and 8 pixels tall.  This size size
+    allows the top of the sprite to overlap walls.
+
+    There is also an old_rect that is used to reposition the sprite if it
+    collides with level walls.
     """
     def __init__(self):
         pygame.sprite.Sprite.__init__(self)
         self.image = load_image('hero.png').convert_alpha()
         self.rect = self.image.get_rect()
         self.velocity = [0, 0]
+        self.old_rect = self.rect
+        self.feet = pygame.Rect(0, 0, self.rect.width * .5, 8)
 
     def update(self, dt):
+        self.old_rect = self.rect.copy()
         self.rect.x += self.velocity[0] * dt
         self.rect.y += self.velocity[1] * dt
+        self.feet.midbottom = self.rect.midbottom
+
+    def move_back(self, dt):
+        """ If called after an update, the sprite can move back
+        """
+        self.rect = self.old_rect
 
 
 class QuestGame(object):
@@ -61,7 +77,7 @@ class QuestGame(object):
     It also reads input and moves the Hero around the map.
     Finally, it uses a pyscroll group to render the map and Hero.
     """
-    filename = get_map('desert.tmx')
+    filename = get_map(MAP_FILENAME)
 
     def __init__(self):
 
@@ -71,14 +87,29 @@ class QuestGame(object):
         # load data from pytmx
         tmx_data = pytmx.load_pygame(self.filename)
 
+        # setup level geometry with simple pygame rects, loaded from pytmx
+        self.walls = list()
+        for object in tmx_data.objects:
+            self.walls.append(pygame.Rect(
+                object.x, object.y,
+                object.width, object.height))
+
         # create new data source for pyscroll
         map_data = pyscroll.data.TiledMapData(tmx_data)
 
         # create new renderer (camera)
-        self.map_layer = pyscroll.BufferedRenderer(map_data, screen.get_size())
+        # clamp_camera is used to prevent the map from scrolling past the edge
+        self.map_layer = pyscroll.BufferedRenderer(map_data,
+                                                   screen.get_size(),
+                                                   clamp_camera=True)
 
-        # use the pyscroll Group for easy rendering
-        self.group = PyscrollGroup(map_layer=self.map_layer)
+        # pyscroll supports layered rendering.  our map has 3 'under' layers
+        # layers begin with 0, so the layers are 0, 1, and 2.
+        # since we want the sprite to be on top of layer 1, we set the default
+        # layer for sprites as 1
+        self.group = PyscrollGroup(map_layer=self.map_layer,
+                                   default_layer=2)
+
         self.hero = Hero()
 
         # put the hero in the center of the map
@@ -89,7 +120,7 @@ class QuestGame(object):
 
     def draw(self, surface):
 
-        # center the map on our Hero
+        # center the map/screen on our Hero
         self.group.center(self.hero.rect.center)
 
         # draw the map and all sprites
@@ -137,6 +168,13 @@ class QuestGame(object):
         """ Tasks that occur over time should be handled here
         """
         self.group.update(dt)
+
+        # check if the sprite's feet are colliding with wall
+        # sprite must have a rect called feet, and move_back method,
+        # otherwise this will fail
+        for sprite in self.group.sprites():
+            if sprite.feet.collidelist(self.walls) > -1:
+                sprite.move_back(dt)
 
     def run(self):
         """ Run the game loop

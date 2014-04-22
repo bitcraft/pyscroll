@@ -91,7 +91,8 @@ class LegacyTiledMapData(TiledMapData):
         return self.tmx.getTileImageByGid(gid)
 
 
-# for old pytmx compatibility
-if six.PY2:
+try:
+    if getattr(pytmx, "__version__", (0, 0, 0)) < (2, 18, 0):
+        TiledMapData = LegacyTiledMapData
+except:
     TiledMapData = LegacyTiledMapData
-

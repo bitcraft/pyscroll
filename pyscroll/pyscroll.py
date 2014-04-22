@@ -24,10 +24,13 @@ class BufferedRenderer(object):
     information.  See the data class api in pyscroll.data, or use the built in
     pytmx support.
     """
-    def __init__(self, data, size, colorkey=None, padding=4):
+    def __init__(self, data, size, colorkey=None, padding=4,
+                 clamp_camera=False):
+
         # default options
         self.colorkey = colorkey
         self.padding = padding
+        self.clamp_camera = clamp_camera
         self.clipping = True
         self.flush_on_draw = True
         self.update_rate = 25
@@ -104,7 +107,8 @@ class BufferedRenderer(object):
         self.old_y = 0
 
     def generate_default_image(self):
-        self.default_image = pygame.Surface((self.data.tilewidth, self.data.tileheight))
+        self.default_image = pygame.Surface((self.data.tilewidth,
+                                             self.data.tileheight))
         self.default_image.fill((0, 0, 0))
 
     def get_tile_image(self, position):
@@ -122,6 +126,16 @@ class BufferedRenderer(object):
         """ center the map on a pixel
         """
         x, y = [round(i, 0) for i in coords]
+
+        if self.clamp_camera:
+            if x < self.half_width:
+                x = self.half_width
+            elif x + self.half_width > self.rect.width:
+                x = self.rect.width - self.half_width
+            if y < self.half_height:
+                y = self.half_height
+            elif y + self.half_height > self.rect.height:
+                y = self.rect.height - self.half_height
 
         if self.old_x == x and self.old_y == y:
             self.idle = True
@@ -263,7 +277,7 @@ class BufferedRenderer(object):
             for dirty_rect, layer in dirty:
                 for r in hit(dirty_rect.move(ox, oy)):
                     x, y, tw, th = r
-                    for l in [above(x, i) for i in tile_layers]:
+                    for l in [i for i in tile_layers if above(i, layer)]:
                         tile = get_tile((int(x / tw + left),
                                          int(y / th + top), int(l)))
                         if tile:
