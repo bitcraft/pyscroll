@@ -1,3 +1,7 @@
+"""
+This file contains two data classes for use with pytmx.
+"""
+
 import six
 import pytmx
 
