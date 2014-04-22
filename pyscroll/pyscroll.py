@@ -3,7 +3,7 @@ import pygame
 import pygame.gfxdraw
 import math
 import threading
-from six.moves import filter, queue, range
+from six.moves import queue, range
 from . import quadtree
 
 
@@ -13,30 +13,47 @@ class BufferedRenderer(object):
     Base class to render a map onto a buffer that is suitable for blitting onto
     the screen as one surface, rather than a collection of tiles.
 
-    The class supports differed rendering and multiple layers
+    The class supports differed rendering, multiple layers, and shapes.
 
     This class works well for maps that operate on a small display and where
     the map is much larger than the display.
 
     NOTE: you will get poor performance if the map is smaller than the display.
 
-    Combine with a data class to get a useful map renderer
+    The buffered renderer must be used with a data class to get tile and shape
+    information.  See the data class api in pyscroll.data, or use the built in
+    pytmx support.
     """
     def __init__(self, data, size, colorkey=None, padding=4):
-        # defaults
+        # default options
+        self.colorkey = colorkey
+        self.padding = padding
         self.clipping = True
         self.flush_on_draw = True
         self.update_rate = 25
         self.default_shape_texture_gid = 1
         self.default_shape_color = (0, 255, 0)
 
-        self.colorkey = colorkey
-        self.padding = padding
+        # internal defaults
+        self.idle = False
+        self.blank = False
+        self.data = None
+        self.size = None
+        self.xoffset = None
+        self.yoffset = None
+        self.old_x = None
+        self.old_y = None
+        self.default_image = None
+        self.buffer = None
+        self.rect = None
+        self.view = None
+        self.half_width = None
+        self.half_height = None
+
         self.lock = threading.Lock()
         self.set_data(data)
         self.set_size(size)
         self.queue = iter([])
-
 
     def set_data(self, data):
         self.data = data
@@ -75,7 +92,8 @@ class BufferedRenderer(object):
                  for x, y in product(range(self.view.width),
                                      range(self.view.height))]
 
-        self.layer_quadtree = quadtree.FastQuadTree(rects, 4)
+        # TODO: figure out what depth -actually- does
+        self.layer_quadtree = quadtree.FastQuadTree(rects, 1)
 
         self.size = size
         self.idle = False
@@ -98,7 +116,7 @@ class BufferedRenderer(object):
     def scroll(self, vector):
         """ scroll the background in pixels
         """
-        self.center((int(vector[0] + self.old_x), int(vector[1] + self.old_y)))
+        self.center((vector[0] + self.old_x, vector[1] + self.old_y))
 
     def center(self, coords):
         """ center the map on a pixel
@@ -123,8 +141,6 @@ class BufferedRenderer(object):
         dy = int(top - hpad - self.view.top)
 
         # adjust the offsets of the buffer is placed correctly
-        #self.xoffset += (hpad / 2 - 1) * tw
-        #self.yoffset += (hpad / 2 - 1) * th
         self.xoffset += hpad * tw
         self.yoffset += hpad * th
 
@@ -149,6 +165,7 @@ class BufferedRenderer(object):
         """
         x, y = map(int, offset)
         layers = list(self.data.visible_tile_layers)
+        view = self.view
         queue = None
 
         # NOTE: i'm not sure why the the -1 in right and bottom are required
@@ -157,21 +174,18 @@ class BufferedRenderer(object):
 
         # right
         if x > 0:
-            queue = product(range(self.view.right - x - 1, self.view.right),
-                            range(self.view.top, self.view.bottom),
-                            layers)
+            queue = product(range(view.right - x - 1, view.right),
+                            range(view.top, view.bottom), layers)
 
         # left
         elif x < 0:
-            queue = product(range(self.view.left, self.view.left - x),
-                            range(self.view.top, self.view.bottom),
-                            layers)
+            queue = product(range(view.left, view.left - x),
+                            range(view.top, view.bottom), layers)
 
         # bottom
         if y > 0:
-            p = product(range(self.view.left, self.view.right),
-                        range(self.view.bottom - y - 1, self.view.bottom),
-                        layers)
+            p = product(range(view.left, view.right),
+                        range(view.bottom - y - 1, view.bottom), layers)
             if queue is None:
                 queue = p
             else:
@@ -179,9 +193,8 @@ class BufferedRenderer(object):
 
         # top
         elif y < 0:
-            p = product(range(self.view.left, self.view.right),
-                        range(self.view.top, self.view.top - y),
-                        layers)
+            p = product(range(view.left, view.right),
+                        range(view.top, view.top - y), layers)
             if queue is None:
                 queue = p
             else:
@@ -200,7 +213,7 @@ class BufferedRenderer(object):
         """
         self.blit_tiles(islice(self.queue, self.update_rate))
 
-    def draw(self, surface, rect, surfaces=[]):
+    def draw(self, surface, rect, surfaces=None):
         """ Draw the map onto a surface
 
         pass a rect that defines the draw area for:
@@ -210,14 +223,13 @@ class BufferedRenderer(object):
         surfaces may optionally be passed that will be blited onto the surface.
         this must be a list of tuples containing a layer number, image, and
         rect in screen coordinates.  surfaces will be drawn in order passed,
-        and will be correctly drawn with tiles from a higher layer overlap
+        and will be correctly drawn with tiles from a higher layer overlapping
         the surface.
         """
         if self.blank:
             self.blank = False
             self.redraw()
 
-        get_tile = self.get_tile_image
         surblit = surface.blit
         left, top = self.view.topleft
         ox, oy = self.xoffset, self.yoffset
@@ -227,38 +239,38 @@ class BufferedRenderer(object):
         if self.flush_on_draw:
             self.flush()
 
-        with self.lock:
-            # need to set clipping otherwise the map will draw
-            # outside its defined area
-            original_clip = None
-            if self.clipping:
-                original_clip = surface.get_clip()
-                surface.set_clip(rect)
+        # need to set clipping otherwise the map will draw outside its area
+        original_clip = None
+        if self.clipping:
+            original_clip = surface.get_clip()
+            surface.set_clip(rect)
 
-            # draw the entire map to the surface,
-            # taking in account the scrolling offset
-            surblit(self.buffer, (-ox, -oy))
+        # draw the entire map to the surface,
+        # taking in account the scrolling offset
+        surblit(self.buffer, (-ox, -oy))
 
-            # TODO: new sorting method for surfaces
-            # TODO: make sure to filter out surfaces outside the screen
-            dirty = [(surblit(a[0], a[1]), a[2]) for a in surfaces]
+        if surfaces is None:
+            dirty = list()
 
-            # redraw tiles that overlap surfaces that were passed in
+        else:
+            def above(x, y): return x > y
+
+            hit = self.layer_quadtree.hit
+            get_tile = self.get_tile_image
+            tile_layers = tuple(self.data.visible_tile_layers)
+            dirty = [(surblit(i[0], i[1]), i[2]) for i in surfaces]
+
             for dirty_rect, layer in dirty:
-                dirty_rect = dirty_rect.move(ox, oy)
-                for r in self.layer_quadtree.hit(dirty_rect):
+                for r in hit(dirty_rect.move(ox, oy)):
                     x, y, tw, th = r
-                    layers = filter(lambda x: x > layer,
-                                    self.data.visible_tile_layers)
-
-                    for l in layers:
+                    for l in [above(x, i) for i in tile_layers]:
                         tile = get_tile((int(x / tw + left),
                                          int(y / th + top), int(l)))
                         if tile:
                             surblit(tile, (x - ox, y - oy))
 
-            if self.clipping:
-                surface.set_clip(original_clip)
+        if self.clipping:
+            surface.set_clip(original_clip)
 
         if self.idle:
             return [i[0] for i in dirty]
@@ -279,6 +291,7 @@ class BufferedRenderer(object):
         th = self.data.tileheight
         buff = self.buffer
         blit = buff.blit
+        map_gid = self.data.tmx.map_gid
         default_color = self.default_shape_color
         get_image_by_gid = self.data.get_tile_image_by_gid
         _draw_textured_poly = pygame.gfxdraw.textured_polygon
@@ -311,7 +324,7 @@ class BufferedRenderer(object):
                 # BUG: this is not going to be completely accurate, because it
                 # does not take into account times where texture is flipped.
                 if texture_gid:
-                    texture_gid = self.data.tmx.map_gid(texture_gid)[0][0]
+                    texture_gid = map_gid(texture_gid)[0][0]
                     texture = get_image_by_gid(int(texture_gid))
 
                 if hasattr(o, 'points'):
