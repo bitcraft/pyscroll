@@ -1,6 +1,10 @@
 """ Quest - An epic journey.
 
 Simple game that demonstrates PyTMX and pyscroll.
+
+requires pygame and pytmx.
+
+https://github.com/bitcraft/pytmx
 """
 
 import os.path
