@@ -22,11 +22,15 @@ RESOURCES_DIR = 'data'
 HERO_MOVE_SPEED = 200            # pixels per second
 MAP_FILENAME = 'grasslands.tmx'
 
+# used for 2x scaling
+temp_surface = None
 
 # simple wrapper to keep the screen resizeable
 def init_screen(width, height):
-    return pygame.display.set_mode((width, height), pygame.RESIZABLE)
-
+    global temp_surface
+    screen = pygame.display.set_mode((width, height), pygame.RESIZABLE)
+    temp_surface = pygame.Surface((width / 2, height / 2)).convert()
+    return screen
 
 # make loading maps a little easier
 def get_map(filename):
@@ -112,10 +116,12 @@ class QuestGame(object):
         # create new data source for pyscroll
         map_data = pyscroll.data.TiledMapData(tmx_data)
 
+        w, h = screen.get_size()
+
         # create new renderer (camera)
         # clamp_camera is used to prevent the map from scrolling past the edge
         self.map_layer = pyscroll.BufferedRenderer(map_data,
-                                                   screen.get_size(),
+                                                   (w / 2, h / 2),
                                                    clamp_camera=True)
 
         # pyscroll supports layered rendering.  our map has 3 'under' layers
@@ -158,7 +164,7 @@ class QuestGame(object):
             # this will be handled if the window is resized
             elif event.type == VIDEORESIZE:
                 init_screen(event.w, event.h)
-                self.map_layer.set_size((event.w, event.h))
+                self.map_layer.set_size((event.w / 2, event.h / 2))
 
             event = pygame.event.poll()
 
@@ -196,6 +202,7 @@ class QuestGame(object):
         """
         clock = pygame.time.Clock()
         fps = 60
+        scale = pygame.transform.scale
         self.running = True
 
         try:
@@ -204,7 +211,8 @@ class QuestGame(object):
 
                 self.handle_input()
                 self.update(dt)
-                self.draw(screen)
+                self.draw(temp_surface)
+                scale(temp_surface, screen.get_size(), screen)
                 pygame.display.flip()
 
         except KeyboardInterrupt:
