@@ -1,8 +1,8 @@
-from itertools import islice, product, chain
 import pygame
 import pygame.gfxdraw
 import math
 import threading
+from itertools import islice, product, chain
 from six.moves import queue, range
 from . import quadtree
 
@@ -13,12 +13,12 @@ class BufferedRenderer(object):
     Base class to render a map onto a buffer that is suitable for blitting onto
     the screen as one surface, rather than a collection of tiles.
 
-    The class supports differed rendering, multiple layers, and shapes.
+    The class supports differed rendering, multiple layers, shapes and layering
+    surfaces (usually from sprites) in the map, creating an illusion of depth.
 
     This class works well for maps that operate on a small display and where
-    the map is much larger than the display.
-
-    NOTE: you will get poor performance if the map is smaller than the display.
+    the map is much larger than the display, but you will get poor performance
+    if the map is smaller than the display.
 
     The buffered renderer must be used with a data class to get tile and shape
     information.  See the data class api in pyscroll.data, or use the built in
@@ -78,6 +78,7 @@ class BufferedRenderer(object):
 
         if self.colorkey:
             self.buffer.set_colorkey(self.colorkey)
+            self.buffer.fill(self.colorkey)
 
         # this is the pixel size of the entire map
         self.rect = pygame.Rect(0, 0,
@@ -267,7 +268,8 @@ class BufferedRenderer(object):
             dirty = list()
 
         else:
-            def above(x, y): return x > y
+            def above(x, y):
+                return x > y
 
             hit = self.layer_quadtree.hit
             get_tile = self.get_tile_image
@@ -300,7 +302,6 @@ class BufferedRenderer(object):
     def draw_objects(self):
         """ Totally unoptimized drawing of objects to the map
         """
-
         tw = self.data.tilewidth
         th = self.data.tileheight
         buff = self.buffer
@@ -328,7 +329,7 @@ class BufferedRenderer(object):
             _draw_lines(buff, color, False, points, width)
 
         def to_buffer(pt):
-            return pt[0] - ox,  pt[1] - oy
+            return pt[0] - ox, pt[1] - oy
 
         for layer in self.data.visible_object_layers:
             for o in (o for o in layer if o.visible):
@@ -383,17 +384,20 @@ class BufferedRenderer(object):
                 tile = get_tile((x, y, l))
                 if tile:
                     if l == 0:
-                        fill(self.colorkey, (x*tw-ltw, y*th-tth, tw, th))
-                    old_tiles.add((x, y, l))
-                    blit(tile, (x*tw-ltw, y*th-tth))
+                        fill(self.colorkey,
+                             (x * tw - ltw, y * th - tth, tw, th))
+                    old_tiles.add((x, y))
+                    blit(tile, (x * tw - ltw, y * th - tth))
                 else:
-                    if (x, y, l-1) not in old_tiles:
-                        fill(self.colorkey, (x*tw-ltw, y*th-tth, tw, th))
+                    if l > 0:
+                        if (x, y) not in old_tiles:
+                            fill(self.colorkey,
+                                 (x * tw - ltw, y * th - tth, tw, th))
         else:
             for x, y, l in iterator:
                 tile = get_tile((x, y, l))
                 if tile:
-                    blit(tile, (x*tw-ltw, y*th-tth))
+                    blit(tile, (x * tw - ltw, y * th - tth))
 
     def redraw(self):
         """ redraw the visible portion of the buffer -- it is slow.
@@ -409,6 +413,7 @@ class BufferedRenderer(object):
 class ThreadedRenderer(BufferedRenderer):
     """ Off-screen tiling is handled in a thread
     """
+
     def __init__(self, *args, **kwargs):
         BufferedRenderer.__init__(self, *args, **kwargs)
         self.flush_on_draw = False
@@ -431,6 +436,7 @@ class ThreadedRenderer(BufferedRenderer):
 class TileThread(threading.Thread):
     """ poll the tile queue for new tiles and draw them to the buffer
     """
+
     def __init__(self, *args, **kwargs):
         threading.Thread.__init__(self)
         self.renderer = kwargs.get('renderer')
@@ -468,17 +474,17 @@ class TileThread(threading.Thread):
                 if tile:
                     with lock:
                         if l == 0:
-                            fill(colorkey, (x*tw-ltw, y*th-tth, tw, th))
+                            fill(colorkey, (x * tw - ltw, y * th - tth, tw, th))
                         old_tiles.add((x, y, l))
-                        blit(tile, (x*tw-ltw, y*th-tth))
+                        blit(tile, (x * tw - ltw, y * th - tth))
                 else:
-                    if (x, y, l-1) not in old_tiles:
+                    if (x, y, l - 1) not in old_tiles:
                         with lock:
-                            fill(colorkey, (x*tw-ltw, y*th-tth, tw, th))
+                            fill(colorkey, (x * tw - ltw, y * th - tth, tw, th))
             else:
                 tile = get_tile((x, y, l))
                 if tile:
                     with lock:
-                        blit(tile, (x*tw-ltw, y*th-tth))
+                        blit(tile, (x * tw - ltw, y * th - tth))
 
             tile_queue.task_done()

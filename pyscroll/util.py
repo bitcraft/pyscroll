@@ -13,6 +13,7 @@ def draw_shapes(tmx_data):
     import array
 
     cache = []
+
     def check_cache(surface, gid):
         def compare(s0, s1):
             return s0 == s1
@@ -25,7 +26,7 @@ def draw_shapes(tmx_data):
         cache.append((surface, gid))
         return surface, gid
 
-    colorkey = (255, 0 , 255)
+    colorkey = (255, 0, 255)
 
     size = (int(tmx_data.width * tmx_data.tilewidth),
             int(tmx_data.height * tmx_data.tileheight))
@@ -43,29 +44,32 @@ def draw_shapes(tmx_data):
         for o in layer:
             if hasattr(o, 'points'):
                 if o.closed:
-                    pygame.gfxdraw.textured_polygon(surface, o.points, TEXTURE, tw, th)
+                    pygame.gfxdraw.textured_polygon(surface, o.points, TEXTURE,
+                                                    tw, th)
                 else:
-                    pygame.draw.lines(surface, (255, 128, 128), o.closed, o.points, 2)
+                    pygame.draw.lines(surface, (255, 128, 128), o.closed,
+                                      o.points, 2)
             elif o.gid:
                 tile = tmx_data.getTileImageByGid(o.gid)
                 if tile:
                     surface.blit(tile, (o.x, o.y))
             else:
-                pygame.draw.rect(surface, (255, 128, 128), (o.x, o.y, o.width, o.height), 2)
+                pygame.draw.rect(surface, (255, 128, 128),
+                                 (o.x, o.y, o.width, o.height), 2)
 
         p = itertools.product(range(tmx_data.height),
                               range(tmx_data.width))
 
         new_layer = pytmx.TiledLayer()
         new_layer.visible = 1
-        new_layer.data = tuple(array.array('H', [0]*tmx_data.width)
+        new_layer.data = tuple(array.array('H', [0] * tmx_data.width)
                                for i in range(tmx_data.height))
 
         tmx_data.addTileLayer(new_layer)
 
         for y, x in p:
             gid = len(tmx_data.images)
-            original = surface.subsurface(((x*tw, y*th), (tw, th)))
+            original = surface.subsurface(((x * tw, y * th), (tw, th)))
             tile, gid = check_cache(original, gid)
             if original is tile:
                 gid = tmx_data.register_gid(gid)
@@ -78,6 +82,7 @@ def draw_shapes(tmx_data):
 class PyscrollGroup(pygame.sprite.LayeredUpdates):
     """ Layered Group with ability to center sprites and scrolling map
     """
+
     def __init__(self, *args, **kwargs):
         pygame.sprite.LayeredUpdates.__init__(self, *args, **kwargs)
         self._map_layer = kwargs.get('map_layer')
