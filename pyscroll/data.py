@@ -2,7 +2,7 @@
 This file contains two data classes for use with pytmx.
 """
 
-import six
+import sys
 import pytmx
 
 __all__ = ['TiledMapData']
@@ -93,6 +93,8 @@ class LegacyTiledMapData(TiledMapData):
 
 try:
     if getattr(pytmx, "__version__", (0, 0, 0)) < (2, 18, 0):
+        sys.stderr.write('pyscroll is using the legacy pytmx api\n')
         TiledMapData = LegacyTiledMapData
-except:
+except (AttributeError, TypeError):
+    sys.stderr.write('pyscroll is using the legacy pytmx api\n')
     TiledMapData = LegacyTiledMapData
