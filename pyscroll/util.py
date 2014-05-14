@@ -82,7 +82,6 @@ def draw_shapes(tmx_data):
 class PyscrollGroup(pygame.sprite.LayeredUpdates):
     """ Layered Group with ability to center sprites and scrolling map
     """
-
     def __init__(self, *args, **kwargs):
         pygame.sprite.LayeredUpdates.__init__(self, *args, **kwargs)
         self._map_layer = kwargs.get('map_layer')
@@ -108,13 +107,14 @@ class PyscrollGroup(pygame.sprite.LayeredUpdates):
         xx = -self._map_layer.old_x + self._map_layer.half_width
         yy = -self._map_layer.old_y + self._map_layer.half_height
 
+        new_surfaces = []
         spritedict = self.spritedict
         gl = self.get_layer_of_sprite
+        new_surfaces_append = new_surfaces.append
 
-        new_surfaces = []
         for spr in self.sprites():
             new_rect = spr.rect.move(xx, yy)
-            new_surfaces.append((spr.image, new_rect, gl(spr)))
+            new_surfaces_append((spr.image, new_rect, gl(spr)))
             spritedict[spr] = new_rect
 
         _dirty = self._map_layer.draw(surface, surface.get_rect(), new_surfaces)

@@ -152,7 +152,7 @@ class ScrollTest:
             self.center[0] -= self.camera_vel[0]
             self.camera_acc[0] = 0
             self.camera_vel[0] = 0
-        if self.center[0] >= self.map_layer.rect.width :
+        if self.center[0] >= self.map_layer.rect.width:
             self.center[0] -= self.camera_vel[0]
             self.camera_acc[0] = 0
             self.camera_vel[0] = 0
