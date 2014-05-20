@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Welcome to pyscroll’s documentation! &mdash; pyscroll 2.14.2 documentation</title>
+    <title>pyscroll &mdash; pyscroll 2.14.2 documentation</title>
     
     <link rel="stylesheet" href="_static/default.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
@@ -32,6 +32,9 @@
         <li class="right" style="margin-right: 10px">
           <a href="genindex.html" title="General Index"
              accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
         <li><a href="#">pyscroll 2.14.2 documentation</a> &raquo;</li> 
       </ul>
     </div>  
@@ -41,9 +44,126 @@
         <div class="bodywrapper">
           <div class="body">
             
-  <div class="section" id="welcome-to-pyscroll-s-documentation">
-<h1>Welcome to pyscroll&#8217;s documentation!<a class="headerlink" href="#welcome-to-pyscroll-s-documentation" title="Permalink to this headline">¶</a></h1>
-<p>Contents:</p>
+  <div class="section" id="pyscroll">
+<h1>pyscroll<a class="headerlink" href="#pyscroll" title="Permalink to this headline">¶</a></h1>
+<p>for Python 2.7 &amp; 3.3 and Pygame 1.9</p>
+<p>A simple, fast module for adding scrolling maps to your new or existing game.</p>
+</div>
+<div class="section" id="introduction">
+<h1>Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h1>
+<p>pyscroll is a generic module for making a fast scrolling image with PyGame.  It
+uses a lot of magic to get reasonable framerates out of PyGame.  It only exists
+to draw a map.  It doesn&#8217;t load images or data, so you can use your own custom
+data structures, tile storage, ect.</p>
+<p>The included class, BufferedRenderer, gives great framerates, supports layered
+rendering and can draw itself.  It uses more memory than a typical map would,
+but gives much better performance.</p>
+<p>pyscroll is compatible with pytmx (<a class="reference external" href="https://github.com/bitcraft/pytmx">https://github.com/bitcraft/pytmx</a>), so you
+can use your Tiled maps.  It also has out-of-the-box support for PyGame Sprites.</p>
+</div>
+<div class="section" id="features">
+<h1>Features<a class="headerlink" href="#features" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+<li>Fast and small footprint</li>
+<li>Layered drawing for tiles</li>
+<li>Drawing and scrolling shapes</li>
+<li>Dirty screen updates</li>
+<li>Pygame Group included</li>
+</ul>
+</div>
+<div class="section" id="shape-drawing">
+<h1>Shape Drawing<a class="headerlink" href="#shape-drawing" title="Permalink to this headline">¶</a></h1>
+<p>pyscroll has a new experimental feature for drawing shapes to the map and
+scrolling them as part of the map.  This can be useful for game that need to
+draw arbitrary shaped objects.</p>
+<p>The feature requires pytmx, and that the map files be created in the Tiled Map
+Editor.  The advantage of of using pyscroll for shape drawing is that pyscroll
+can draw the shapes much more efficiently that simply drawing the shapes each
+frame.</p>
+<p>This feature is experimental at best.  Your comments and support is appreciated!</p>
+<ul class="simple">
+<li>Currently, shapes will not draw over sprites.</li>
+</ul>
+</div>
+<div class="section" id="new-game-tutorial">
+<h1>New Game Tutorial<a class="headerlink" href="#new-game-tutorial" title="Permalink to this headline">¶</a></h1>
+<p>This is a quick guide on building a new game with pyscroll and pygame.  It uses
+the PyscrollGroup for efficient rendering.  You are free to use any other pygame
+techniques and functions.</p>
+<p>Open quest.py in the tutorial folder for a gentle introduction to pyscroll and
+the PyscrollGroup for PyGame.  There are plenty of comments to get you started.</p>
+<p>The Quest demo shows how you can use a pyscroll group for drawing, how to load
+maps with PyTMX, and how pyscroll can quickly render layers.  Moving under some
+tiles will cause the Hero to be covered.</p>
+<p>It will also render a Shape on the map with experimental shape drawing.</p>
+</div>
+<div class="section" id="example-use-with-pytmx">
+<h1>Example Use with PyTMX<a class="headerlink" href="#example-use-with-pytmx" title="Permalink to this headline">¶</a></h1>
+<p>pyscroll and pytmx can load your maps from Tiled and use you PyGame Sprites.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="c"># Load TMX data</span>
+<span class="n">tmx_data</span> <span class="o">=</span> <span class="n">pytmx</span><span class="o">.</span><span class="n">load_pygame</span><span class="p">(</span><span class="s">&quot;desert.tmx&quot;</span><span class="p">)</span>
+
+<span class="c"># Make data source for the map</span>
+<span class="n">map_data</span> <span class="o">=</span> <span class="n">pyscroll</span><span class="o">.</span><span class="n">TiledMapData</span><span class="p">(</span><span class="n">tmx_data</span><span class="p">)</span>
+
+<span class="c"># Make the scrolling layer</span>
+<span class="n">screen_size</span> <span class="o">=</span> <span class="p">(</span><span class="mi">400</span><span class="p">,</span> <span class="mi">400</span><span class="p">)</span>
+<span class="n">map_layer</span> <span class="o">=</span> <span class="n">pyscroll</span><span class="o">.</span><span class="n">BufferedRenderer</span><span class="p">(</span><span class="n">map_data</span><span class="p">,</span> <span class="n">screen_size</span><span class="p">)</span>
+
+<span class="c"># make the PyGame SpriteGroup with a scrolling map</span>
+<span class="n">group</span> <span class="o">=</span> <span class="n">pyscroll</span><span class="o">.</span><span class="n">PyscrollGroup</span><span class="p">(</span><span class="n">map_layer</span><span class="o">=</span><span class="n">map_layer</span><span class="p">)</span>
+
+<span class="c"># Add sprites to the group</span>
+<span class="n">group</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">srite</span><span class="p">)</span>
+
+<span class="c"># Center the layer and sprites on a sprite</span>
+<span class="n">group</span><span class="o">.</span><span class="n">center</span><span class="p">(</span><span class="n">sprite</span><span class="o">.</span><span class="n">rect</span><span class="o">.</span><span class="n">center</span><span class="p">)</span>
+
+<span class="c"># Draw the layer</span>
+<span class="n">group</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">screen</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="adapting-existing-games-map-data">
+<h1>Adapting Existing Games / Map Data<a class="headerlink" href="#adapting-existing-games-map-data" title="Permalink to this headline">¶</a></h1>
+<p>pyscroll can be used with existing map data, but you will have to create a
+class to interact with pyscroll or adapt your data handler to have these
+functions / attributes:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">class</span> <span class="nc">MyData</span><span class="p">:</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">tilewidth</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Return pixel width of map tiles</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">tileheight</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Return pixel height of map tiles</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">width</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Return number of tiles on X axis</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">height</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Return number of tiles on Y axis</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">visible_layers</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Return a list or iterator of layer numbers that are visible.</span>
+<span class="sd">        If using a single layer map, just return [0]</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">get_tile_image</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">position</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Return a surface for this position.</span>
+<span class="sd">        Return self.default_image if there is not map data for the position.</span>
+<span class="sd">        position is x, y, layer tuple</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+</pre></div>
+</div>
 <div class="toctree-wrapper compound">
 <ul class="simple">
 </ul>
@@ -66,7 +186,13 @@
         <div class="sphinxsidebarwrapper">
   <h3><a href="#">Table Of Contents</a></h3>
   <ul>
-<li><a class="reference internal" href="#">Welcome to pyscroll&#8217;s documentation!</a></li>
+<li><a class="reference internal" href="#">pyscroll</a></li>
+<li><a class="reference internal" href="#introduction">Introduction</a></li>
+<li><a class="reference internal" href="#features">Features</a></li>
+<li><a class="reference internal" href="#shape-drawing">Shape Drawing</a></li>
+<li><a class="reference internal" href="#new-game-tutorial">New Game Tutorial</a></li>
+<li><a class="reference internal" href="#example-use-with-pytmx">Example Use with PyTMX</a></li>
+<li><a class="reference internal" href="#adapting-existing-games-map-data">Adapting Existing Games / Map Data</a></li>
 <li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
 </ul>
 
@@ -98,6 +224,9 @@
         <li class="right" style="margin-right: 10px">
           <a href="genindex.html" title="General Index"
              >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
         <li><a href="#">pyscroll 2.14.2 documentation</a> &raquo;</li> 
       </ul>
     </div>
