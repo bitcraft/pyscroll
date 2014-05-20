@@ -1,0 +1,312 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>pyscroll package &mdash; pyscroll 2.14.2 documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '2.14.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="pyscroll 2.14.2 documentation" href="index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="index.html">pyscroll 2.14.2 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="pyscroll-package">
+<h1>pyscroll package<a class="headerlink" href="#pyscroll-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-pyscroll.pyscroll">
+<span id="pyscroll-pyscroll"></span><h2>pyscroll.pyscroll<a class="headerlink" href="#module-pyscroll.pyscroll" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="pyscroll.pyscroll.BufferedRenderer">
+<em class="property">class </em><tt class="descclassname">pyscroll.pyscroll.</tt><tt class="descname">BufferedRenderer</tt><big>(</big><em>data</em>, <em>size</em>, <em>colorkey=None</em>, <em>padding=4</em>, <em>clamp_camera=False</em><big>)</big><a class="headerlink" href="#pyscroll.pyscroll.BufferedRenderer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
+<p>Renderer that can be updated incrementally</p>
+<p>Base class to render a map onto a buffer that is suitable for blitting onto
+the screen as one surface, rather than a collection of tiles.</p>
+<p>The class supports differed rendering, multiple layers, shapes and layering
+surfaces (usually from sprites) in the map, creating an illusion of depth.</p>
+<p>This class works well for maps that operate on a small display and where
+the map is much larger than the display, but you will get poor performance
+if the map is smaller than the display.</p>
+<p>The buffered renderer must be used with a data class to get tile and shape
+information.  See the data class api in pyscroll.data, or use the built in
+pytmx support.</p>
+<dl class="method">
+<dt id="pyscroll.pyscroll.BufferedRenderer.blit_tiles">
+<tt class="descname">blit_tiles</tt><big>(</big><em>iterator</em><big>)</big><a class="headerlink" href="#pyscroll.pyscroll.BufferedRenderer.blit_tiles" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bilts (x, y, layer) tuples to buffer from iterator</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pyscroll.pyscroll.BufferedRenderer.center">
+<tt class="descname">center</tt><big>(</big><em>coords</em><big>)</big><a class="headerlink" href="#pyscroll.pyscroll.BufferedRenderer.center" title="Permalink to this definition">¶</a></dt>
+<dd><p>center the map on a pixel</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pyscroll.pyscroll.BufferedRenderer.draw">
+<tt class="descname">draw</tt><big>(</big><em>surface</em>, <em>rect</em>, <em>surfaces=None</em><big>)</big><a class="headerlink" href="#pyscroll.pyscroll.BufferedRenderer.draw" title="Permalink to this definition">¶</a></dt>
+<dd><p>Draw the map onto a surface</p>
+<dl class="docutils">
+<dt>pass a rect that defines the draw area for:</dt>
+<dd>dirty screen update support
+drawing to an area smaller that the whole window/screen</dd>
+</dl>
+<p>surfaces may optionally be passed that will be blited onto the surface.
+this must be a list of tuples containing a layer number, image, and
+rect in screen coordinates.  surfaces will be drawn in order passed,
+and will be correctly drawn with tiles from a higher layer overlapping
+the surface.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pyscroll.pyscroll.BufferedRenderer.draw_objects">
+<tt class="descname">draw_objects</tt><big>(</big><big>)</big><a class="headerlink" href="#pyscroll.pyscroll.BufferedRenderer.draw_objects" title="Permalink to this definition">¶</a></dt>
+<dd><p>Totally unoptimized drawing of objects to the map</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pyscroll.pyscroll.BufferedRenderer.flush">
+<tt class="descname">flush</tt><big>(</big><big>)</big><a class="headerlink" href="#pyscroll.pyscroll.BufferedRenderer.flush" title="Permalink to this definition">¶</a></dt>
+<dd><p>Blit the tiles and block until the tile queue is empty</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pyscroll.pyscroll.BufferedRenderer.generate_default_image">
+<tt class="descname">generate_default_image</tt><big>(</big><big>)</big><a class="headerlink" href="#pyscroll.pyscroll.BufferedRenderer.generate_default_image" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pyscroll.pyscroll.BufferedRenderer.get_edge_tiles">
+<tt class="descname">get_edge_tiles</tt><big>(</big><em>offset</em><big>)</big><a class="headerlink" href="#pyscroll.pyscroll.BufferedRenderer.get_edge_tiles" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the tile coordinates that need to be redrawn</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pyscroll.pyscroll.BufferedRenderer.get_tile_image">
+<tt class="descname">get_tile_image</tt><big>(</big><em>position</em><big>)</big><a class="headerlink" href="#pyscroll.pyscroll.BufferedRenderer.get_tile_image" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pyscroll.pyscroll.BufferedRenderer.redraw">
+<tt class="descname">redraw</tt><big>(</big><big>)</big><a class="headerlink" href="#pyscroll.pyscroll.BufferedRenderer.redraw" title="Permalink to this definition">¶</a></dt>
+<dd><p>redraw the visible portion of the buffer &#8211; it is slow.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pyscroll.pyscroll.BufferedRenderer.scroll">
+<tt class="descname">scroll</tt><big>(</big><em>vector</em><big>)</big><a class="headerlink" href="#pyscroll.pyscroll.BufferedRenderer.scroll" title="Permalink to this definition">¶</a></dt>
+<dd><p>scroll the background in pixels</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pyscroll.pyscroll.BufferedRenderer.set_data">
+<tt class="descname">set_data</tt><big>(</big><em>data</em><big>)</big><a class="headerlink" href="#pyscroll.pyscroll.BufferedRenderer.set_data" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pyscroll.pyscroll.BufferedRenderer.set_size">
+<tt class="descname">set_size</tt><big>(</big><em>size</em><big>)</big><a class="headerlink" href="#pyscroll.pyscroll.BufferedRenderer.set_size" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the size of the map in pixels</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pyscroll.pyscroll.BufferedRenderer.update">
+<tt class="descname">update</tt><big>(</big><em>dt=None</em><big>)</big><a class="headerlink" href="#pyscroll.pyscroll.BufferedRenderer.update" title="Permalink to this definition">¶</a></dt>
+<dd><p>Draw tiles in the background</p>
+<p>the drawing operations and management of the buffer is handled here.
+if you are updating more than drawing, then updating here will draw
+off screen tiles.  this will limit expensive tile blits during screen
+draws.  if your draw and update happens every game loop, then you will
+not benefit from updates, but it won&#8217;t hurt either.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pyscroll.pyscroll.BufferedRenderer.update_queue">
+<tt class="descname">update_queue</tt><big>(</big><em>iterator</em><big>)</big><a class="headerlink" href="#pyscroll.pyscroll.BufferedRenderer.update_queue" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add some tiles to the queue</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="pyscroll.pyscroll.ThreadedRenderer">
+<em class="property">class </em><tt class="descclassname">pyscroll.pyscroll.</tt><tt class="descname">ThreadedRenderer</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#pyscroll.pyscroll.ThreadedRenderer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pyscroll.pyscroll.BufferedRenderer" title="pyscroll.pyscroll.BufferedRenderer"><tt class="xref py py-class docutils literal"><span class="pre">pyscroll.pyscroll.BufferedRenderer</span></tt></a></p>
+<p>Off-screen tiling is handled in a thread</p>
+<dl class="method">
+<dt id="pyscroll.pyscroll.ThreadedRenderer.flush">
+<tt class="descname">flush</tt><big>(</big><big>)</big><a class="headerlink" href="#pyscroll.pyscroll.ThreadedRenderer.flush" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pyscroll.pyscroll.ThreadedRenderer.update">
+<tt class="descname">update</tt><big>(</big><em>dt=None</em><big>)</big><a class="headerlink" href="#pyscroll.pyscroll.ThreadedRenderer.update" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="pyscroll.pyscroll.ThreadedRenderer.update_queue">
+<tt class="descname">update_queue</tt><big>(</big><em>iterator</em><big>)</big><a class="headerlink" href="#pyscroll.pyscroll.ThreadedRenderer.update_queue" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="pyscroll.pyscroll.TileThread">
+<em class="property">class </em><tt class="descclassname">pyscroll.pyscroll.</tt><tt class="descname">TileThread</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#pyscroll.pyscroll.TileThread" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">threading.Thread</span></tt></p>
+<p>poll the tile queue for new tiles and draw them to the buffer</p>
+<dl class="method">
+<dt id="pyscroll.pyscroll.TileThread.run">
+<tt class="descname">run</tt><big>(</big><big>)</big><a class="headerlink" href="#pyscroll.pyscroll.TileThread.run" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-pyscroll.data">
+<span id="pyscroll-data"></span><h2>pyscroll.data<a class="headerlink" href="#module-pyscroll.data" title="Permalink to this headline">¶</a></h2>
+<p>This file contains two data classes for use with pytmx.</p>
+<dl class="attribute">
+<dt id="pyscroll.data.TiledMapData">
+<tt class="descclassname">pyscroll.data.</tt><tt class="descname">TiledMapData</tt><a class="headerlink" href="#pyscroll.data.TiledMapData" title="Permalink to this definition">¶</a></dt>
+<dd><p>alias of <tt class="xref py py-class docutils literal"><span class="pre">LegacyTiledMapData</span></tt></p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-pyscroll.util">
+<span id="pyscroll-util"></span><h2>pyscroll.util<a class="headerlink" href="#module-pyscroll.util" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="pyscroll.util.PyscrollGroup">
+<em class="property">class </em><tt class="descclassname">pyscroll.util.</tt><tt class="descname">PyscrollGroup</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#pyscroll.util.PyscrollGroup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">pygame.sprite.LayeredUpdates</span></tt></p>
+<p>Layered Group with ability to center sprites and scrolling map</p>
+<dl class="method">
+<dt id="pyscroll.util.PyscrollGroup.center">
+<tt class="descname">center</tt><big>(</big><em>value</em><big>)</big><a class="headerlink" href="#pyscroll.util.PyscrollGroup.center" title="Permalink to this definition">¶</a></dt>
+<dd><p>Center the group/map on a pixel</p>
+<p>The basemap and all sprites will be realigned to draw correctly.
+Centering the map will not change the rect of the sprites.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pyscroll.util.PyscrollGroup.draw">
+<tt class="descname">draw</tt><big>(</big><em>surface</em><big>)</big><a class="headerlink" href="#pyscroll.util.PyscrollGroup.draw" title="Permalink to this definition">¶</a></dt>
+<dd><p>Draw all sprites and map onto the surface</p>
+<p>Group.draw(surface): return None
+Draws all of the member sprites onto the given surface.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="pyscroll.util.PyscrollGroup.update">
+<tt class="descname">update</tt><big>(</big><em>dt</em><big>)</big><a class="headerlink" href="#pyscroll.util.PyscrollGroup.update" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="pyscroll.util.draw_shapes">
+<tt class="descclassname">pyscroll.util.</tt><tt class="descname">draw_shapes</tt><big>(</big><em>tmx_data</em><big>)</big><a class="headerlink" href="#pyscroll.util.draw_shapes" title="Permalink to this definition">¶</a></dt>
+<dd><p>create a new tile layer from a shape layer
+totally not working</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-pyscroll">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-pyscroll" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">pyscroll package</a><ul>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-pyscroll.pyscroll">pyscroll.pyscroll</a></li>
+<li><a class="reference internal" href="#module-pyscroll.data">pyscroll.data</a></li>
+<li><a class="reference internal" href="#module-pyscroll.util">pyscroll.util</a></li>
+<li><a class="reference internal" href="#module-pyscroll">Module contents</a></li>
+</ul>
+</li>
+</ul>
+
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/pyscroll.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="index.html">pyscroll 2.14.2 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2014, bitcraft.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
+    </div>
+  </body>
+</html>
