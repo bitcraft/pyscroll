@@ -22,6 +22,12 @@ pyscroll is compatible with pytmx (https://github.com/bitcraft/pytmx), so you
 can use your Tiled maps.  It also has out-of-the-box support for PyGame Sprites.
 
 
+Documentation
+=============
+
+This readme is hosted in a much nicer format at http://pyscroll.readthedocs.org.
+
+
 Features
 ========
 
