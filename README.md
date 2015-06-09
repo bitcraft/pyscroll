@@ -77,8 +77,11 @@ Example Use with PyTMX
 
 pyscroll and pytmx can load your maps from Tiled and use you PyGame Sprites.
 
+    import pyscroll
+    from pytmx.util_pygame import load_pygame
+
     # Load TMX data
-    tmx_data = pytmx.load_pygame("desert.tmx")
+    tmx_data = load_pygame("desert.tmx")
 
     # Make data source for the map
     map_data = pyscroll.TiledMapData(tmx_data)
