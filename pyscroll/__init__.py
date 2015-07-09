@@ -1,8 +1,8 @@
-from .pyscroll import BufferedRenderer, ThreadedRenderer
+from .renderer import BufferedRenderer
 from .data import TiledMapData
-from .util import *
+from .group import *
 
-__version__ = '2.14.2'
+__version__ = '2.14.3'
 __author__ = 'bitcraft'
 __author_email__ = 'leif.theden@gmail.com'
-__description__ = 'Pygame Scrolling - Python 2.7 & 3.3'
+__description__ = 'Pygame Scrolling - Python 2.7 & 3.3+'

@@ -6,9 +6,10 @@
 pyscroll
 ========
 
-for Python 2.7 & 3.3 and Pygame 1.9
+for Python 2.7 & 3.3+ and Pygame 1.9
 
 A simple, fast module for adding scrolling maps to your new or existing game.
+Includes support to load and render maps in TMX format from the Tiled map editor.
 
 
 Introduction
@@ -20,8 +21,7 @@ to draw a map.  It doesn't load images or data, so you can use your own custom
 data structures, tile storage, ect.
 
 The included class, BufferedRenderer, gives great framerates, supports layered
-rendering and can draw itself.  It uses more memory than a typical map would,
-but gives much better performance.
+rendering and can draw itself.
 
 pyscroll is compatible with pytmx (https://github.com/bitcraft/pytmx), so you
 can use your Tiled maps.  It also has out-of-the-box support for PyGame Sprites.
@@ -34,7 +34,7 @@ Features
 - Layered drawing for tiles
 - Drawing and scrolling shapes
 - Dirty screen updates
-- Pygame Group included
+- Pygame Sprite compatible group included
 
 
 Shape Drawing
@@ -92,7 +92,7 @@ pyscroll and pytmx can load your maps from Tiled and use you PyGame Sprites.
     group = pyscroll.PyscrollGroup(map_layer=map_layer)
 
     # Add sprites to the group
-    group.add(srite)
+    group.add(sprite)
 
     # Center the layer and sprites on a sprite
     group.center(sprite.rect.center)
@@ -105,45 +105,8 @@ Adapting Existing Games / Map Data
 ==================================
 
 pyscroll can be used with existing map data, but you will have to create a
-class to interact with pyscroll or adapt your data handler to have these
-functions / attributes:
+class to interact with pyscroll or adapt your data handler.
 
-
-.. code-block:: python
-
-    class MyData:
-
-        @property
-        def tilewidth(self):
-            """ Return pixel width of map tiles
-            """
-
-        @property
-        def tileheight(self):
-            """ Return pixel height of map tiles
-            """
-
-        @property
-        def width(self):
-            """ Return number of tiles on X axis
-            """
-
-        @property
-        def height(self):
-            """ Return number of tiles on Y axis
-            """
-
-        @property
-        def visible_layers(self):
-            """ Return a list or iterator of layer numbers that are visible.
-            If using a single layer map, just return [0]
-            """
-
-        def get_tile_image(self, position):
-            """ Return a surface for this position.
-            Return self.default_image if there is not map data for the position.
-            position is x, y, layer tuple
-            """
 
 .. toctree::
    :maxdepth: 2

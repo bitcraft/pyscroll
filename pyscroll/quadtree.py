@@ -4,8 +4,9 @@ Two classes for quadtree collision detection.
 A quadtree is used with pyscroll to detect overlapping tiles.
 """
 
-from pygame import Rect
 import itertools
+
+from pygame import Rect
 
 
 class FastQuadTree(object):

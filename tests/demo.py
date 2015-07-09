@@ -66,8 +66,8 @@ class ScrollTest:
         self.text_overlay = [f.render(i, 1, (180, 180, 0)) for i in t]
 
         # set our initial viewpoint in the center of the map
-        self.center = [self.map_layer.rect.width / 2,
-                       self.map_layer.rect.height / 2]
+        self.center = [self.map_layer.map_rect.width / 2,
+                       self.map_layer.map_rect.height / 2]
 
         # the camera vector is used to handle camera movement
         self.camera_acc = [0, 0, 0]
@@ -152,7 +152,7 @@ class ScrollTest:
             self.center[0] -= self.camera_vel[0]
             self.camera_acc[0] = 0
             self.camera_vel[0] = 0
-        if self.center[0] >= self.map_layer.rect.width:
+        if self.center[0] >= self.map_layer.map_rect.width:
             self.center[0] -= self.camera_vel[0]
             self.camera_acc[0] = 0
             self.camera_vel[0] = 0
@@ -161,7 +161,7 @@ class ScrollTest:
             self.center[1] -= self.camera_vel[1]
             self.camera_acc[1] = 0
             self.camera_vel[1] = 0
-        if self.center[1] >= self.map_layer.rect.height:
+        if self.center[1] >= self.map_layer.map_rect.height:
             self.center[1] -= self.camera_vel[1]
             self.camera_acc[1] = 0
             self.camera_vel[1] = 0

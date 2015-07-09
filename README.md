@@ -94,7 +94,7 @@ pyscroll and pytmx can load your maps from Tiled and use you PyGame Sprites.
     group = pyscroll.PyscrollGroup(map_layer=map_layer)
 
     # Add sprites to the group
-    group.add(srite)
+    group.add(sprite)
 
     # Center the layer and sprites on a sprite
     group.center(sprite.rect.center)
@@ -107,41 +107,4 @@ Adapting Existing Games / Map Data
 ==================================
 
 pyscroll can be used with existing map data, but you will have to create a
-class to interact with pyscroll or adapt your data handler to have these
-functions / attributes:
-
-
-    class MyData:
-
-        @property
-        def tilewidth(self):
-            """ Return pixel width of map tiles
-            """
-
-        @property
-        def tileheight(self):
-            """ Return pixel height of map tiles
-            """
-
-        @property
-        def width(self):
-            """ Return number of tiles on X axis
-            """
-
-        @property
-        def height(self):
-            """ Return number of tiles on Y axis
-            """
-
-        @property
-        def visible_layers(self):
-            """ Return a list or iterator of layer numbers that are visible.
-            If using a single layer map, just return [0]
-            """
-
-        def get_tile_image(self, position):
-            """ Return a surface for this position.
-            Return self.default_image if there is not map data for the position.
-            position is x, y, layer tuple
-            """
-
+class to interact with pyscroll or adapt your data handler.

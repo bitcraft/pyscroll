@@ -1,6 +1,6 @@
 """ Quest - An epic journey.
 
-Simple game that demonstrates PyTMX and pyscroll.
+Simple demo that demonstrates PyTMX and pyscroll.
 
 requires pygame and pytmx.
 
@@ -8,18 +8,21 @@ https://github.com/bitcraft/pytmx
 """
 
 import os.path
+
 import pygame
-import pyscroll
-import pyscroll.data
-from pyscroll.util import PyscrollGroup
 from pygame.locals import *
 from pytmx.util_pygame import load_pygame
+
+import pyscroll
+import pyscroll.data
+from pyscroll.group import PyscrollGroup
+
 
 
 # define configuration variables here
 RESOURCES_DIR = 'data'
 
-HERO_MOVE_SPEED = 200            # pixels per second
+HERO_MOVE_SPEED = 200  # pixels per second
 MAP_FILENAME = 'grasslands.tmx'
 
 # used for 2x scaling
@@ -31,6 +34,7 @@ def init_screen(width, height):
     screen = pygame.display.set_mode((width, height), pygame.RESIZABLE)
     temp_surface = pygame.Surface((width / 2, height / 2)).convert()
     return screen
+
 
 # make loading maps a little easier
 def get_map(filename):
@@ -49,15 +53,17 @@ class Hero(pygame.sprite.Sprite):
     "old_rect", and another to check collisions with walls, called "feet".
 
     The position list is used because pygame rects are inaccurate for
-    positioning sprites; because the values they get are 'rounded down' to
+    positioning sprites; because the values they get are 'rounded down'
     as integers, the sprite would move faster moving left or up.
 
     Feet is 1/2 as wide as the normal rect, and 8 pixels tall.  This size size
-    allows the top of the sprite to overlap walls.
+    allows the top of the sprite to overlap walls.  The feet rect is used for
+    collisions, while the 'rect' rect is used for drawing.
 
     There is also an old_rect that is used to reposition the sprite if it
     collides with level walls.
     """
+
     def __init__(self):
         pygame.sprite.Sprite.__init__(self)
         self.image = load_image('hero.png').convert_alpha()
@@ -89,6 +95,7 @@ class Hero(pygame.sprite.Sprite):
         self.rect.topleft = self._position
         self.feet.midbottom = self.rect.midbottom
 
+
 class QuestGame(object):
     """ This class is a basic game.
 
@@ -119,7 +126,7 @@ class QuestGame(object):
         w, h = screen.get_size()
 
         # create new renderer (camera)
-        # clamp_camera is used to prevent the map from scrolling past the edge
+        # clamp_camera is used to prevent the map from scrolling past the map's edge
         self.map_layer = pyscroll.BufferedRenderer(map_data,
                                                    (w / 2, h / 2),
                                                    clamp_camera=True)
@@ -127,14 +134,13 @@ class QuestGame(object):
         # pyscroll supports layered rendering.  our map has 3 'under' layers
         # layers begin with 0, so the layers are 0, 1, and 2.
         # since we want the sprite to be on top of layer 1, we set the default
-        # layer for sprites as 1
-        self.group = PyscrollGroup(map_layer=self.map_layer,
-                                   default_layer=2)
+        # layer for sprites as 2
+        self.group = PyscrollGroup(map_layer=self.map_layer, default_layer=2)
 
         self.hero = Hero()
 
         # put the hero in the center of the map
-        self.hero.position = self.map_layer.rect.center
+        self.hero.position = self.map_layer.map_rect.center
 
         # add our hero to the group
         self.group.add(self.hero)
@@ -150,7 +156,9 @@ class QuestGame(object):
     def handle_input(self):
         """ Handle pygame input events
         """
-        event = pygame.event.poll()
+        poll = pygame.event.poll
+
+        event = poll()
         while event:
             if event.type == QUIT:
                 self.running = False
@@ -166,7 +174,7 @@ class QuestGame(object):
                 init_screen(event.w, event.h)
                 self.map_layer.set_size((event.w / 2, event.h / 2))
 
-            event = pygame.event.poll()
+            event = poll()
 
         # using get_pressed is slightly less accurate than testing for events
         # but is much easier to use.
@@ -201,13 +209,12 @@ class QuestGame(object):
         """ Run the game loop
         """
         clock = pygame.time.Clock()
-        fps = 60
         scale = pygame.transform.scale
         self.running = True
 
         try:
             while self.running:
-                dt = clock.tick(fps) / 1000.
+                dt = clock.tick() / 1000.
 
                 self.handle_input()
                 self.update(dt)
