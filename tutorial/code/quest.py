@@ -8,12 +8,12 @@ https://github.com/bitcraft/pytmx
 """
 
 import os.path
-import pytmx
 import pygame
 import pyscroll
 import pyscroll.data
 from pyscroll.util import PyscrollGroup
 from pygame.locals import *
+from pytmx.util_pygame import load_pygame
 
 
 # define configuration variables here
@@ -104,7 +104,7 @@ class QuestGame(object):
         self.running = False
 
         # load data from pytmx
-        tmx_data = pytmx.load_pygame(self.filename)
+        tmx_data = load_pygame(self.filename)
 
         # setup level geometry with simple pygame rects, loaded from pytmx
         self.walls = list()
