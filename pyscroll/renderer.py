@@ -420,10 +420,7 @@ class BufferedRenderer(object):
         blit = self.buffer.blit
 
         for x, y, l, tile, gid in self.tile_queue:
-            try:
-                tile = self.animation_map[gid]
-            except KeyError:
-                pass
+            tile = self.animation_map.get(gid, tile)
             blit(tile, (x * tw - ltw, y * th - tth))
 
     def redraw_tiles(self):
