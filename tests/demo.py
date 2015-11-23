@@ -2,10 +2,14 @@
 This is tested on pygame 1.9 and python 3.3 & 2.7.
 bitcraft (leif dot theden at gmail.com)
 
-Simple rendering demo for the pyscroll.
+Rendering demo for the pyscroll.
 
 Use the arrow keys to smoothly scroll the map.
 Window is resizable.
+
+See the "Quest" tutorial for a more simple use with
+pygame sprites and groups.
+
 """
 import pytmx
 import pygame
@@ -49,13 +53,7 @@ class ScrollTest:
         map_data = pyscroll.data.TiledMapData(tmx_data)
 
         # create new renderer
-        # pyscroll has two renderers: BufferedRenderer
-        #                             ThreadedRenderer
-        # the threaded renderer is an experimental feature
-        # seems to be picky of OS and python versions
-
-        #self.map_layer = pyscroll.ThreadedRenderer(map_data, screen.get_size())
-        self.map_layer = pyscroll.BufferedRenderer(map_data, screen.get_size())
+        self.map_layer = pyscroll.BufferedRenderer(map_data, screen.get_size(), clamp_camera=True)
 
         # create a font and pre-render some text to be displayed over the map
         f = pygame.font.Font(pygame.font.get_default_font(), 20)
@@ -132,10 +130,6 @@ class ScrollTest:
             self.camera_acc[0] = 0
 
     def update(self, td):
-
-        # map can be updated to lazily blit the off-screen tiles to the buffer
-        self.map_layer.update()
-
         self.last_update_time = td
 
         friction = pow(.0001, self.last_update_time)

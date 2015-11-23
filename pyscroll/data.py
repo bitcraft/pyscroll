@@ -14,24 +14,12 @@ class TiledMapData(object):
         self.tmx = tmx
 
     @property
-    def tile_width(self):
-        return self.tmx.tilewidth
-
-    @property
-    def tile_height(self):
-        return self.tmx.tileheight
-
-    @property
     def tile_size(self):
         return self.tmx.tilewidth, self.tmx.tileheight
 
     @property
-    def map_width(self):
-        return self.tmx.width
-
-    @property
-    def map_height(self):
-        return self.tmx.height
+    def map_size(self):
+        return self.tmx.width, self.tmx.height
 
     @property
     def visible_layers(self):
@@ -45,6 +33,17 @@ class TiledMapData(object):
     def visible_object_layers(self):
         return (layer for layer in self.tmx.visible_layers
                 if isinstance(layer, pytmx.TiledObjectGroup))
+
+    def get_animations(self):
+        for gid, d in self.tmx.tile_properties.items():
+            raw_frames = d['frames']
+            if not raw_frames:
+                continue
+
+            frames = list()
+            for frame in d['frames']:
+                frames.append((frame['gid'], frame['duration']))
+            yield gid, frames
 
     def get_tile_image(self, position):
         """ Return a surface for this position.
@@ -85,4 +84,4 @@ class TiledMapData(object):
             for y, row in do_rev(data, y1, y2):
                 for x, gid in do_rev(row, x1, x2):
                     if gid:
-                        yield x, y, layer_no, images[gid]
+                        yield x, y, layer_no, images[gid], gid

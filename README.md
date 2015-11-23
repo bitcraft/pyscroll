@@ -1,7 +1,7 @@
 pyscroll
 ========
 
-for Python 2.7 & 3.3 and Pygame 1.9
+For Python 2.7 & 3.3+ and Pygame 1.9
 
 A simple, fast module for adding scrolling maps to your new or existing game.
 
@@ -15,11 +15,21 @@ to draw a map.  It doesn't load images or data, so you can use your own custom
 data structures, tile storage, ect.
 
 The included class, BufferedRenderer, gives great framerates, supports layered
-rendering and can draw itself.  It uses more memory than a typical map would,
-but gives much better performance.
+rendering and can draw itself.  It supports fast layered tile rendering with
+alpha channel support.  It also includes animated tile rendering when using.
 
 pyscroll is compatible with pytmx (https://github.com/bitcraft/pytmx), so you
 can use your Tiled maps.  It also has out-of-the-box support for PyGame Sprites.
+
+
+Use It Like a Camera
+====================
+
+In order to further simplify using scrolling maps, pyscroll includes a pygame
+Sprite Group that will render all sprites on the map and will correctly
+draw them over or under tiles.  Sprites can use their Rect in world coordinates,
+and the Group will work like a camera, translating world coordinates to screen
+coordinates.
 
 
 Documentation
@@ -32,6 +42,7 @@ Features
 ========
 
 - Fast and small footprint
+- Animated tiles
 - Layered drawing for tiles
 - Drawing and scrolling shapes
 - Dirty screen updates

@@ -17,6 +17,8 @@ class PyscrollGroup(pygame.sprite.LayeredUpdates):
 
         The basemap and all sprites will be realigned to draw correctly.
         Centering the map will not change the rect of the sprites.
+
+        :param value: x, y coordinates to center the camera on
         """
         self._map_layer.center(value)
         self._center = value
@@ -24,8 +26,7 @@ class PyscrollGroup(pygame.sprite.LayeredUpdates):
     def draw(self, surface):
         """ Draw all sprites and map onto the surface
 
-        Group.draw(surface): return None
-        Draws all of the member sprites onto the given surface.
+        :param surface: pygame surface to draw to
         """
         ox, oy = self._map_layer.get_center_offset()
 
