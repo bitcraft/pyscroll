@@ -19,7 +19,7 @@ can use your Tiled maps.  It also has out-of-the-box support for PyGame Sprites.
 
 The included class, BufferedRenderer, gives great framerates, supports layered
 rendering and can draw itself.  It supports fast layered tile rendering with
-alpha channel support.  It also includes animated tile rendering when using.
+alpha channel support.  It also includes animated tile rendering.
 
 
 Use It Like a Camera
