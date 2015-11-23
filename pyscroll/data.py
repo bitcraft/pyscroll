@@ -1,5 +1,8 @@
 """
-This file contains two data classes for use with pytmx.
+This file containsata class for pytmx
+
+If you are developing your own map format, please use this
+as a template.  Just fill in values that work for your game.
 """
 import pytmx
 
@@ -15,22 +18,40 @@ class TiledMapData(object):
 
     @property
     def tile_size(self):
+        """ This is the pixel size of tiles to be rendered
+        :return: (int, int)
+        """
         return self.tmx.tilewidth, self.tmx.tileheight
 
     @property
     def map_size(self):
+        """ This is the size of the map in tiles
+        :return: (int, int)
+        """
         return self.tmx.width, self.tmx.height
 
     @property
     def visible_layers(self):
+        """ This must return layer numbers, not objects
+        :return:
+        """
         return (int(i) for i in self.tmx.visible_layers)
 
     @property
     def visible_tile_layers(self):
+        """ This must return layer numbers, not objects
+        :return:
+        """
         return (int(i) for i in self.tmx.visible_tile_layers)
 
     @property
     def visible_object_layers(self):
+        """ This must return layer objects
+
+        This is not required for custom data formats.
+
+        :return:
+        """
         return (layer for layer in self.tmx.visible_layers
                 if isinstance(layer, pytmx.TiledObjectGroup))
 
@@ -55,10 +76,9 @@ class TiledMapData(object):
             yield gid, frames
 
     def get_tile_image(self, position):
-        """ Return a surface for this position.
+        """ Must return a surface for this position.
 
-        Returns a blank tile if cannot be loaded.
-        position is x, y, layer tuple
+        position is (x, y, layer) tuple.
         """
         try:
             return self.tmx.get_tile_image(*position)
@@ -72,6 +92,12 @@ class TiledMapData(object):
 
     def get_tile_images_by_rect(self, x1, x2, y1, y2, layers):
         """ Not like python 'Range': will include the end index!
+
+        Given the coordinates, yield the following tuple for each tile:
+          X, Y, Layer Number, pygame Surface, GID
+
+        GID's are required for animated tiles only.  This value, if not
+        used by your game engine, can be 0 or None.
 
         :param x1: Start x (column) index
         :param x2: Stop x (column) index
