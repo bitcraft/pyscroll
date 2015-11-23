@@ -32,12 +32,6 @@ and the Group will work like a camera, translating world coordinates to screen
 coordinates.
 
 
-Documentation
-=============
-
-This readme is hosted in a much nicer format at http://pyscroll.readthedocs.org.
-
-
 Features
 ========
 
@@ -47,6 +41,7 @@ Features
 - Drawing and scrolling shapes
 - Dirty screen updates
 - Pygame Group included
+- Pixel alpha and colorkey tilesets are supported
 
 
 Shape Drawing
@@ -63,9 +58,22 @@ frame.
 
 This feature is experimental at best.  Your comments and support is appreciated!
 
-* Currently, shapes will not draw over sprites.
+* Currently, shapes will not draw over sprites, only under.
 
 
+Installation
+===============================================================================
+
+Install from pip
+
+    pip install pyscroll
+
+
+You can also manually install it
+
+    python setup.py install
+    
+    
 New Game Tutorial
 =================
 
@@ -88,34 +96,47 @@ Example Use with PyTMX
 
 pyscroll and pytmx can load your maps from Tiled and use you PyGame Sprites.
 
-    import pyscroll
-    from pytmx.util_pygame import load_pygame
+```python
+import pyscroll
+from pytmx.util_pygame import load_pygame
 
-    # Load TMX data
-    tmx_data = load_pygame("desert.tmx")
+# Load TMX data
+tmx_data = load_pygame("desert.tmx")
 
-    # Make data source for the map
-    map_data = pyscroll.TiledMapData(tmx_data)
+# Make data source for the map
+map_data = pyscroll.TiledMapData(tmx_data)
 
-    # Make the scrolling layer
-    screen_size = (400, 400)
-    map_layer = pyscroll.BufferedRenderer(map_data, screen_size)
+# Make the scrolling layer
+screen_size = (400, 400)
+map_layer = pyscroll.BufferedRenderer(map_data, screen_size)
 
-    # make the PyGame SpriteGroup with a scrolling map
-    group = pyscroll.PyscrollGroup(map_layer=map_layer)
+# make the PyGame SpriteGroup with a scrolling map
+group = pyscroll.PyscrollGroup(map_layer=map_layer)
 
-    # Add sprites to the group
-    group.add(sprite)
+# Add sprites to the group
+group.add(sprite)
 
-    # Center the layer and sprites on a sprite
-    group.center(sprite.rect.center)
+# Center the layer and sprites on a sprite
+group.center(sprite.rect.center)
 
-    # Draw the layer
-    group.draw(screen)
+# Draw the layer
+group.draw(screen)
+```
+
+#### Load with alpha channel tilesets
+```python
+map_layer = pyscroll.BufferedRenderer(map_data, screen_size, alpha=True)
+```
+
+#### Load with colorkey tilesets
+```python
+map_layer = pyscroll.BufferedRenderer(map_data, screen_size, colorkey=(255, 0, 255))
+```
 
 
 Adapting Existing Games / Map Data
 ==================================
 
 pyscroll can be used with existing map data, but you will have to create a
-class to interact with pyscroll or adapt your data handler.
+class to interact with pyscroll or adapt your data handler.  Try to make it
+follow the same API as the TiledMapData adapter and you should be fine.
