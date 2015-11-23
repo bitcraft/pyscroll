@@ -49,7 +49,7 @@ class BufferedRenderer(object):
     information.  See the data class api in pyscroll.data, or use the built in
     pytmx support for loading maps created with Tiled.
     """
-    def __init__(self, data, size, clamp_camera=False, colorkey=None, alpha=False, time_source=None):
+    def __init__(self, data, size, clamp_camera=True, colorkey=None, alpha=False, time_source=None):
 
         # default options
         self.data = data

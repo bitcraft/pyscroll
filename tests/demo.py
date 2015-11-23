@@ -53,7 +53,7 @@ class ScrollTest:
         map_data = pyscroll.data.TiledMapData(tmx_data)
 
         # create new renderer
-        self.map_layer = pyscroll.BufferedRenderer(map_data, screen.get_size(), clamp_camera=True)
+        self.map_layer = pyscroll.BufferedRenderer(map_data, screen.get_size())
 
         # create a font and pre-render some text to be displayed over the map
         f = pygame.font.Font(pygame.font.get_default_font(), 20)

@@ -18,7 +18,6 @@ import pyscroll.data
 from pyscroll.group import PyscrollGroup
 
 
-
 # define configuration variables here
 RESOURCES_DIR = 'data'
 
@@ -27,6 +26,7 @@ MAP_FILENAME = 'grasslands.tmx'
 
 # used for 2x scaling
 temp_surface = None
+
 
 # simple wrapper to keep the screen resizeable
 def init_screen(width, height):
@@ -126,10 +126,8 @@ class QuestGame(object):
         w, h = screen.get_size()
 
         # create new renderer (camera)
-        # clamp_camera is used to prevent the map from scrolling past the map's edge
         self.map_layer = pyscroll.BufferedRenderer(map_data,
-                                                   (w / 2, h / 2),
-                                                   clamp_camera=True)
+                                                   (w / 2, h / 2))
 
         # pyscroll supports layered rendering.  our map has 3 'under' layers
         # layers begin with 0, so the layers are 0, 1, and 2.
