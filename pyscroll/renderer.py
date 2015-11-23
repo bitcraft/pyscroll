@@ -420,8 +420,8 @@ class BufferedRenderer(object):
         blit = self.buffer.blit
 
         for x, y, l, tile, gid in self.tile_queue:
-            tile = self.animation_map.get(gid, tile)
-            blit(tile, (x * tw - ltw, y * th - tth))
+            blit(self.animation_map.get(gid, tile),
+                 (x * tw - ltw, y * th - tth))
 
     def redraw_tiles(self):
         """ redraw the visible portion of the buffer -- it is slow.
