@@ -35,13 +35,22 @@ class TiledMapData(object):
                 if isinstance(layer, pytmx.TiledObjectGroup))
 
     def get_animations(self):
+        """ Get tile animation data
+
+        Must yield tuples that in the following format:
+          ( GID, Frames )
+
+          Where Frames is:
+          [ (GID, Duration) ... ]
+
+        """
         for gid, d in self.tmx.tile_properties.items():
             raw_frames = d['frames']
             if not raw_frames:
                 continue
 
             frames = list()
-            for frame in d['frames']:
+            for frame in raw_frames:
                 frames.append((frame['gid'], frame['duration']))
             yield gid, frames
 
