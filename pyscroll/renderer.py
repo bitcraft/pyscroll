@@ -127,10 +127,10 @@ class BufferedRenderer(object):
         self._initialize_buffers(buffer_size)
 
     def _calculate_zoom_buffer_size(self, value):
-        value = 1.0 / value
         if value == 0:
             print('zoom level cannot be zero')
             raise ValueError
+        value = 1.0 / value
         return [int(round(i * value)) for i in self._unscaled_size]
 
     def set_size(self, size):
