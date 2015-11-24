@@ -164,7 +164,9 @@ class QuestGame(object):
                     self.map_layer.zoom += .25
 
                 elif event.key == K_MINUS:
-                    self.map_layer.zoom -= .25
+                    value = self.map_layer.zoom - .25
+                    if value > 0:
+                        self.map_layer.zoom = value
 
             # this will be handled if the window is resized
             elif event.type == VIDEORESIZE:
