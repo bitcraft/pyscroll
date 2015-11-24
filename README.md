@@ -140,3 +140,38 @@ Adapting Existing Games / Map Data
 pyscroll can be used with existing map data, but you will have to create a
 class to interact with pyscroll or adapt your data handler.  Try to make it
 follow the same API as the TiledMapData adapter and you should be fine.
+
+There is a good possibility that tile animations will not work for custom
+map types (only works with pytmx).  I will investigate this in the future.
+
+The following do not require pytmx, you can use your own data format.
+
+#### Give pyscroll surface to layer into the map
+
+pyscroll can use a list of surfaces and render them on the map, taking account
+their layer position.
+
+```python
+map_layer = pyscroll.BufferedRenderer(map_data, map_size)
+
+# just an example for clarity.  here's a made up game engine
+
+def draw():
+   surfaces = list()
+   for game_object in my_game_engine:
+
+      # pyscroll uses normal pygame surfaces
+      surface = game_object.get_surface()
+   
+      # pyscroll will draw surfaces in screen coordinates, so translate them
+      # you need to use a rect to handle tiles that cover surfaces.
+      rect = game_object.get_screen_rect()
+   
+      # the list called 'surfaces' is required for pyscroll
+      # notice the layer.  this determines which layers the sprite will cover.
+      # layer numbers higher than this will cover the surface
+      surfaces.append((surface, rect, game_object.layer))
+
+   # tell pyscroll to draw to the screen, and use the surfaces supplied
+   map_layer.draw(screen, screen.get_rect(), surfaces)
+```
