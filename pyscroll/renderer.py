@@ -1,8 +1,7 @@
 import math
 import logging
-import warnings
 import time
-from heapq import heappush, heappop, heapify
+from heapq import heappush, heappop
 from collections import namedtuple
 from itertools import product, chain
 from functools import partial
@@ -168,7 +167,6 @@ class BufferedRenderer(object):
     def scroll(self, vector):
         """ scroll the background in pixels
         """
-        warnings.warn('BufferRenderer.scroll is not depreciated.  Please use update now.')
         self.center((vector[0] + self.old_x, vector[1] + self.old_y))
 
     def center(self, coords):
