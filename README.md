@@ -19,7 +19,7 @@ can use your Tiled maps.  It also has out-of-the-box support for PyGame Sprites.
 
 The included class, BufferedRenderer, gives great framerates, supports layered
 rendering and can draw itself.  It supports fast layered tile rendering with
-alpha channel support.  It also includes animated tile rendering.
+alpha channel support.  It also includes animated tile rendering and zooming!
 
 
 Use It Like a Camera
@@ -31,10 +31,18 @@ draw them over or under tiles.  Sprites can use their Rect in world coordinates,
 and the Group will work like a camera, translating world coordinates to screen
 coordinates.
 
+Zooming is a new feature and should operate quickly on most computers.  Be aware
+that it is ceap to operate a zoomed view, but expensive to do the actual zooming.
+This means that its easy to zoom the map once, but don't expect it to work well
+if you want to do an animated zoom into something.
+
+Its useful to make minimaps or create simple chunky graphics.
+
 
 Features
 ========
 
+- Zoom it like a camera
 - Fast and small footprint
 - Animated tiles
 - Layered drawing for tiles
@@ -121,6 +129,12 @@ group.center(sprite.rect.center)
 
 # Draw the layer
 group.draw(screen)
+
+# adjust the zoom (out)
+map_layer.zoom = .5
+
+# adjust the zoom (in)
+map_layer.zoom = 2.0
 ```
 
 #### Load with alpha channel tilesets

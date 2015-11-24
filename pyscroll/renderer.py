@@ -48,7 +48,8 @@ class BufferedRenderer(object):
     information.  See the data class api in pyscroll.data, or use the built in
     pytmx support for loading maps created with Tiled.
     """
-    def __init__(self, data, size, clamp_camera=True, colorkey=None, alpha=False, time_source=None):
+    def __init__(self, data, size, clamp_camera=True, colorkey=None, alpha=False,
+                 time_source=None, scaling_function=pygame.transform.smoothscale):
 
         # default options
         self.data = data
@@ -57,6 +58,7 @@ class BufferedRenderer(object):
         self.clipping = True
         self.default_shape_texture_gid = 1
         self.default_shape_color = 0, 255, 0
+        self.scaling_function=scaling_function
 
         if time_source is None:
             self.time_source = time.time
@@ -87,6 +89,10 @@ class BufferedRenderer(object):
         self.animation_map = None
         self.last_time = None
 
+        self._zoom_level = 1.0
+        self._zoom_buffer = None
+        self._unscaled_size = None
+
         self.reload_animations()
         self.set_size(size)
 
@@ -110,6 +116,23 @@ class BufferedRenderer(object):
             self.animation_map[ani.gid] = ani.frames[ani.index].image
             heappush(self.animation_queue, ani)
 
+    @property
+    def zoom(self):
+        return self._zoom_level
+
+    @zoom.setter
+    def zoom(self, value):
+        self._zoom_level = value
+        buffer_size = self._calculate_zoom_buffer_size(value)
+        self._initialize_buffers(buffer_size)
+
+    def _calculate_zoom_buffer_size(self, value):
+        value = 1.0 / value
+        if value == 0:
+            print('zoom level cannot be zero')
+            raise ValueError
+        return [int(round(i * value)) for i in self._unscaled_size]
+
     def set_size(self, size):
         """ Set the size of the map in pixels
 
@@ -117,8 +140,13 @@ class BufferedRenderer(object):
 
         :param size: (width, height) pizel size of camera/view of the group
         """
-        tw, th = self.data.tile_size
+        self._unscaled_size = size
+        buffer_size = self._calculate_zoom_buffer_size(self._zoom_level)
+        self._initialize_buffers(buffer_size)
 
+    def _initialize_buffers(self, size):
+        print size
+        tw, th = self.data.tile_size
         buffer_tile_width = int(math.ceil(size[0] / tw) + 2)
         buffer_tile_height = int(math.ceil(size[1] / th) + 2)
         buffer_pixel_size = buffer_tile_width * tw, buffer_tile_height * th
@@ -131,14 +159,23 @@ class BufferedRenderer(object):
         # this rect represents each tile on the buffer
         self.view = pygame.Rect(0, 0, buffer_tile_width, buffer_tile_height)
 
+        requires_zoom_buffer = not self._zoom_level == 1.0
+
         # create the buffer to use, taking in account pixel alpha or colorkey
         if self.clear_color:
+            if requires_zoom_buffer:
+                self._zoom_buffer = pygame.Surface(size, flags=pygame.RLEACCEL)
+                self._zoom_buffer.set_colorkey(self.clear_color)
             self.buffer = pygame.Surface(buffer_pixel_size, flags=pygame.RLEACCEL)
             self.buffer.set_colorkey(self.clear_color)
             self.buffer.fill(self.clear_color)
         elif self.alpha:
+            if requires_zoom_buffer:
+                self._zoom_buffer = pygame.Surface(size, flags=pygame.SRCALPHA)
             self.buffer = pygame.Surface(buffer_pixel_size, flags=pygame.SRCALPHA)
         else:
+            if requires_zoom_buffer:
+                self._zoom_buffer = pygame.Surface(size)
             self.buffer = pygame.Surface(buffer_pixel_size)
 
         self.half_width = size[0] / 2
@@ -294,6 +331,14 @@ class BufferedRenderer(object):
         and will be correctly drawn with tiles from a higher layer overlapping
         the surface.
         """
+        if self._zoom_level == 1.0:
+            self._render_map(surface, rect, surfaces)
+        else:
+            self._render_map(self._zoom_buffer, self._zoom_buffer.get_rect(), surfaces)
+            self.scaling_function(self._zoom_buffer, rect.size, surface)
+            # surface.blit(self._zoom_buffer, rect)
+
+    def _render_map(self, surface, rect, surfaces):
         if self.animation_queue:
             self.process_animation_queue()
 
