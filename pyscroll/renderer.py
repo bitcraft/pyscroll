@@ -88,7 +88,6 @@ class BufferedRenderer(object):
         self.animation_queue = None
         self.animation_map = None
         self.last_time = None
-
         self._zoom_level = 1.0
         self._zoom_buffer = None
         self._unscaled_size = None
@@ -335,17 +334,17 @@ class BufferedRenderer(object):
         else:
             self._render_map(self._zoom_buffer, self._zoom_buffer.get_rect(), surfaces)
             self.scaling_function(self._zoom_buffer, rect.size, surface)
-            # surface.blit(self._zoom_buffer, rect)
 
     def _render_map(self, surface, rect, surfaces):
-        if self.animation_queue:
-            self.process_animation_queue()
-
         surface_blit = surface.blit
         left, top = self.view.topleft
         ox, oy = self.x_offset, self.y_offset
         ox -= rect.left
         oy -= rect.top
+
+        # if map has animated tiles, then handle it now
+        if self.animation_queue:
+            self.process_animation_queue()
 
         # need to set clipping otherwise the map will draw outside its area
         original_clip = None
@@ -373,8 +372,7 @@ class BufferedRenderer(object):
                 for r in hit(dirty_rect.move(ox, oy)):
                     x, y, tw, th = r
                     for l in [i for i in tile_layers if above(i, layer)]:
-                        tile = get_tile((int(x / tw + left),
-                                         int(y / th + top), int(l)))
+                        tile = get_tile((x // tw + left, y // th + top, l))
                         if tile:
                             surface_blit(tile, (x - ox, y - oy))
 

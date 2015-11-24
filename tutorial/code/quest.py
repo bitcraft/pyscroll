@@ -26,7 +26,6 @@ MAP_FILENAME = 'grasslands.tmx'
 
 # simple wrapper to keep the screen resizeable
 def init_screen(width, height):
-    global temp_surface
     screen = pygame.display.set_mode((width, height), pygame.RESIZABLE)
     return screen
 
