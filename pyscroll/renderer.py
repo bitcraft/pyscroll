@@ -145,7 +145,6 @@ class BufferedRenderer(object):
         self._initialize_buffers(buffer_size)
 
     def _initialize_buffers(self, size):
-        print size
         tw, th = self.data.tile_size
         buffer_tile_width = int(math.ceil(size[0] / tw) + 2)
         buffer_tile_height = int(math.ceil(size[1] / th) + 2)
