@@ -120,8 +120,8 @@ class BufferedRenderer(object):
         """
         tw, th = self.data.tile_size
 
-        buffer_tile_width = math.ceil(size[0] / tw) + 2
-        buffer_tile_height = math.ceil(size[1] / th) + 2
+        buffer_tile_width = int(math.ceil(size[0] / tw) + 2)
+        buffer_tile_height = int(math.ceil(size[1] / th) + 2)
         buffer_pixel_size = buffer_tile_width * tw, buffer_tile_height * th
         self.redraw_cutoff = min(buffer_tile_width, buffer_tile_height)
 

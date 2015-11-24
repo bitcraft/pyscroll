@@ -11,7 +11,7 @@ See the "Quest" tutorial for a more simple use with
 pygame sprites and groups.
 
 """
-import pytmx
+from pytmx.util_pygame import load_pygame
 import pygame
 import pyscroll
 import pyscroll.data
@@ -47,7 +47,7 @@ class ScrollTest:
     def __init__(self, filename):
 
         # load data from pytmx
-        tmx_data = pytmx.load_pygame(filename)
+        tmx_data = load_pygame(filename)
 
         # create new data source
         map_data = pyscroll.data.TiledMapData(tmx_data)
