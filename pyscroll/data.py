@@ -66,13 +66,10 @@ class TiledMapData(object):
 
         """
         for gid, d in self.tmx.tile_properties.items():
-            raw_frames = d['frames']
-            if not raw_frames:
+            frames = d['frames']
+            if not frames:
                 continue
 
-            frames = list()
-            for frame in raw_frames:
-                frames.append((frame['gid'], frame['duration']))
             yield gid, frames
 
     def get_tile_image(self, position):
