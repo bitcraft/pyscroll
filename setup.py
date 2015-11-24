@@ -4,7 +4,7 @@
 from setuptools import setup
 
 setup(name='pyscroll',
-      version='2.15.1',
+      version='2.15.2',
       description='Scrolling library for pygame and python 2.7 & 3.3',
       author='bitcraft',
       author_email='leif.theden@gmail.com',
