@@ -24,15 +24,10 @@ RESOURCES_DIR = 'data'
 HERO_MOVE_SPEED = 200  # pixels per second
 MAP_FILENAME = 'grasslands.tmx'
 
-# used for 2x scaling
-temp_surface = None
-
-
 # simple wrapper to keep the screen resizeable
 def init_screen(width, height):
     global temp_surface
     screen = pygame.display.set_mode((width, height), pygame.RESIZABLE)
-    temp_surface = pygame.Surface((width / 2, height / 2)).convert()
     return screen
 
 
@@ -123,11 +118,9 @@ class QuestGame(object):
         # create new data source for pyscroll
         map_data = pyscroll.data.TiledMapData(tmx_data)
 
-        w, h = screen.get_size()
-
         # create new renderer (camera)
-        self.map_layer = pyscroll.BufferedRenderer(map_data,
-                                                   (w / 2, h / 2))
+        self.map_layer = pyscroll.BufferedRenderer(map_data, screen.get_size())
+        self.map_layer.zoom = 2
 
         # pyscroll supports layered rendering.  our map has 3 'under' layers
         # layers begin with 0, so the layers are 0, 1, and 2.
@@ -170,7 +163,7 @@ class QuestGame(object):
             # this will be handled if the window is resized
             elif event.type == VIDEORESIZE:
                 init_screen(event.w, event.h)
-                self.map_layer.set_size((event.w / 2, event.h / 2))
+                self.map_layer.set_size((event.w, event.h))
 
             event = poll()
 
@@ -207,7 +200,6 @@ class QuestGame(object):
         """ Run the game loop
         """
         clock = pygame.time.Clock()
-        scale = pygame.transform.scale
         self.running = True
 
         try:
@@ -216,8 +208,7 @@ class QuestGame(object):
 
                 self.handle_input()
                 self.update(dt)
-                self.draw(temp_surface)
-                scale(temp_surface, screen.get_size(), screen)
+                self.draw(screen)
                 pygame.display.flip()
 
         except KeyboardInterrupt:

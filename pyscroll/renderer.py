@@ -49,7 +49,7 @@ class BufferedRenderer(object):
     pytmx support for loading maps created with Tiled.
     """
     def __init__(self, data, size, clamp_camera=True, colorkey=None, alpha=False,
-                 time_source=None, scaling_function=pygame.transform.smoothscale):
+                 time_source=None, scaling_function=pygame.transform.scale):
 
         # default options
         self.data = data
