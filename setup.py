@@ -4,13 +4,13 @@
 from setuptools import setup
 
 setup(name='pyscroll',
-      version='2.15.2',
-      description='Scrolling library for pygame and python 2.7 & 3.3',
+      version='2.16.0',
+      description='Scrolling maps library for pygame and python 2.7 & 3.3+',
       author='bitcraft',
       author_email='leif.theden@gmail.com',
       url='http://github.com/bitcraft/pyscroll',
       packages=['pyscroll', 'tutorial'],
-      install_requires=['pygame'],
+      install_requires=['pygame', 'six'],
       license='LGPLv3',
       long_description='see readme.md',
       package_data={

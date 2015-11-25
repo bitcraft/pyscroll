@@ -19,11 +19,8 @@ import collections
 import logging
 from pygame.locals import *
 
+import pyscroll.orthographic
 
-# pyscroll is a python 2.7/3.3 project
-# using the logging module simplifies "print" statements and has nice output.
-# the following sets the logger up for this app.
-# NOTE: it is not necessary for your app to do this, but it is a good practice.
 logger = logging.getLogger(__name__)
 ch = logging.StreamHandler()
 ch.setLevel(logging.INFO)
@@ -53,7 +50,7 @@ class ScrollTest:
         map_data = pyscroll.data.TiledMapData(tmx_data)
 
         # create new renderer
-        self.map_layer = pyscroll.BufferedRenderer(map_data, screen.get_size())
+        self.map_layer = pyscroll.orthographic.BufferedRenderer(map_data, screen.get_size())
 
         # create a font and pre-render some text to be displayed over the map
         f = pygame.font.Font(pygame.font.get_default_font(), 20)
