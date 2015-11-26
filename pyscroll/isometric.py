@@ -54,11 +54,10 @@ class IsometricBufferedRenderer(BufferedRenderer):
             [(surface.blit(i[0], i[1]), i[2]) for i in surfaces]
 
     def _flush_tile_queue(self):
-        """ Bilts (x, y, layer) tuples to buffer from iterator
+        """ Blits (x, y, layer) tuples to buffer from iterator
         """
         iterator = self._tile_queue
         surface_blit = self._buffer.blit
-        get_tile = self.data.get_tile_image
 
         bw, bh = self._buffer.get_size()
         bw /= 2
@@ -90,23 +89,26 @@ class IsometricBufferedRenderer(BufferedRenderer):
         yy = (y + x) / 2
 
         # calc the new offset
-        left, self._x_offset = divmod(x - self._half_width, tw)
-        top, self._y_offset = divmod(y - self._half_height, th)
+        # left, self._x_offset = divmod(xx, tw)
+        # top, self._y_offset = divmod(yy, th)
+
+        self._x_offset = xx
+        self._y_offset = yy
 
         ox = (x % tw)
         oy = (y % th)
-        self._x_offset = xx
-        self._y_offset = yy
+        # self._x_offset = xx
+        # self._y_offset = yy
 
         # calc new view
         # left = int(x / tw)
         # top = int(y / th)
 
         # determine if tiles should be redrawn
-        dx = int(left - self._view.left)
-        dy = int(top - self._view.top)
+        # dx = int(left - self._view.left)
+        # dy = int(top - self._view.top)
 
-        self._view.move_ip((dx, dy))
-        self.redraw_tiles()
+        # self._view.move_ip((dx, dy))
+        # self.redraw_tiles()
 
         self._old_x, self._old_y = x, y

@@ -32,8 +32,8 @@ and the Group will work like a camera, translating world coordinates to screen
 coordinates.
 
 Zooming is a new feature and should operate quickly on most computers.  Be aware
-that it is ceap to operate a zoomed view, but expensive to do the actual zooming.
-This means that its easy to zoom the map once, but don't expect it to work well
+that it is cheap to operate a zoomed view, but expensive to do the actual zooming.
+This means that its easy to zoom the map once, but don't expect it to work quickly
 if you want to do an animated zoom into something.
 
 Its useful to make minimaps or create simple chunky graphics.
@@ -47,7 +47,6 @@ Features
 - Animated tiles
 - Layered drawing for tiles
 - Drawing and scrolling shapes
-- Dirty screen updates
 - Pygame Group included
 - Pixel alpha and colorkey tilesets are supported
 
@@ -95,8 +94,6 @@ the PyscrollGroup for PyGame.  There are plenty of comments to get you started.
 The Quest demo shows how you can use a pyscroll group for drawing, how to load
 maps with PyTMX, and how pyscroll can quickly render layers.  Moving under some
 tiles will cause the Hero to be covered.
-
-It will also render a Shape on the map with experimental shape drawing.
 
 
 Example Use with PyTMX

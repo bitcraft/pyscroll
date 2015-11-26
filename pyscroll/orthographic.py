@@ -7,7 +7,7 @@ from itertools import product, chain
 from operator import gt
 
 import pygame
-from pyscroll import quadtree
+from pyscroll import surface_clipping_context, quadtree
 from pyscroll.animation import AnimationFrame, AnimationToken
 
 logger = logging.getLogger('orthographic')
@@ -23,7 +23,6 @@ class BufferedRenderer(object):
     and animation information.  See the data class api in pyscroll.data, or
     use the built-in pytmx support for loading maps created with Tiled.
     """
-
     def __init__(self, data, size, clamp_camera=True, colorkey=None, alpha=False,
                  time_source=None, scaling_function=pygame.transform.scale):
 
@@ -92,6 +91,38 @@ class BufferedRenderer(object):
             self._animation_map[ani.gid] = ani.frames[ani.index].image
             heappush(self._animation_queue, ani)
 
+    def _process_animation_queue(self):
+        self._update_time()
+        requires_redraw = False
+
+        # test if the next scheduled tile change is ready
+        while self._animation_queue[0].next <= self._last_time:
+            requires_redraw = True
+            token = heappop(self._animation_queue)
+
+            # advance the animation index, looping by default
+            if token.index == len(token.frames) - 1:
+                token.index = 0
+            else:
+                token.index += 1
+
+            next_frame = token.frames[token.index]
+            token.next = next_frame.duration + self._last_time
+            self._animation_map[token.gid] = next_frame.image
+            heappush(self._animation_queue, token)
+
+        if requires_redraw:
+            # TODO: record the tiles that changed and update only affected tiles
+            self.redraw_tiles()
+            pass
+
+    def _calculate_zoom_buffer_size(self, value):
+        if value <= 0:
+            print('zoom level cannot be zero or less')
+            raise ValueError
+        value = 1.0 / value
+        return [int(round(i * value)) for i in self._unscaled_size]
+
     @property
     def zoom(self):
         """ Zoom the map in or out.
@@ -112,13 +143,6 @@ class BufferedRenderer(object):
         buffer_size = self._calculate_zoom_buffer_size(value)
         self._initialize_buffers(buffer_size)
 
-    def _calculate_zoom_buffer_size(self, value):
-        if value <= 0:
-            print('zoom level cannot be zero or less')
-            raise ValueError
-        value = 1.0 / value
-        return [int(round(i * value)) for i in self._unscaled_size]
-
     def set_size(self, size):
         """ Set the size of the map in pixels
 
@@ -136,6 +160,8 @@ class BufferedRenderer(object):
         :param buffer_size: pixel size of the buffer
         """
         requires_zoom_buffer = not self._zoom_level == 1.0
+        self._zoom_buffer = None
+        self._buffer = None
 
         if self._clear_color:
             if requires_zoom_buffer:
@@ -160,20 +186,20 @@ class BufferedRenderer(object):
         :return: None
         """
         tw, th = self.data.tile_size
-        buffer_tile_width = int(math.ceil(size[0] / tw) + 2)
-        buffer_tile_height = int(math.ceil(size[1] / th) + 2)
-        buffer_pixel_size = buffer_tile_width * tw, buffer_tile_height * th
-        self._redraw_cutoff = min(buffer_tile_width, buffer_tile_height)
+        mw, mh = self.data.map_size
 
         # this is the pixel size of the entire map
-        mw, mh = self.data.map_size
         self.map_rect = pygame.Rect(0, 0, mw * tw, mh * th)
+
+        buffer_tile_width = int(math.ceil(size[0] / tw) + 2)
+        buffer_tile_height = int(math.ceil(size[1] / th) + 2)
 
         # this rect represents each tile on the buffer
         self._view = pygame.Rect(0, 0, buffer_tile_width, buffer_tile_height)
+        self._redraw_cutoff = min(buffer_tile_width, buffer_tile_height)
 
+        buffer_pixel_size = buffer_tile_width * tw, buffer_tile_height * th
         self._make_buffers(size, buffer_pixel_size)
-
         self._half_width = size[0] // 2
         self._half_height = size[1] // 2
 
@@ -264,61 +290,36 @@ class BufferedRenderer(object):
         :param dy: Edge along Y axis to enqueue
         :return: None
         """
-        layers = list(self.data.visible_tile_layers)
         v = self._view
-        self._tile_queue = iter([])
         fill = partial(self._buffer.fill, self._clear_color)
         bw, bh = self._buffer.get_size()
         tw, th = self.data.tile_size
+        self._tile_queue = iter([])
 
-        def append(*args):
-            self._tile_queue = chain(self._tile_queue, self.data.get_tile_images_by_rect(*args))
+        def append(rect):
+            self._tile_queue = chain(self._tile_queue, self.data.get_tile_images_by_rect(rect))
 
         if dx > 0:    # right side
-            append(v.right - dx, v.right, v.top, v.bottom, layers)
+            append((v.right - dx, v.top, dx, v.height))
             if self._clear_color:
                 d = dx * tw
                 fill((bw - d, 0, d, bh))
 
         elif dx < 0:  # left side
-            append(v.left + dx, v.left, v.top, v.bottom, layers)
+            append((v.left + dx, v.top, -dx, v.height))
             if self._clear_color:
                 fill((0, 0, -dx * tw, bh))
 
         if dy > 0:    # bottom side
-            append(v.left, v.right, v.bottom - dy, v.bottom, layers)
+            append((v.left, v.bottom - dy, v.width, dy))
             if self._clear_color:
                 d = dy * th
                 fill((0, bh - d, bw, d))
 
         elif dy < 0:  # top side
-            append(v.left, v.right, v.top, v.top - dy, layers)
+            append((v.left, v.top + dy, v.width, -dy))
             if self._clear_color:
                 fill((0, 0, bw, -dy * th))
-
-    def _process_animation_queue(self):
-        self._update_time()
-        requires_redraw = False
-
-        # test if the next scheduled change is ready
-        while self._animation_queue[0].next <= self._last_time:
-            requires_redraw = True
-            token = heappop(self._animation_queue)
-
-            # advance the animation index, looping by default
-            if token.index == len(token.frames) - 1:
-                token.index = 0
-            else:
-                token.index += 1
-
-            next_frame = token.frames[token.index]
-            token.next = next_frame.duration + self._last_time
-            self._animation_map[token.gid] = next_frame.image
-            heappush(self._animation_queue, token)
-
-        if requires_redraw:
-            # TODO: record the tiles that changed and update only affected tiles
-            self.redraw_tiles()
 
     def draw(self, surface, rect, surfaces=None):
         """ Draw the map onto a surface
@@ -357,41 +358,38 @@ class BufferedRenderer(object):
             self._process_animation_queue()
 
         # need to set clipping otherwise the map will draw outside its area
-        original_clip = surface.get_clip()
-        if original_clip:
-            surface.set_clip(rect)
-
-        # draw the entire map to the surface,
-        # taking in account the scrolling offset
-        surface.blit(self._buffer, (-self._x_offset - rect.left,
-                                    -self._y_offset - rect.top))
-
-        if surfaces:
-            self._draw_surfaces(surface, rect, surfaces)
-
-        if original_clip:
-            surface.set_clip(original_clip)
+        with surface_clipping_context(surface, rect):
+            # draw the entire map to the surface taking in account the scrolling offset
+            surface.blit(self._buffer, (-self._x_offset - rect.left,
+                                        -self._y_offset - rect.top))
+            if surfaces:
+                self._draw_surfaces(surface, rect, surfaces)
 
     def _draw_surfaces(self, surface, rect, surfaces):
+        """ Draw surfaces onto map, then redraw tiles that cover them
+
+        :param surface: destination
+        :param rect: clipping area
+        :param surfaces: sequence of surfaces to blit
+        """
         surface_blit = surface.blit
         left, top = self._view.topleft
         ox, oy = self._x_offset, self._y_offset
         ox -= rect.left
         oy -= rect.top
 
-        if surfaces is not None:
-            hit = self._layer_quadtree.hit
-            get_tile = self.data.get_tile_image
-            tile_layers = tuple(self.data.visible_tile_layers)
-            dirty = [(surface_blit(i[0], i[1]), i[2]) for i in surfaces]
+        hit = self._layer_quadtree.hit
+        get_tile = self.data.get_tile_image
+        tile_layers = tuple(self.data.visible_tile_layers)
+        dirty = [(surface_blit(i[0], i[1]), i[2]) for i in surfaces]
 
-            for dirty_rect, layer in dirty:
-                for r in hit(dirty_rect.move(ox, oy)):
-                    x, y, tw, th = r
-                    for l in [i for i in tile_layers if gt(i, layer)]:
-                        tile = get_tile((x // tw + left, y // th + top, l))
-                        if tile:
-                            surface_blit(tile, (x - ox, y - oy))
+        for dirty_rect, layer in dirty:
+            for r in hit(dirty_rect.move(ox, oy)):
+                x, y, tw, th = r
+                for l in [i for i in tile_layers if gt(i, layer)]:
+                    tile = get_tile((x // tw + left, y // th + top, l))
+                    if tile:
+                        surface_blit(tile, (x - ox, y - oy))
 
     def _draw_objects(self):
         """ Totally unoptimized drawing of objects to the map
@@ -467,20 +465,17 @@ class BufferedRenderer(object):
         ltw = self._view.left * tw
         tth = self._view.top * th
         blit = self._buffer.blit
+        map_get = self._animation_map.get
 
         for x, y, l, tile, gid in self._tile_queue:
-            blit(self._animation_map.get(gid, tile),
-                 (x * tw - ltw, y * th - tth))
+            blit(map_get(gid, tile), (x * tw - ltw, y * th - tth))
 
     def _get_tiles_in_view(self):
         """ Return a full tile queue for tiles in view
 
         :return: generator
         """
-        return self.data.get_tile_images_by_rect(
-            self._view.left, self._view.right,
-            self._view.top, self._view.bottom,
-            self.data.visible_tile_layers)
+        return self.data.get_tile_images_by_rect(self._view)
 
     def redraw_tiles(self):
         """ redraw the visible portion of the buffer -- it is slow.

@@ -24,6 +24,7 @@ RESOURCES_DIR = 'data'
 HERO_MOVE_SPEED = 200  # pixels per second
 MAP_FILENAME = 'grasslands.tmx'
 
+
 # simple wrapper to keep the screen resizeable
 def init_screen(width, height):
     screen = pygame.display.set_mode((width, height), pygame.RESIZABLE)

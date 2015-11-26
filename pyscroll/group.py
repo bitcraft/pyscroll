@@ -1,6 +1,6 @@
 import pygame
 
-__all__ = ('PyscrollGroup',)
+__all__ = ('PyscrollGroup', )
 
 
 class PyscrollGroup(pygame.sprite.LayeredUpdates):
@@ -10,7 +10,6 @@ class PyscrollGroup(pygame.sprite.LayeredUpdates):
     def __init__(self, *args, **kwargs):
         pygame.sprite.LayeredUpdates.__init__(self, *args, **kwargs)
         self._map_layer = kwargs.get('map_layer')
-        self._center = 0, 0
 
     def center(self, value):
         """ Center the group/map on a pixel
@@ -21,7 +20,6 @@ class PyscrollGroup(pygame.sprite.LayeredUpdates):
         :param value: x, y coordinates to center the camera on
         """
         self._map_layer.center(value)
-        self._center = value
 
     def draw(self, surface):
         """ Draw all sprites and map onto the surface
