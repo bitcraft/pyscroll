@@ -6,6 +6,18 @@ import pygame.gfxdraw
 from pyscroll.orthographic import BufferedRenderer
 
 
+def vector3_to_iso(vector3):
+    offset = 0, 0
+    return ((vector3[0] - vector3[1]) + offset[0],
+            ((vector3[0] + vector3[1]) >> 1) - vector3[2] + offset[1])
+
+
+def vector2_to_iso(vector2):
+    offset = 0, 0
+    return ((vector2[0] - vector2[1]) + offset[0],
+            ((vector2[0] + vector2[1]) >> 1) + offset[1])
+
+
 class IsometricBufferedRenderer(BufferedRenderer):
     """ TEST ISOMETRIC
 
@@ -15,7 +27,6 @@ class IsometricBufferedRenderer(BufferedRenderer):
     - drawing may have depth sorting issues
     - will be slower than orthographic maps for window of same size
     """
-
     def __init__(self, *args, **kwargs):
         self.iso_double_height = True
         super(IsometricBufferedRenderer, self).__init__(*args, **kwargs)
@@ -25,27 +36,20 @@ class IsometricBufferedRenderer(BufferedRenderer):
         """
         tw = self.data.tile_size[0]
         th = self.data.tile_size[1] // 2
-
-        buffer_tile_width = int(math.ceil(size[0] / tw) + 2)
-        buffer_tile_height = int(math.ceil(size[1] / th) + 2)
-        buffer_pixel_size = buffer_tile_width * tw, buffer_tile_height * th
-        self._redraw_cutoff = min(buffer_tile_width, buffer_tile_height)
-
-        # this is the pixel size of the entire map
         mw, mh = self.data.map_size
+        buffer_tile_width = int(math.ceil(size[0] / tw) + 2) * 2
+        buffer_tile_height = int(math.ceil(size[1] / th) + 2) * 2
+        buffer_pixel_size = buffer_tile_width * tw, buffer_tile_height * th
+
         self.map_rect = pygame.Rect(0, 0, mw * tw, mh * th)
-
-        self._view = pygame.Rect(0, 0, buffer_tile_width, buffer_tile_height)
-
-        self._make_buffers(size, buffer_pixel_size)
-
-        self._half_width = size[0] / 2
-        self._half_height = size[1] / 2
-
+        self._view_rect.size = size
+        self._tile_view = pygame.Rect(0, 0, buffer_tile_width, buffer_tile_height)
+        self._redraw_cutoff = min(buffer_tile_width, buffer_tile_height)
+        self._create_buffers(size, buffer_pixel_size)
+        self._half_width = size[0] // 2
+        self._half_height = size[1] // 2
         self._x_offset = 0
         self._y_offset = 0
-        self._old_x = 0
-        self._old_y = 0
 
         self.redraw_tiles()
 
@@ -67,8 +71,8 @@ class IsometricBufferedRenderer(BufferedRenderer):
         thh = th // 2
 
         for x, y, l, tile, gid in iterator:
-            x -= self._view.left
-            y -= self._view.top
+            x -= self._tile_view.left
+            y -= self._tile_view.top
 
             # iso => cart
             iso_x = ((x - y) * twh) + bw
@@ -79,36 +83,27 @@ class IsometricBufferedRenderer(BufferedRenderer):
         """ center the map on a "map pixel"
         """
         x, y = [round(i, 0) for i in coords]
+        self._view_rect.center = x, y
+
+        # if self.clamp_camera:
+        #     self._view_rect.clamp_ip(self.map_rect)
+        #     x, y = self._view_rect.center
 
         tw, th = self.data.tile_size
-        twh = tw // 2
-        thh = th // 2
+        xx, yy = vector2_to_iso(coords)
 
-        # iso => screen
-        xx = x - y
-        yy = (y + x) / 2
+        self._x_offset = 500
+        self._y_offset = 100
 
-        # calc the new offset
-        # left, self._x_offset = divmod(xx, tw)
-        # top, self._y_offset = divmod(yy, th)
+        left, _ = divmod(x, tw)
+        top, _ = divmod(y, th)
 
-        self._x_offset = xx
-        self._y_offset = yy
+        # adjust the view if the view has changed without a redraw
+        dx = int(left - self._tile_view.left)
+        dy = int(top - self._tile_view.top)
 
-        ox = (x % tw)
-        oy = (y % th)
-        # self._x_offset = xx
-        # self._y_offset = yy
+        self._tile_view.move_ip((dx, dy))
+        # self._queue_edge_tiles(dx, dy)
+        # self._flush_tile_queue()
+        self.redraw_tiles()
 
-        # calc new view
-        # left = int(x / tw)
-        # top = int(y / th)
-
-        # determine if tiles should be redrawn
-        # dx = int(left - self._view.left)
-        # dy = int(top - self._view.top)
-
-        # self._view.move_ip((dx, dy))
-        # self.redraw_tiles()
-
-        self._old_x, self._old_y = x, y

@@ -119,7 +119,8 @@ class QuestGame(object):
         map_data = pyscroll.data.TiledMapData(tmx_data)
 
         # create new renderer (camera)
-        self.map_layer = pyscroll.BufferedRenderer(map_data, screen.get_size())
+        self.map_layer = pyscroll.BufferedRenderer(map_data, screen.get_size(),
+                                                   colorkey=(255, 0, 255))
         self.map_layer.zoom = 2
 
         # pyscroll supports layered rendering.  our map has 3 'under' layers
