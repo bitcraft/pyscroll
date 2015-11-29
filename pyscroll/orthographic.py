@@ -60,7 +60,7 @@ class BufferedRenderer(object):
         self._zoom_level = 1.0        # negative numbers make map smaller, positive: bigger
 
         # this represents the viewable pixels, aka 'camera'
-        self._view_rect = Rect(0, 0, 0, 0)
+        self.view_rect = Rect(0, 0, 0, 0)
 
         self.reload_animations()
         self.set_size(size)
@@ -187,7 +187,7 @@ class BufferedRenderer(object):
         buffer_pixel_size = buffer_tile_width * tw, buffer_tile_height * th
 
         self.map_rect = Rect(0, 0, mw * tw, mh * th)
-        self._view_rect.size = size
+        self.view_rect.size = size
         self._tile_view = Rect(0, 0, buffer_tile_width, buffer_tile_height)
         self._redraw_cutoff = min(buffer_tile_width, buffer_tile_height)
         self._create_buffers(size, buffer_pixel_size)
@@ -212,8 +212,8 @@ class BufferedRenderer(object):
 
         :param vector: (int, int)
         """
-        self.center((vector[0] + self._view_rect.centerx,
-                     vector[1] + self._view_rect.centery))
+        self.center((vector[0] + self.view_rect.centerx,
+                     vector[1] + self.view_rect.centery))
 
     def center(self, coords):
         """ center the map on a pixel
@@ -223,11 +223,11 @@ class BufferedRenderer(object):
         :param coords: (number, number)
         """
         x, y = [round(i, 0) for i in coords]
-        self._view_rect.center = x, y
+        self.view_rect.center = x, y
 
         if self.clamp_camera:
-            self._view_rect.clamp_ip(self.map_rect)
-            x, y = self._view_rect.center
+            self.view_rect.clamp_ip(self.map_rect)
+            x, y = self.view_rect.center
 
         # calc the new position in tiles and offset
         tw, th = self.data.tile_size
@@ -315,6 +315,14 @@ class BufferedRenderer(object):
         """
         if self._animation_queue:
             self._process_animation_queue()
+
+        if rect.width > self.map_rect.width:
+            x = (rect.width - self.map_rect.width) // 4
+            print(x)
+            self._x_offset += x
+
+        if rect.height > self.map_rect.height:
+            pass
 
         # need to set clipping otherwise the map will draw outside its area
         with surface_clipping_context(surface, rect):
@@ -442,5 +450,5 @@ class BufferedRenderer(object):
         """ Return x, y pair that will change world coords to screen coords
         :return: int, int
         """
-        return (-self._view_rect.centerx + self._half_width,
-                -self._view_rect.centery + self._half_height)
+        return (-self.view_rect.centerx + self._half_width,
+                -self.view_rect.centery + self._half_height)

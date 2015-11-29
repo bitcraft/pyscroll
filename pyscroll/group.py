@@ -21,6 +21,16 @@ class PyscrollGroup(pygame.sprite.LayeredUpdates):
         """
         self._map_layer.center(value)
 
+    @property
+    def view(self):
+        """ Return a Rect representing visibile portion of map
+
+        This rect can be modified, but will not change the renderer
+
+        :return: pygame.Rect
+        """
+        return self._map_layer.view_rect.copy()
+
     def draw(self, surface):
         """ Draw all sprites and map onto the surface
 

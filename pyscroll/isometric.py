@@ -42,7 +42,7 @@ class IsometricBufferedRenderer(BufferedRenderer):
         buffer_pixel_size = buffer_tile_width * tw, buffer_tile_height * th
 
         self.map_rect = pygame.Rect(0, 0, mw * tw, mh * th)
-        self._view_rect.size = size
+        self.view_rect.size = size
         self._tile_view = pygame.Rect(0, 0, buffer_tile_width, buffer_tile_height)
         self._redraw_cutoff = min(buffer_tile_width, buffer_tile_height)
         self._create_buffers(size, buffer_pixel_size)
@@ -83,7 +83,7 @@ class IsometricBufferedRenderer(BufferedRenderer):
         """ center the map on a "map pixel"
         """
         x, y = [round(i, 0) for i in coords]
-        self._view_rect.center = x, y
+        self.view_rect.center = x, y
 
         # if self.clamp_camera:
         #     self._view_rect.clamp_ip(self.map_rect)

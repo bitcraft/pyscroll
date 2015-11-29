@@ -5,8 +5,9 @@ Simple demo that demonstrates PyTMX and pyscroll.
 requires pygame and pytmx.
 
 https://github.com/bitcraft/pytmx
-"""
 
+pip install pytmx
+"""
 import os.path
 
 import pygame
@@ -119,8 +120,7 @@ class QuestGame(object):
         map_data = pyscroll.data.TiledMapData(tmx_data)
 
         # create new renderer (camera)
-        self.map_layer = pyscroll.BufferedRenderer(map_data, screen.get_size(),
-                                                   colorkey=(255, 0, 255))
+        self.map_layer = pyscroll.BufferedRenderer(map_data, screen.get_size())
         self.map_layer.zoom = 2
 
         # pyscroll supports layered rendering.  our map has 3 'under' layers

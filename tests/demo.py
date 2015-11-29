@@ -9,7 +9,6 @@ Window is resizable.
 
 See the "Quest" tutorial for a more simple use with
 pygame sprites and groups.
-
 """
 from pytmx.util_pygame import load_pygame
 import pygame
@@ -38,8 +37,8 @@ def init_screen(width, height):
 class ScrollTest:
     """ Test and demo of pyscroll
 
-    Using this class as a guide, you can adopt pyscroll into your new or
-    existing game or app.  I'm using PyTMX as that data provider.
+    For normal use, please see the quest demo, not this.
+
     """
     def __init__(self, filename):
 
