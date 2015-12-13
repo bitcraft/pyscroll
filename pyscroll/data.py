@@ -122,8 +122,9 @@ class TiledMapData(PyscrollDataAdapter):
 
     def get_animations(self):
         for gid, d in self.tmx.tile_properties.items():
-            frames = d['frames']
-            if not frames:
+            if 'frames' in d:
+                frames = d['frames']
+            else:
                 continue
             yield gid, frames
 
