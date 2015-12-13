@@ -33,12 +33,13 @@ class BufferedRenderer(object):
         self.default_shape_color = 0, 255, 0       # [experimental] color to fill polygons with
 
         # internal private defaults
-        self._alpha = False
         if colorkey and alpha:
             print('cannot select both colorkey and alpha.  choose one.')
             raise ValueError
         elif colorkey:
             self._clear_color = colorkey
+        elif alpha:
+            self._clear_color = (0, 0, 0, 0)
         else:
             self._clear_color = None
 
@@ -158,17 +159,17 @@ class BufferedRenderer(object):
         requires_zoom_buffer = not view_size == buffer_size
         self._zoom_buffer = None
 
-        if self._clear_color:
+        if self._clear_color == (0, 0, 0, 0):
+            if requires_zoom_buffer:
+                self._zoom_buffer = Surface(view_size, flags=pygame.SRCALPHA)
+            self._buffer = Surface(buffer_size, flags=pygame.SRCALPHA)
+        elif self._clear_color:
             if requires_zoom_buffer:
                 self._zoom_buffer = Surface(view_size, flags=pygame.RLEACCEL)
                 self._zoom_buffer.set_colorkey(self._clear_color)
             self._buffer = Surface(buffer_size, flags=pygame.RLEACCEL)
             self._buffer.set_colorkey(self._clear_color)
             self._buffer.fill(self._clear_color)
-        elif self._alpha:
-            if requires_zoom_buffer:
-                self._zoom_buffer = Surface(view_size, flags=pygame.SRCALPHA)
-            self._buffer = Surface(buffer_size, flags=pygame.SRCALPHA)
         else:
             if requires_zoom_buffer:
                 self._zoom_buffer = Surface(view_size)
@@ -259,6 +260,7 @@ class BufferedRenderer(object):
         """
         v = self._tile_view
         fill = partial(self._buffer.fill, self._clear_color)
+        #fill = partial(self._buffer.fill, (255, 0, 0, 255))
         tw, th = self.data.tile_size
         self._tile_queue = iter([])
 
@@ -318,7 +320,6 @@ class BufferedRenderer(object):
 
         if rect.width > self.map_rect.width:
             x = (rect.width - self.map_rect.width) // 4
-            print(x)
             self._x_offset += x
 
         if rect.height > self.map_rect.height:
@@ -440,8 +441,6 @@ class BufferedRenderer(object):
         """
         if self._clear_color:
             self._buffer.fill(self._clear_color)
-        elif self._alpha:
-            self._buffer.fill(0)
 
         self._tile_queue = self.data.get_tile_images_by_rect(self._tile_view)
         self._flush_tile_queue()
