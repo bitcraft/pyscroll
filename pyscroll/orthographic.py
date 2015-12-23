@@ -24,9 +24,10 @@ class BufferedRenderer(object):
                  time_source=time.time, scaling_function=pygame.transform.scale):
 
         # default options
-        self.map_rect = None                       # pygame rect of entire map
         self.data = data                           # reference to data source
-        self.clamp_camera = clamp_camera           # if clamped, cannot scroll past map edge
+        self.clamp_camera = clamp_camera           # if true, cannot scroll past map edge
+        self.anchored_view = True                  # if true, map will be fixed to upper left corner
+        self.map_rect = None                       # pygame rect of entire map
         self.time_source = time_source             # determines how tile animations are processed
         self.scaling_function = scaling_function   # what function to use when zooming
         self.default_shape_texture_gid = 1         # [experimental] texture to draw shapes with
@@ -175,25 +176,25 @@ class BufferedRenderer(object):
                 self._zoom_buffer = Surface(view_size)
             self._buffer = Surface(buffer_size)
 
-    def _initialize_buffers(self, size):
+    def _initialize_buffers(self, view_size):
         """ Create the buffers to cache tile drawing
 
-        :param size: (int, int): size of the draw area
+        :param view_size: (int, int): size of the draw area
         :return: None
         """
         tw, th = self.data.tile_size
         mw, mh = self.data.map_size
-        buffer_tile_width = int(math.ceil(size[0] / tw) + 2)
-        buffer_tile_height = int(math.ceil(size[1] / th) + 2)
+        buffer_tile_width = int(math.ceil(view_size[0] / tw) + 2)
+        buffer_tile_height = int(math.ceil(view_size[1] / th) + 2)
         buffer_pixel_size = buffer_tile_width * tw, buffer_tile_height * th
 
         self.map_rect = Rect(0, 0, mw * tw, mh * th)
-        self.view_rect.size = size
+        self.view_rect.size = view_size
         self._tile_view = Rect(0, 0, buffer_tile_width, buffer_tile_height)
         self._redraw_cutoff = min(buffer_tile_width, buffer_tile_height)
-        self._create_buffers(size, buffer_pixel_size)
-        self._half_width = size[0] // 2
-        self._half_height = size[1] // 2
+        self._create_buffers(view_size, buffer_pixel_size)
+        self._half_width = view_size[0] // 2
+        self._half_height = view_size[1] // 2
         self._x_offset = 0
         self._y_offset = 0
 
@@ -205,7 +206,6 @@ class BufferedRenderer(object):
 
         # TODO: figure out what depth -actually- does
         self._layer_quadtree = quadtree.FastQuadTree(rects, 4)
-
         self.redraw_tiles()
 
     def scroll(self, vector):
@@ -226,30 +226,45 @@ class BufferedRenderer(object):
         x, y = [round(i, 0) for i in coords]
         self.view_rect.center = x, y
 
-        if self.clamp_camera:
-            self.view_rect.clamp_ip(self.map_rect)
-            x, y = self.view_rect.center
-
-        # calc the new position in tiles and offset
+        mw, mh = self.data.map_size
         tw, th = self.data.tile_size
-        left, self._x_offset = divmod(x - self._half_width, tw)
-        top, self._y_offset = divmod(y - self._half_height, th)
 
-        # adjust the view if the view has changed without a redraw
-        dx = int(left - self._tile_view.left)
-        dy = int(top - self._tile_view.top)
-        view_change = max(abs(dx), abs(dy))
+        self.anchored_view = self._tile_view.width < mw
 
-        if view_change <= self._redraw_cutoff:
-            self._buffer.scroll(-dx * tw, -dy * th)
-            self._tile_view.move_ip((dx, dy))
-            self._queue_edge_tiles(dx, dy)
-            self._flush_tile_queue()
+        if self.anchored_view and self.clamp_camera:
+            self.view_rect.clamp_ip(self.map_rect)
 
-        elif view_change > self._redraw_cutoff:
-            logger.info('scrolling too quickly.  redraw forced')
-            self._tile_view.move_ip((dx, dy))
-            self.redraw_tiles()
+        x, y = self.view_rect.center
+
+        if not self.anchored_view:
+            # calculate offset and do not scroll the map layer
+            # this is used to handle maps smaller than screen
+            self._x_offset = x - self._half_width
+            self._y_offset = y - self._half_height
+
+        else:
+            # calc the new position in tiles and offset
+            left, self._x_offset = divmod(x - self._half_width, tw)
+            top, self._y_offset = divmod(y - self._half_height, th)
+
+            # adjust the view if the view has changed without a redraw
+            dx = int(left - self._tile_view.left)
+            dy = int(top - self._tile_view.top)
+            view_change = max(abs(dx), abs(dy))
+
+            if view_change and view_change <= self._redraw_cutoff:
+                # self._buffer.scroll(-dx * tw, -dy * th)
+                # self._flush_tile_queue()
+                # self._buffer.fill(0)
+                # self._queue_edge_tiles(dx, dy)
+                self._tile_view.move_ip((dx, dy))
+                self._buffer.fill((0, 0, 0))
+                self.redraw_tiles()
+
+            elif view_change > self._redraw_cutoff:
+                logger.info('scrolling too quickly.  redraw forced')
+                self._tile_view.move_ip((dx, dy))
+                self.redraw_tiles()
 
     def _queue_edge_tiles(self, dx, dy):
         """ Queue edge tiles and clear edge areas on buffer if needed
@@ -260,25 +275,29 @@ class BufferedRenderer(object):
         """
         v = self._tile_view
         fill = partial(self._buffer.fill, self._clear_color)
-        #fill = partial(self._buffer.fill, (255, 0, 0, 255))
+        fill = partial(self._buffer.fill, 255)
         tw, th = self.data.tile_size
         self._tile_queue = iter([])
 
         def append(rect):
-            self._tile_queue = chain(self._tile_queue, self.data.get_tile_images_by_rect(rect))
-            if self._clear_color:
-                fill(((rect[0] - self._tile_view.left) * tw,
-                      (rect[1] - self._tile_view.top) * th,
-                      rect[2] * tw, rect[3] * th))
+            # self._tile_queue = chain(self._tile_queue, self.data.get_tile_images_by_rect(rect))
+            # print(rect, ((rect[0] - v.left) * tw,
+            #       (rect[1] - v.top) * th,
+            #       rect[2] * tw, rect[3] * th), self._buffer.get_size())
+            #
+            # fill(((rect[0] - v.left) * tw,
+            #       (rect[1] - v.top) * th,
+            #       rect[2] * tw, rect[3] * th))
+            pass
 
         if dx > 0:    # right side
-            append((v.right - dx, v.top, dx, v.height))
+            append((v.right - 1, v.top, dx, v.height))
 
         elif dx < 0:  # left side
             append((v.left, v.top, -dx, v.height))
 
         if dy > 0:    # bottom side
-            append((v.left, v.bottom - dy, v.width, dy))
+            append((v.left, v.bottom, v.width, dy))
 
         elif dy < 0:  # top side
             append((v.left, v.top, v.width, -dy))
@@ -290,7 +309,7 @@ class BufferedRenderer(object):
             drawing to an area smaller that the whole window/screen
 
         surfaces may optionally be passed that will be blitted onto the surface.
-        this must be a list of tuples containing a layer number, image, and
+        this must be a sequence of tuples containing a layer number, image, and
         rect in screen coordinates.  surfaces will be drawn in order passed,
         and will be correctly drawn with tiles from a higher layer overlapping
         the surface.
@@ -300,7 +319,7 @@ class BufferedRenderer(object):
 
         :param surface: pygame surface to draw to
         :param rect: area to draw to
-        :param surfaces: optional sequence of surfaces to interlace into tiles
+        :param surfaces: optional sequence of surfaces to interlace between tiles
         """
         if self._zoom_level == 1.0:
             self._render_map(surface, rect, surfaces)
@@ -313,37 +332,32 @@ class BufferedRenderer(object):
 
         :param surface: pygame surface to draw to
         :param rect: area to draw to
-        :param surfaces: optional sequence of surfaces to interlace into tiles
+        :param surfaces: optional sequence of surfaces to interlace between tiles
         """
         if self._animation_queue:
             self._process_animation_queue()
 
-        if rect.width > self.map_rect.width:
-            x = (rect.width - self.map_rect.width) // 4
-            self._x_offset += x
+        if not self.anchored_view:
+            surface.fill(0)
 
-        if rect.height > self.map_rect.height:
-            pass
+        offset = -self._x_offset - rect.left, -self._y_offset - rect.top
 
-        # need to set clipping otherwise the map will draw outside its area
         with surface_clipping_context(surface, rect):
-            # draw the entire map to the surface taking in account the scrolling offset
-            surface.blit(self._buffer, (-self._x_offset - rect.left,
-                                        -self._y_offset - rect.top))
+            surface.blit(self._buffer, offset)
             if surfaces:
-                self._draw_surfaces(surface, rect, surfaces)
+                surfaces_offset = -offset[0], -offset[1]
+                self._draw_surfaces(surface, surfaces_offset, surfaces)
 
-    def _draw_surfaces(self, surface, rect, surfaces):
-        """ Draw surfaces onto map, then redraw tiles that cover them
+    def _draw_surfaces(self, surface, offset, surfaces):
+        """ Draw surfaces onto buffer, then redraw tiles that cover them
 
         :param surface: destination
-        :param rect: clipping area
+        :param offset: offset to compensate for buffer alignment
         :param surfaces: sequence of surfaces to blit
         """
         surface_blit = surface.blit
+        ox, oy = offset
         left, top = self._tile_view.topleft
-        ox = self._x_offset - rect.left
-        oy = self._y_offset - rect.top
         hit = self._layer_quadtree.hit
         get_tile = self.data.get_tile_image
         tile_layers = tuple(self.data.visible_tile_layers)

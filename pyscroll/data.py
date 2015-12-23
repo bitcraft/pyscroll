@@ -145,6 +145,8 @@ class TiledMapData(PyscrollDataAdapter):
         More efficient because data is accessed and cached locally
         """
         def rev(seq, start, stop):
+            if start < 0:
+                start = 0
             return enumerate(seq[start:stop + 1], start)
 
         x1, y1, x2, y2 = rect_to_bb(rect)
