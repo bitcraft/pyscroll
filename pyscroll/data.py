@@ -5,8 +5,8 @@ If you are developing your own map format, please use this
 as a template.  Just fill in values that work for your game.
 """
 from itertools import product
-import pytmx
 from pyscroll import rect_to_bb
+import pytmx
 
 __all__ = ('PyscrollDataAdapter', 'TiledMapData')
 
@@ -106,7 +106,7 @@ class TiledMapData(PyscrollDataAdapter):
     @property
     def visible_tile_layers(self):
         """ This must return layer numbers, not objects
-        :return:
+        :return: [int, int, ...]
         """
         return (int(i) for i in self.tmx.visible_tile_layers)
 
@@ -116,7 +116,7 @@ class TiledMapData(PyscrollDataAdapter):
 
         This is not required for custom data formats.
 
-        :return:
+        :return: Sequence of pytmx object layers/groups
         """
         return (layer for layer in self.tmx.visible_layers
                 if isinstance(layer, pytmx.TiledObjectGroup))
@@ -152,9 +152,8 @@ class TiledMapData(PyscrollDataAdapter):
 
         x1, y1, x2, y2 = rect_to_bb(rect)
         images = self.tmx.images
+        layers = self.tmx.layers
         for layer in self.visible_tile_layers:
-            data = self.tmx.layers[layer].data
-            for y, row in rev(data, y1, y2):
-                for x, gid in rev(row, x1, x2):
-                    if gid:
-                        yield x, y, layer, images[gid], gid
+            for y, row in rev(layers[layer].data, y1, y2):
+                for x, gid in [i for i in rev(row, x1, x2) if i[1]]:
+                    yield x, y, layer, images[gid], gid
