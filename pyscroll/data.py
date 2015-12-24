@@ -1,12 +1,12 @@
 """
-This file contains a classes for accessing data
+This file contains a few classes for accessing data
 
 If you are developing your own map format, please use this
 as a template.  Just fill in values that work for your game.
 """
+from itertools import product
 import pytmx
 from pyscroll import rect_to_bb
-from itertools import product
 
 __all__ = ('PyscrollDataAdapter', 'TiledMapData')
 
@@ -85,6 +85,7 @@ class TiledMapData(PyscrollDataAdapter):
 
     Use of this class requires a recent version of pytmx.
     """
+
     def __init__(self, tmx):
         self.tmx = tmx
 
@@ -144,6 +145,7 @@ class TiledMapData(PyscrollDataAdapter):
 
         More efficient because data is accessed and cached locally
         """
+
         def rev(seq, start, stop):
             if start < 0:
                 start = 0

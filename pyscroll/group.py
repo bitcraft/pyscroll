@@ -1,6 +1,6 @@
 import pygame
 
-__all__ = ('PyscrollGroup', )
+__all__ = ('PyscrollGroup',)
 
 
 class PyscrollGroup(pygame.sprite.LayeredUpdates):

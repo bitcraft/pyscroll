@@ -1,8 +1,6 @@
 import math
-
 import pygame
 import pygame.gfxdraw
-
 from pyscroll.orthographic import BufferedRenderer
 
 
@@ -27,6 +25,7 @@ class IsometricBufferedRenderer(BufferedRenderer):
     - drawing may have depth sorting issues
     - will be slower than orthographic maps for window of same size
     """
+
     def __init__(self, *args, **kwargs):
         self.iso_double_height = True
         super(IsometricBufferedRenderer, self).__init__(*args, **kwargs)
@@ -106,4 +105,3 @@ class IsometricBufferedRenderer(BufferedRenderer):
         # self._queue_edge_tiles(dx, dy)
         # self._flush_tile_queue()
         self.redraw_tiles()
-
