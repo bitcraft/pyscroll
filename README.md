@@ -137,16 +137,6 @@ map_layer.zoom = .5
 map_layer.zoom = 2.0
 ```
 
-#### Load with alpha channel tilesets
-```python
-map_layer = pyscroll.BufferedRenderer(map_data, screen_size, alpha=True)
-```
-
-#### Load with colorkey tilesets
-```python
-map_layer = pyscroll.BufferedRenderer(map_data, screen_size, colorkey=(255, 0, 255))
-```
-
 
 Adapting Existing Games / Map Data
 ==================================
