@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.0" orientation="orthogonal" renderorder="right-down" width="10" height="10" tilewidth="32" tileheight="32" nextobjectid="42">
+ <tileset firstgid="1" name="Revolution_Grasslands" tilewidth="32" tileheight="32" tilecount="190">
+  <image source="revolution_grasslands.png" trans="a349a4" width="320" height="608"/>
+ </tileset>
+ <tileset firstgid="191" name="revolution_snow" tilewidth="32" tileheight="32" tilecount="154">
+  <image source="revolution_snow.png" trans="a349a4" width="352" height="448"/>
+ </tileset>
+ <tileset firstgid="345" name="revolution_town" tilewidth="32" tileheight="32" tilecount="275">
+  <image source="revolution_town.png" trans="a349a4" width="352" height="831"/>
+ </tileset>
+ <tileset firstgid="620" source="water.tsx"/>
+ <layer name="under0" width="10" height="10">
+  <data encoding="base64" compression="gzip">
+   H4sIAAAAAAAAC9vPwMCwfxDhE2j84xSYdZQEe7CJn0AzC4SPoJnLCMSsQMwGxExQPgyzQTEzmjg+DACdbDtnkAEAAA==
+  </data>
+ </layer>
+ <layer name="under1" width="10" height="10">
+  <data encoding="base64" compression="gzip">
+   H4sIAAAAAAAAC2NgoB/wZmJgiAJiXyY6WooD+DMOtAuwAwBSEOA6kAEAAA==
+  </data>
+ </layer>
+ <layer name="under2" width="10" height="10">
+  <data encoding="base64" compression="gzip">
+   H4sIAAAAAAAAC2NgGAWDCQAADA0iRpABAAA=
+  </data>
+ </layer>
+ <layer name="over0" width="10" height="10">
+  <data encoding="base64" compression="gzip">
+   H4sIAAAAAAAAC2NgwA1MmRgYzIDYnAmPIiBwAMo7ArETEOsz4lcLA1ZEqnMFqtMFYj1GwmZbAOUtGQmb7QyUd2GEmD3YAAAk0puEkAEAAA==
+  </data>
+ </layer>
+ <objectgroup name="walls">
+  <object id="32" x="-32" y="128" width="32" height="32"/>
+  <object id="34" x="224" y="32" width="96" height="64"/>
+ </objectgroup>
+</map>

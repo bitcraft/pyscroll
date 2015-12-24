@@ -111,7 +111,6 @@ class BufferedRenderer(object):
         if requires_redraw:
             # TODO: record the tiles that changed and update only affected tiles
             self.redraw_tiles()
-            pass
 
     def _calculate_zoom_buffer_size(self, value):
         if value <= 0:
@@ -191,7 +190,7 @@ class BufferedRenderer(object):
         self.map_rect = Rect(0, 0, mw * tw, mh * th)
         self.view_rect.size = view_size
         self._tile_view = Rect(0, 0, buffer_tile_width, buffer_tile_height)
-        self._redraw_cutoff = min(buffer_tile_width, buffer_tile_height)
+        self._redraw_cutoff = 1  # TODO: optimize this value
         self._create_buffers(view_size, buffer_pixel_size)
         self._half_width = view_size[0] // 2
         self._half_height = view_size[1] // 2
@@ -252,14 +251,11 @@ class BufferedRenderer(object):
             dy = int(top - self._tile_view.top)
             view_change = max(abs(dx), abs(dy))
 
-            if view_change and view_change <= self._redraw_cutoff:
-                # self._buffer.scroll(-dx * tw, -dy * th)
-                # self._flush_tile_queue()
-                # self._buffer.fill(0)
-                # self._queue_edge_tiles(dx, dy)
+            if view_change and (view_change <= self._redraw_cutoff):
+                self._buffer.scroll(-dx * tw, -dy * th)
                 self._tile_view.move_ip((dx, dy))
-                self._buffer.fill((0, 0, 0))
-                self.redraw_tiles()
+                self._queue_edge_tiles(dx, dy)
+                self._flush_tile_queue()
 
             elif view_change > self._redraw_cutoff:
                 logger.info('scrolling too quickly.  redraw forced')
@@ -275,20 +271,15 @@ class BufferedRenderer(object):
         """
         v = self._tile_view
         fill = partial(self._buffer.fill, self._clear_color)
-        fill = partial(self._buffer.fill, 255)
         tw, th = self.data.tile_size
         self._tile_queue = iter([])
 
         def append(rect):
-            # self._tile_queue = chain(self._tile_queue, self.data.get_tile_images_by_rect(rect))
-            # print(rect, ((rect[0] - v.left) * tw,
-            #       (rect[1] - v.top) * th,
-            #       rect[2] * tw, rect[3] * th), self._buffer.get_size())
-            #
-            # fill(((rect[0] - v.left) * tw,
-            #       (rect[1] - v.top) * th,
-            #       rect[2] * tw, rect[3] * th))
-            pass
+            self._tile_queue = chain(self._tile_queue, self.data.get_tile_images_by_rect(rect))
+            if self._clear_color:
+                fill(((rect[0] - v.left) * tw,
+                      (rect[1] - v.top) * th,
+                      rect[2] * tw, rect[3] * th))
 
         if dx > 0:    # right side
             append((v.right - 1, v.top, dx, v.height))
@@ -297,7 +288,7 @@ class BufferedRenderer(object):
             append((v.left, v.top, -dx, v.height))
 
         if dy > 0:    # bottom side
-            append((v.left, v.bottom, v.width, dy))
+            append((v.left, v.bottom - 1, v.width, dy))
 
         elif dy < 0:  # top side
             append((v.left, v.top, v.width, -dy))

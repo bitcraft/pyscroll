@@ -73,7 +73,7 @@ class PyscrollDataAdapter(object):
         """
         x1, y1, x2, y2 = rect_to_bb(rect)
         for layer in self.visible_tile_layers:
-            for y, x in product(range(y2, y1 - 1, -1),
+            for y, x in product(range(y1, y2 + 1),
                                 range(x1, x2 + 1)):
                 tile = self.get_tile_image((x, y, layer))
                 if tile:

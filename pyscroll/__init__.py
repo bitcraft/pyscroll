@@ -1,6 +1,6 @@
 from contextlib import contextmanager
 
-__version__ = '2.16.1'
+__version__ = '2.16.2'
 __author__ = 'bitcraft'
 __author_email__ = 'leif.theden@gmail.com'
 __description__ = 'Pygame Scrolling - Python 2.7 & 3.3+'
@@ -16,7 +16,7 @@ def surface_clipping_context(surface, clip):
 
 def rect_to_bb(rect):
     x, y, w, h = rect
-    return x, y, x + w, y + h
+    return x, y, x + w - 1, y + h - 1
 
 
 # convenience imports
