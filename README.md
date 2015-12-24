@@ -195,13 +195,13 @@ FAQ
 ===
 
 ## Why are tiles repeating while scrolling?
-Pyscroll by default will not handle maps that are not completely filled with tiles.  This is in consideration of drawing speed.  To clarify, you can have several layers, some layers without tiles, and that is fine; the problem is when there are empty spaces in all the layers, leaving gaps in the entire map.  There are two ways to fix this issue, with the 1st solution being the best performance wise.
+Pyscroll by default will not handle maps that are not completely filled with tiles.  This is in consideration of drawing speed.  To clarify, you can have several layers, some layers without tiles, and that is fine; the problem is when there are empty spaces in all the layers, leaving gaps in the entire map.  There are two ways to fix this issue with the 1st solution being the best performance wise.
 
 ##### 1. In Tiled (or your data), fill in the empty spots with a tile
-For best performance, you must have a tile in each part of the map.  You can create a simple background layer, and fill with single color tiles where there are gaps.  Pyscroll is very fast, even with several layers, so there is virtually no penalty.
+For best performance, you must have a tile in each part of the map.  You can create a simple background layer, and fill with single color tiles where there are gaps.  Pyscroll is very fast even with several layers, so there is virtually no penalty.
 
 ##### 2. Pass "alpha=True" to the BufferedRenderer constructor.
-All internal buffers will now support 'per-pixel alpha' and the areas without tiles will be fully transparent.  You *may* still have graphical oddities depending on if you clear the screen or not, so you may have to experiment here.  Since per-pixel buffers are used, overall performance will be reduced.
+All internal buffers will now support 'per-pixel alpha' and the areas without tiles will be fully transparent.  You *may* still have graphical oddities depending on if you clear the screen or not, so you may have to experiment here.  Since per-pixel alpha buffers are used, overall performance will be reduced.
 
 
 ## Why are there obvious/ugly 'streaks' when scrolling?
@@ -209,13 +209,13 @@ Streaks are caused by missing tiles.  See the above answer for solutions.
 
 
 ## Can I blit anything 'under' the scrolling map layer?
-Yes!  There are two ways to handle this situation...both are experimental, but should work.
+Yes!  There are two ways to handle this situation...both are experimental, but should work.  These options will cause the renderer to do more housekeeping, actively clearing empty spaces in the buffer, so overall performance will be reduced.
 
 ##### 1. Pass "alpha=True" to the constructor.
-When drawing the screen, first blit what you want to be under the map (like a background, or parallax layer), then draw the pyscroll renderer or group.
+When drawing the screen, first blit what you want to be under the map (like a background, or parallax layer), then draw the pyscroll renderer or group.  Since per-pixel alpha buffers are used, overall performance will be reduced.
 
 ##### 2. Set a colorkey.
-Pass "colorkey=the_color_you_want" to the BufferedRenderer constructor.  In theory, you can now blit the map layer over other surfaces with transparency, but beware that it will produce some nasty side effects:
+Pass "colorkey=theColorYouWant" to the BufferedRenderer constructor.  In theory, you can now blit the map layer over other surfaces with transparency, but beware that it will produce some nasty side effects:
 1. Overall, performance will be reduced, as empty ares are being filled with the colorkey color.
 2. If mixing 'per-pixel alpha' tilesets, the edges of your tiles may be discolored and look wrong.
 
