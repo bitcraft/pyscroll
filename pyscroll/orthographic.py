@@ -212,7 +212,7 @@ class BufferedRenderer(object):
         if not self.anchored_view:
             surface.fill(0)
 
-        offset = -self._x_offset - rect.left, -self._y_offset - rect.top
+        offset = -self._x_offset + rect.left, -self._y_offset + rect.top
 
         with surface_clipping_context(surface, rect):
             surface.blit(self._buffer, offset)
