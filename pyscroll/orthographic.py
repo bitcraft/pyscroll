@@ -1,3 +1,6 @@
+from __future__ import division
+from __future__ import print_function
+
 import logging
 import math
 import time
@@ -115,13 +118,13 @@ class BufferedRenderer(object):
 
             if view_change and (view_change <= self._redraw_cutoff):
                 self._buffer.scroll(-dx * tw, -dy * th)
-                self._tile_view.move_ip((dx, dy))
+                self._tile_view.move_ip(dx, dy)
                 self._queue_edge_tiles(dx, dy)
                 self._flush_tile_queue()
 
             elif view_change > self._redraw_cutoff:
                 logger.info('scrolling too quickly.  redraw forced')
-                self._tile_view.move_ip((dx, dy))
+                self._tile_view.move_ip(dx, dy)
                 self.redraw_tiles()
 
     def draw(self, surface, rect, surfaces=None):
