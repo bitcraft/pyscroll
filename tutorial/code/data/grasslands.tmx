@@ -1,12 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <map version="1.0" orientation="orthogonal" renderorder="right-down" width="50" height="50" tilewidth="32" tileheight="32" nextobjectid="42">
- <tileset firstgid="1" name="Revolution_Grasslands" tilewidth="32" tileheight="32" tilecount="190">
+ <tileset firstgid="1" name="Revolution_Grasslands" tilewidth="32" tileheight="32" tilecount="190" columns="10">
   <image source="revolution_grasslands.png" trans="a349a4" width="320" height="608"/>
+  <tile id="5">
+   <properties>
+    <property name="ranomd" value="tile"/>
+   </properties>
+  </tile>
  </tileset>
- <tileset firstgid="191" name="revolution_snow" tilewidth="32" tileheight="32" tilecount="154">
+ <tileset firstgid="191" name="revolution_snow" tilewidth="32" tileheight="32" tilecount="154" columns="11">
   <image source="revolution_snow.png" trans="a349a4" width="352" height="448"/>
  </tileset>
- <tileset firstgid="345" name="revolution_town" tilewidth="32" tileheight="32" tilecount="275">
+ <tileset firstgid="345" name="revolution_town" tilewidth="32" tileheight="32" tilecount="275" columns="11">
   <image source="revolution_town.png" trans="a349a4" width="352" height="831"/>
  </tileset>
  <tileset firstgid="620" source="water.tsx"/>
