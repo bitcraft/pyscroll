@@ -142,6 +142,9 @@ class BufferedRenderer(object):
         surfaces list should be in the following format:
         [ (layer, surface, rect), ... ]
 
+        or this:
+        [ (layer, surface, rect, blendmode_flags), ... ]
+
         :param surface: pygame surface to draw to
         :param rect: area to draw to
         :param surfaces: optional sequence of surfaces to interlace between tiles
@@ -233,7 +236,16 @@ class BufferedRenderer(object):
         hit = self._layer_quadtree.hit
         get_tile = self.data.get_tile_image
         tile_layers = tuple(self.data.visible_tile_layers)
-        dirty = [(surface_blit(i[0], i[1]), i[2]) for i in surfaces]
+
+        dirty = list()
+        dirty_append = dirty.append
+        for i in surfaces:
+            try:
+                flags = i[3]
+            except IndexError:
+                dirty_append((surface_blit(i[0], i[1]), i[2]))
+            else:
+                dirty_append((surface_blit(i[0], i[1], None, flags), i[2]))
 
         for dirty_rect, layer in dirty:
             for r in hit(dirty_rect.move(ox, oy)):
