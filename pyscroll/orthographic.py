@@ -8,12 +8,23 @@ from functools import partial
 from heapq import heappush, heappop
 from itertools import product, chain
 from operator import gt
+from collections import defaultdict
+from contextlib import contextmanager
 import pygame
 from pygame import Surface, Rect
 from pyscroll import surface_clipping_context, quadtree
 from pyscroll.animation import AnimationFrame, AnimationToken
 
 logger = logging.getLogger('orthographic')
+
+
+def blit_thread(queue, buffer):
+    token = queue.get()
+    while token is not None:
+        buffer.blit(*token)
+        queue.task_done()
+        token = queue.get()
+    queue.task_done()
 
 
 class BufferedRenderer(object):
@@ -65,11 +76,40 @@ class BufferedRenderer(object):
         self._zoom_buffer = None      # used to speed up zoom operations
         self._zoom_level = 1.0        # negative numbers make map smaller, positive: bigger
 
+        self.tile_grid_mapping = defaultdict(set)  # used to speed up animated tile redraws
+
+        import queue
+        self._threads = list()
+        self._blit_queue = queue.Queue()
+
         # this represents the viewable pixels, aka 'camera'
         self.view_rect = Rect(0, 0, 0, 0)
 
         self.reload_animations()
         self.set_size(size)
+
+    # @contextmanager
+    # def ensure_buffer(self):
+    #     self._blit_queue.join()
+    #     yield
+    #     self._blit_queue.join()
+    #
+    # def kill_threads(self):
+    #     with self.ensure_buffer():
+    #         for thread in self._threads:
+    #             self._blit_queue.put(None)
+    #     self._threads = list()
+    #
+    # def start_threads(self):
+    #     import threading
+    #     from os import cpu_count
+    #
+    #     self._threads = list()
+    #     for i in range(cpu_count()):
+    #         thread = threading.Thread(target=blit_thread, args=(self._blit_queue, self._buffer))
+    #         thread.daemon = True
+    #         thread.start()
+    #         self._threads.append(thread)
 
     def scroll(self, vector):
         """ scroll the background in pixels
@@ -171,8 +211,8 @@ class BufferedRenderer(object):
 
     @zoom.setter
     def zoom(self, value):
+        buffer_size = self._calculate_zoom_buffer_size(self._size, value)
         self._zoom_level = value
-        buffer_size = self._calculate_zoom_buffer_size(value)
         self._initialize_buffers(buffer_size)
 
     def set_size(self, size):
@@ -182,8 +222,8 @@ class BufferedRenderer(object):
 
         :param size: (width, height) pixel size of camera/view of the group
         """
+        buffer_size = self._calculate_zoom_buffer_size(size, self._zoom_level)
         self._size = size
-        buffer_size = self._calculate_zoom_buffer_size(self._zoom_level)
         self._initialize_buffers(buffer_size)
 
     def redraw_tiles(self):
@@ -247,6 +287,8 @@ class BufferedRenderer(object):
             else:
                 dirty_append((surface_blit(i[0], i[1], None, flags), i[2]))
 
+        # TODO: make set of covered tiles, in the case where a cluster
+        # of sprite surfaces causes excessive over tile overdrawing
         for dirty_rect, layer in dirty:
             for r in hit(dirty_rect.move(ox, oy)):
                 x, y, tw, th = r
@@ -376,11 +418,10 @@ class BufferedRenderer(object):
 
     def _process_animation_queue(self):
         self._update_time()
-        requires_redraw = False
+        self._tile_queue = list()
 
         # test if the next scheduled tile change is ready
         while self._animation_queue[0].next <= self._last_time:
-            requires_redraw = True
             token = heappop(self._animation_queue)
 
             # advance the animation index, looping by default
@@ -394,16 +435,34 @@ class BufferedRenderer(object):
             self._animation_map[token.gid] = next_frame.image
             heappush(self._animation_queue, token)
 
-        if requires_redraw:
-            # TODO: record the tiles that changed and update only affected tiles
-            self.redraw_tiles()
+            # go through the animated tile map:
+            #   * queue tiles that need to be changed
+            #   * remove map entries that do not collide with screen
+            needs_clear = False
+            for x, y, l in self.tile_grid_mapping[token.gid]:
+                if self._tile_view.collidepoint(x, y):
+                    self._tile_queue.append((x, y, l, None, token.gid))
+                else:
+                    needs_clear = True
 
-    def _calculate_zoom_buffer_size(self, value):
+            # this will delete the set of tiles locations that are checked for
+            # animated tiles.  when the tile queue is flushed, any tiles in the
+            # queue will be added again.  i choose to remove the set, rather
+            # than removing the item in the set to reclaim memory over time...
+            # though i could implement it by removing entries.  idk  -lt
+            if needs_clear:
+                del self.tile_grid_mapping[token.gid]
+
+        if self._tile_queue:
+            self._flush_tile_queue()
+
+    @staticmethod
+    def _calculate_zoom_buffer_size(size, value):
         if value <= 0:
             print('zoom level cannot be zero or less')
             raise ValueError
         value = 1.0 / value
-        return [int(round(i * value)) for i in self._size]
+        return [int(round(i * value)) for i in size]
 
     def _create_buffers(self, view_size, buffer_size):
         """ Create the buffers, taking in account pixel alpha or colorkey
@@ -438,8 +497,8 @@ class BufferedRenderer(object):
         """
         tw, th = self.data.tile_size
         mw, mh = self.data.map_size
-        buffer_tile_width = int(math.ceil(view_size[0] / tw) + 2)
-        buffer_tile_height = int(math.ceil(view_size[1] / th) + 2)
+        buffer_tile_width = int(math.ceil(view_size[0] / tw) + 1)
+        buffer_tile_height = int(math.ceil(view_size[1] / th) + 1)
         buffer_pixel_size = buffer_tile_width * tw, buffer_tile_height * th
 
         self.map_rect = Rect(0, 0, mw * tw, mh * th)
@@ -460,6 +519,11 @@ class BufferedRenderer(object):
 
         # TODO: figure out what depth -actually- does
         self._layer_quadtree = quadtree.FastQuadTree(rects, 4)
+
+        # if self._threads:
+        #     self.kill_threads()
+        # self.start_threads()
+
         self.redraw_tiles()
 
     def _flush_tile_queue(self):
@@ -468,8 +532,14 @@ class BufferedRenderer(object):
         tw, th = self.data.tile_size
         ltw = self._tile_view.left * tw
         tth = self._tile_view.top * th
+        # put = self._blit_queue.put
         blit = self._buffer.blit
         map_get = self._animation_map.get
 
+        # with self.ensure_buffer():
         for x, y, l, tile, gid in self._tile_queue:
+            self.tile_grid_mapping[gid].add((x, y, l))
             blit(map_get(gid, tile), (x * tw - ltw, y * th - tth))
+            # put((map_get(gid, tile), (x * tw - ltw, y * th - tth)))
+            # if gid in self._animation_map:
+            #     pygame.gfxdraw.rectangle(self._buffer, (x * tw - ltw, y * th - tth, tw, th), (255, 0, 0, 64))

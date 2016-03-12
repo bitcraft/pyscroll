@@ -211,9 +211,14 @@ class QuestGame(object):
         clock = pygame.time.Clock()
         self.running = True
 
+        from collections import deque
+        times = deque(maxlen=30)
+
         try:
             while self.running:
                 dt = clock.tick() / 1000.
+                times.append(clock.get_fps())
+                # print(sum(times) / len(times))
 
                 self.handle_input()
                 self.update(dt)
