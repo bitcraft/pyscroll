@@ -4,7 +4,7 @@
   <image source="revolution_grasslands.png" trans="a349a4" width="320" height="608"/>
   <tile id="5">
    <properties>
-    <property name="ranomd" value="tile"/>
+    <property name="random" value="tile"/>
    </properties>
   </tile>
  </tileset>

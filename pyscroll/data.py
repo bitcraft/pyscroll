@@ -21,6 +21,14 @@ class PyscrollDataAdapter(object):
     map_size = None              # (int, int): size of map in tiles
     visible_tile_layers = None   # list of visible layer integers
 
+    def convert_surfaces(self, parent, alpha=False):
+        """ Convert all images in the data to match the parent
+
+        :param parent: pygame.Surface
+        :return: None
+        """
+        raise NotImplementedError
+
     def get_animations(self):
         """ Get tile animation data
 
@@ -89,6 +97,24 @@ class TiledMapData(PyscrollDataAdapter):
     def __init__(self, tmx):
         self.tmx = tmx
 
+    def convert_surfaces(self, parent, alpha=False):
+        """ Convert all images in the data to match the parent
+
+        :param parent: pygame.Surface
+        :param alpha: preserve alpha channel or not
+        :return: None
+        """
+        images = list()
+        for i in self.tmx.images:
+            try:
+                if alpha:
+                    images.append(i.convert_alpha(parent))
+                else:
+                    images.append(i.convert(parent))
+            except AttributeError:
+                images.append(None)
+        self.tmx.images = images
+
     @property
     def tile_size(self):
         """ This is the pixel size of tiles to be rendered
@@ -140,6 +166,11 @@ class TiledMapData(PyscrollDataAdapter):
         """ Return surface for a gid (experimental)
         """
         return self.tmx.get_tile_image_by_gid(gid)
+
+    def get_tile_gid(self, position):
+        """ Return GID for position (experimental)
+        """
+        return self.tmx.get_tile_gid(*position)
 
     def get_tile_images_by_rect(self, rect):
         """ Speed up data access
