@@ -218,6 +218,7 @@ class QuestGame(object):
                 self.handle_input()
                 self.update(dt)
                 self.draw(screen)
+                print(clock.get_fps())
                 pygame.display.flip()
 
         except KeyboardInterrupt:
@@ -236,3 +237,4 @@ if __name__ == "__main__":
     except:
         pygame.quit()
         raise
+

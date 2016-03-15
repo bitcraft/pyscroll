@@ -86,6 +86,12 @@ class BufferedRenderer(object):
 
         :param coords: (number, number)
         """
+        cdef int x, y
+        cdef int dx, dy
+        cdef int mw, mh
+        cdef int tw, th
+        cdef left, top
+
         x, y = [round(i, 0) for i in coords]
         self.view_rect.center = x, y
 
@@ -230,6 +236,10 @@ class BufferedRenderer(object):
         :param offset: offset to compensate for buffer alignment
         :param surfaces: sequence of surfaces to blit
         """
+        cdef int left, top
+        cdef int ox, oy
+        cdef int x, y, tw, th
+
         surface_blit = surface.blit
         ox, oy = offset
         left, top = self._tile_view.topleft
@@ -258,6 +268,9 @@ class BufferedRenderer(object):
     def _draw_objects(self):
         """ Totally unoptimized drawing of objects to the map [probably broken]
         """
+        cdef int tw, th
+        cdef int ox, oy
+
         tw, th = self.data.tile_size
         buff = self._buffer
         blit = buff.blit
@@ -375,28 +388,30 @@ class BufferedRenderer(object):
             heappush(self._animation_queue, ani)
 
     def _process_animation_queue(self):
-        self._update_time()
-        requires_redraw = False
+        return
 
-        # test if the next scheduled tile change is ready
-        while self._animation_queue[0].next <= self._last_time:
-            requires_redraw = True
-            token = heappop(self._animation_queue)
-
-            # advance the animation index, looping by default
-            if token.index == len(token.frames) - 1:
-                token.index = 0
-            else:
-                token.index += 1
-
-            next_frame = token.frames[token.index]
-            token.next = next_frame.duration + self._last_time
-            self._animation_map[token.gid] = next_frame.image
-            heappush(self._animation_queue, token)
-
-        if requires_redraw:
-            # TODO: record the tiles that changed and update only affected tiles
-            self.redraw_tiles()
+        # self._update_time()
+        # requires_redraw = False
+        #
+        # # test if the next scheduled tile change is ready
+        # while self._animation_queue[0].next <= self._last_time:
+        #     requires_redraw = True
+        #     token = heappop(self._animation_queue)
+        #
+        #     # advance the animation index, looping by default
+        #     if token.index == len(token.frames) - 1:
+        #         token.index = 0
+        #     else:
+        #         token.index += 1
+        #
+        #     next_frame = token.frames[token.index]
+        #     token.next = next_frame.duration + self._last_time
+        #     self._animation_map[token.gid] = next_frame.image
+        #     heappush(self._animation_queue, token)
+        #
+        # if requires_redraw:
+        #     # TODO: record the tiles that changed and update only affected tiles
+        #     self.redraw_tiles()
 
     def _calculate_zoom_buffer_size(self, value):
         if value <= 0:
@@ -438,8 +453,8 @@ class BufferedRenderer(object):
         """
         tw, th = self.data.tile_size
         mw, mh = self.data.map_size
-        buffer_tile_width = int(math.ceil(view_size[0] / tw) + 2)
-        buffer_tile_height = int(math.ceil(view_size[1] / th) + 2)
+        buffer_tile_width = int(math.ceil(view_size[0] / tw) + 1)
+        buffer_tile_height = int(math.ceil(view_size[1] / th) + 1)
         buffer_pixel_size = buffer_tile_width * tw, buffer_tile_height * th
 
         self.map_rect = Rect(0, 0, mw * tw, mh * th)
@@ -465,11 +480,15 @@ class BufferedRenderer(object):
     def _flush_tile_queue(self):
         """ Blit the queued tiles and block until the tile queue is empty
         """
+        cdef int tw, th
+        cdef int lth, tth
+        cdef int x, y, l, gid
+
         tw, th = self.data.tile_size
         ltw = self._tile_view.left * tw
         tth = self._tile_view.top * th
-        blit = self._buffer.blit
+        blit = self._buffer.blit_list
         map_get = self._animation_map.get
 
-        for x, y, l, tile, gid in self._tile_queue:
-            blit(map_get(gid, tile), (x * tw - ltw, y * th - tth))
+        blit([(map_get(gid, tile), (x * tw - ltw, y * th - tth))
+              for x, y, l, tile, gid in self._tile_queue])
