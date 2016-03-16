@@ -66,6 +66,9 @@ class BufferedRenderer(object):
         self._zoom_buffer = None      # used to speed up zoom operations
         self._zoom_level = 1.0        # negative numbers make map smaller, positive: bigger
 
+        self._scroll = None
+        self._redraw = None
+
         # used to speed up animated tile redraws by keeping track of animated tiles
         # so they can be updated individually
         self._animation_tiles = defaultdict(set)
@@ -91,6 +94,7 @@ class BufferedRenderer(object):
 
         :param coords: (number, number)
         """
+        ox, oy = self.view_rect.center
         x, y = [round(i, 0) for i in coords]
         self.view_rect.center = x, y
 
@@ -104,6 +108,9 @@ class BufferedRenderer(object):
             self.view_rect.clamp_ip(self.map_rect)
 
         x, y = self.view_rect.center
+
+        dpx = ox - x
+        dpy = oy - y
 
         if not self.anchored_view:
             # calculate offset and do not scroll the map layer
@@ -122,15 +129,21 @@ class BufferedRenderer(object):
             view_change = max(abs(dx), abs(dy))
 
             if view_change and (view_change <= self._redraw_cutoff):
-                self._buffer.scroll(-dx * tw, -dy * th)
+                self._redraw = True
+                # self._buffer.scroll(-dx * tw, -dy * th)
                 self._tile_view.move_ip(dx, dy)
-                self._queue_edge_tiles(dx, dy)
-                self._flush_tile_queue()
+                # self._queue_edge_tiles(dx, dy)
+                # self._flush_tile_queue()
 
-            elif view_change > self._redraw_cutoff:
-                logger.info('scrolling too quickly.  redraw forced')
-                self._tile_view.move_ip(dx, dy)
-                self.redraw_tiles()
+            # elif view_change > self._redraw_cutoff:
+            #     print("redraw")
+            #     logger.info('scrolling too quickly.  redraw forced')
+            #     self._tile_view.move_ip(dx, dy)
+            #     self.redraw_tiles()
+
+            elif dpx or dpy:
+                print(dpx, dpy)
+                self._scroll = int(dpx), int(dpy)
 
     def draw(self, surface, rect, surfaces=None):
         """ Draw the map onto a surface
@@ -222,12 +235,22 @@ class BufferedRenderer(object):
 
         offset = -self._x_offset + rect.left, -self._y_offset + rect.top
 
+        if self._redraw:
+            surface.blit(self._buffer, (0, 0))
+            self._redraw = None
+
+        if self._scroll:
+            surface.scroll(*self._scroll)
+            # self._queue_edge_tiles(1, 0)
+            # self._flush_tile_queue()
+            self._scroll = None
+
         with surface_clipping_context(surface, rect):
-            surface.blit(self._buffer, offset)
+            # surface.blit(self._buffer, offset)
             if surfaces:
                 surfaces_offset = -offset[0], -offset[1]
                 dirty = self._draw_surfaces(surface, surfaces)
-                self._repair_damage(surface, dirty, surfaces_offset)
+                # self._repair_damage(surface, dirty, surfaces_offset)
 
     def _draw_surfaces(self, surface, surfaces):
         """ Draw surfaces onto the screen, yield dirty areas
@@ -253,24 +276,7 @@ class BufferedRenderer(object):
         :param offset: offset to compensate for buffer alignment
         """
         # offset the dirty areas to compensate for the scroll-blit offset
-        dirty = ((r.move(*offset), l) for r, l in dirty)
-        cells = self._gather_damaged_cells(dirty)
-        self._redraw_cells(surface, cells, offset)
-
-    def _gather_damaged_cells(self, dirty):
-        """ Given a list of (rect, layers), return the cells/tiles and layer
-
-        Screen/buffer damage is arbitrarily sized rects.
-        Generate/return all damaged areas in tile coordinates, aka "cells"
-
-        :param dirty:
-        :return:
-        """
-        hit = self._layer_quadtree.hit
-
-        for rect, layer in dirty:
-            for cell in hit(rect):
-                yield cell, layer
+        self._redraw_cells(surface, dirty, offset)
 
     def _repair_damage_limit_overdraw(self, dirty, offset):
         """ Collapse cells to just the lowest layer.  Useful to limit overdraw.
@@ -298,24 +304,26 @@ class BufferedRenderer(object):
 
         return cover_dict.items()
 
-    def _redraw_cells(self, surface, cells, offset):
+    def _redraw_cells(self, surface, dirty, offset):
         """ Given redraw areas.  Used for repairing damage to buffer/screen.
 
         :return:
         """
-        surface_blit = surface.blit
-        left, top = self._tile_view.topleft
-        get_tile = self.data.get_tile_image
-        tile_layers = len(list(self.data.visible_tile_layers))
         ox, oy = offset
+        left, top = self._tile_view.topleft
+        surface_blit = surface.blit
+        get_tile = self.data.get_tile_image
+        hit = self._layer_quadtree.hit
+        tile_layers = len(list(self.data.visible_tile_layers))
 
-        for cell, layer in cells:
-            x, y, tw, th = cell
-            tx, ty = x // tw + left, y // th + top
-            for l in range(layer, tile_layers):
-                tile = get_tile((tx, ty, l))
-                if tile:
-                    surface_blit(tile, (x - ox, y - oy))
+        for rect, layer in dirty:
+            for cell in hit(rect.move(ox, oy)):
+                x, y, tw, th = cell
+                tx, ty = x // tw + left, y // th + top
+                for l in range(layer, tile_layers):
+                    tile = get_tile((tx, ty, l))
+                    if tile:
+                        surface_blit(tile, (x - ox, y - oy))
 
     def _draw_objects(self):
         """ Totally unoptimized drawing of objects to the map [probably broken]
@@ -513,6 +521,8 @@ class BufferedRenderer(object):
                 self._zoom_buffer = Surface(view_size)
             self._buffer = Surface(buffer_size)
 
+        self._redraw = True
+
     def _initialize_buffers(self, view_size):
         """ Create the buffers to cache tile drawing
 
@@ -521,8 +531,8 @@ class BufferedRenderer(object):
         """
         tw, th = self.data.tile_size
         mw, mh = self.data.map_size
-        buffer_tile_width = int(math.ceil(view_size[0] / tw) + 1)
-        buffer_tile_height = int(math.ceil(view_size[1] / th) + 1)
+        buffer_tile_width = int(math.ceil(view_size[0] / tw) + 2)
+        buffer_tile_height = int(math.ceil(view_size[1] / th) + 2)
         buffer_pixel_size = buffer_tile_width * tw, buffer_tile_height * th
 
         self.map_rect = Rect(0, 0, mw * tw, mh * th)
