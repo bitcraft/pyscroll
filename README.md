@@ -93,7 +93,8 @@ the PyscrollGroup for PyGame.  There are plenty of comments to get you started.
 
 The Quest demo shows how you can use a pyscroll group for drawing, how to load
 maps with PyTMX, and how pyscroll can quickly render layers.  Moving under some
-tiles will cause the Hero to be covered.
+tiles will cause the Hero to be covered. Connor124 has written a game using PyTMX 
+and PyScroll(https://github.com/Connor124/Gran-Theft-Crop-Toe/)
 
 
 Example Use with PyTMX
