@@ -7,7 +7,7 @@ import time
 from functools import partial
 from heapq import heappush, heappop
 from itertools import product, chain
-from operator import gt
+from collections import defaultdict
 import pygame
 from pygame import Surface, Rect
 from pyscroll import surface_clipping_context, quadtree
@@ -23,6 +23,7 @@ class BufferedRenderer(object):
     and animation information.  See the data class api in pyscroll.data, or
     use the built-in pytmx support for loading maps created with Tiled.
     """
+    _alpha_clear_color = 0, 0, 0, 0
 
     def __init__(self, data, size, clamp_camera=True, colorkey=None, alpha=False,
                  time_source=time.time, scaling_function=pygame.transform.scale):
@@ -33,7 +34,7 @@ class BufferedRenderer(object):
         self.anchored_view = True                  # if true, map will be fixed to upper left corner
         self.map_rect = None                       # pygame rect of entire map
         self.time_source = time_source             # determines how tile animations are processed
-        self.scaling_function = scaling_function   # what function to use when zooming
+        self.scaling_function = scaling_function   # what function to use when scaling the zoom buffer
         self.default_shape_texture_gid = 1         # [experimental] texture to draw shapes with
         self.default_shape_color = 0, 255, 0       # [experimental] color to fill polygons with
 
@@ -44,7 +45,7 @@ class BufferedRenderer(object):
         elif colorkey:
             self._clear_color = colorkey
         elif alpha:
-            self._clear_color = (0, 0, 0, 0)
+            self._clear_color = self._alpha_clear_color
         else:
             self._clear_color = None
 
@@ -58,12 +59,19 @@ class BufferedRenderer(object):
         self._half_width = None       # 'half x' attributes are used to reduce division ops.
         self._half_height = None
         self._tile_queue = None       # tiles queued to be draw onto buffer
-        self._animation_queue = None  # heap queue of animation token.  schedules tile changes
+        self._animation_queue = None  # heap queue of animation token;  schedules tile changes
         self._animation_map = None    # map of GID to other GIDs in an animation
         self._last_time = None        # used for scheduling animations
         self._layer_quadtree = None   # used to draw tiles that overlap optional surfaces
         self._zoom_buffer = None      # used to speed up zoom operations
         self._zoom_level = 1.0        # negative numbers make map smaller, positive: bigger
+
+        self._scroll = None
+        self._redraw = None
+
+        # used to speed up animated tile redraws by keeping track of animated tiles
+        # so they can be updated individually
+        self._animation_tiles = defaultdict(set)
 
         # this represents the viewable pixels, aka 'camera'
         self.view_rect = Rect(0, 0, 0, 0)
@@ -86,6 +94,7 @@ class BufferedRenderer(object):
 
         :param coords: (number, number)
         """
+        ox, oy = self.view_rect.center
         x, y = [round(i, 0) for i in coords]
         self.view_rect.center = x, y
 
@@ -99,6 +108,9 @@ class BufferedRenderer(object):
             self.view_rect.clamp_ip(self.map_rect)
 
         x, y = self.view_rect.center
+
+        dpx = ox - x
+        dpy = oy - y
 
         if not self.anchored_view:
             # calculate offset and do not scroll the map layer
@@ -117,15 +129,21 @@ class BufferedRenderer(object):
             view_change = max(abs(dx), abs(dy))
 
             if view_change and (view_change <= self._redraw_cutoff):
-                self._buffer.scroll(-dx * tw, -dy * th)
+                self._redraw = True
+                # self._buffer.scroll(-dx * tw, -dy * th)
                 self._tile_view.move_ip(dx, dy)
-                self._queue_edge_tiles(dx, dy)
-                self._flush_tile_queue()
+                # self._queue_edge_tiles(dx, dy)
+                # self._flush_tile_queue()
 
-            elif view_change > self._redraw_cutoff:
-                logger.info('scrolling too quickly.  redraw forced')
-                self._tile_view.move_ip(dx, dy)
-                self.redraw_tiles()
+            # elif view_change > self._redraw_cutoff:
+            #     print("redraw")
+            #     logger.info('scrolling too quickly.  redraw forced')
+            #     self._tile_view.move_ip(dx, dy)
+            #     self.redraw_tiles()
+
+            elif dpx or dpy:
+                print(dpx, dpy)
+                self._scroll = int(dpx), int(dpy)
 
     def draw(self, surface, rect, surfaces=None):
         """ Draw the map onto a surface
@@ -171,8 +189,8 @@ class BufferedRenderer(object):
 
     @zoom.setter
     def zoom(self, value):
+        buffer_size = self._calculate_zoom_buffer_size(self._size, value)
         self._zoom_level = value
-        buffer_size = self._calculate_zoom_buffer_size(value)
         self._initialize_buffers(buffer_size)
 
     def set_size(self, size):
@@ -182,8 +200,8 @@ class BufferedRenderer(object):
 
         :param size: (width, height) pixel size of camera/view of the group
         """
+        buffer_size = self._calculate_zoom_buffer_size(size, self._zoom_level)
         self._size = size
-        buffer_size = self._calculate_zoom_buffer_size(self._zoom_level)
         self._initialize_buffers(buffer_size)
 
     def redraw_tiles(self):
@@ -217,41 +235,93 @@ class BufferedRenderer(object):
 
         offset = -self._x_offset + rect.left, -self._y_offset + rect.top
 
+        if self._redraw:
+            surface.blit(self._buffer, (0, 0))
+            self._redraw = None
+
+        if self._scroll:
+            surface.scroll(*self._scroll)
+            # self._queue_edge_tiles(1, 0)
+            # self._flush_tile_queue()
+            self._scroll = None
+
         with surface_clipping_context(surface, rect):
-            surface.blit(self._buffer, offset)
+            # surface.blit(self._buffer, offset)
             if surfaces:
                 surfaces_offset = -offset[0], -offset[1]
-                self._draw_surfaces(surface, surfaces_offset, surfaces)
+                dirty = self._draw_surfaces(surface, surfaces)
+                # self._repair_damage(surface, dirty, surfaces_offset)
 
-    def _draw_surfaces(self, surface, offset, surfaces):
-        """ Draw surfaces onto buffer, then redraw tiles that cover them
+    def _draw_surfaces(self, surface, surfaces):
+        """ Draw surfaces onto the screen, yield dirty areas
 
-        :param surface: destination
-        :param offset: offset to compensate for buffer alignment
-        :param surfaces: sequence of surfaces to blit
+        :type surface: pygame.Surface
+        :type surfaces: list
+        :rtype: generator
         """
         surface_blit = surface.blit
-        ox, oy = offset
-        left, top = self._tile_view.topleft
-        hit = self._layer_quadtree.hit
-        get_tile = self.data.get_tile_image
-        tile_layers = tuple(self.data.visible_tile_layers)
-
-        dirty = list()
-        dirty_append = dirty.append
         for i in surfaces:
             try:
                 flags = i[3]
             except IndexError:
-                dirty_append((surface_blit(i[0], i[1]), i[2]))
+                yield surface_blit(i[0], i[1]), i[2] + 1
             else:
-                dirty_append((surface_blit(i[0], i[1], None, flags), i[2]))
+                yield surface_blit(i[0], i[1], None, flags), i[2] + 1
 
-        for dirty_rect, layer in dirty:
-            for r in hit(dirty_rect.move(ox, oy)):
-                x, y, tw, th = r
-                for l in [i for i in tile_layers if gt(i, layer)]:
-                    tile = get_tile((x // tw + left, y // th + top, l))
+    def _repair_damage(self, surface, dirty, offset):
+        """ Redraw tiles that cover dirty areas
+
+        :type surface: pygame.Surface
+        :type dirty: list
+        :param offset: offset to compensate for buffer alignment
+        """
+        # offset the dirty areas to compensate for the scroll-blit offset
+        self._redraw_cells(surface, dirty, offset)
+
+    def _repair_damage_limit_overdraw(self, dirty, offset):
+        """ Collapse cells to just the lowest layer.  Useful to limit overdraw.
+
+        This method does more book keeping to limit overdraw.  May be
+        quicker in some situations.  Seems slower in general use, however.
+
+        :type dirty: list
+        """
+        ox, oy = offset
+        hit = self._layer_quadtree.hit
+
+        # populate the dict with unique cells, each with lowest layer to redraw from
+        cover_dict = dict()
+        for rect, layer in dirty:
+            for r in hit(rect.move(ox, oy)):
+                cell = tuple(r)
+                try:
+                    lowest = cover_dict[cell]
+                except KeyError:
+                    cover_dict[cell] = layer
+                else:
+                    if layer < lowest:
+                        cover_dict[cell] = layer
+
+        return cover_dict.items()
+
+    def _redraw_cells(self, surface, dirty, offset):
+        """ Given redraw areas.  Used for repairing damage to buffer/screen.
+
+        :return:
+        """
+        ox, oy = offset
+        left, top = self._tile_view.topleft
+        surface_blit = surface.blit
+        get_tile = self.data.get_tile_image
+        hit = self._layer_quadtree.hit
+        tile_layers = len(list(self.data.visible_tile_layers))
+
+        for rect, layer in dirty:
+            for cell in hit(rect.move(ox, oy)):
+                x, y, tw, th = cell
+                tx, ty = x // tw + left, y // th + top
+                for l in range(layer, tile_layers):
+                    tile = get_tile((tx, ty, l))
                     if tile:
                         surface_blit(tile, (x - ox, y - oy))
 
@@ -376,11 +446,10 @@ class BufferedRenderer(object):
 
     def _process_animation_queue(self):
         self._update_time()
-        requires_redraw = False
+        self._tile_queue = list()
 
         # test if the next scheduled tile change is ready
         while self._animation_queue[0].next <= self._last_time:
-            requires_redraw = True
             token = heappop(self._animation_queue)
 
             # advance the animation index, looping by default
@@ -394,16 +463,38 @@ class BufferedRenderer(object):
             self._animation_map[token.gid] = next_frame.image
             heappush(self._animation_queue, token)
 
-        if requires_redraw:
-            # TODO: record the tiles that changed and update only affected tiles
-            self.redraw_tiles()
+            # go through the animated tile map:
+            #   * queue tiles that need to be changed
+            #   * remove map entries that do not collide with screen
+            needs_clear = False
+            for x, y, l in self._animation_tiles[token.gid]:
 
-    def _calculate_zoom_buffer_size(self, value):
+                # if this tile is on the buffer (checked by using the tile view)
+                if self._tile_view.collidepoint(x, y):
+                    self._tile_queue.append((x, y, l, next_frame.image, token.gid))
+                    # for i in range(0, l):
+                    #     self._tile_queue.append((x, y, i, None, token.gid))
+                else:
+                    needs_clear = True
+
+            # this will delete the set of tile locations that are checked for
+            # animated tiles.  when the tile queue is flushed, any tiles in the
+            # queue will be added again.  i choose to remove the set, rather
+            # than removing the item in the set to reclaim memory over time...
+            # though i could implement it by removing entries.  idk  -lt
+            if needs_clear:
+                del self._animation_tiles[token.gid]
+
+        if self._tile_queue:
+            self._flush_tile_queue()
+
+    @staticmethod
+    def _calculate_zoom_buffer_size(size, value):
         if value <= 0:
             print('zoom level cannot be zero or less')
             raise ValueError
         value = 1.0 / value
-        return [int(round(i * value)) for i in self._size]
+        return [int(round(i * value)) for i in size]
 
     def _create_buffers(self, view_size, buffer_size):
         """ Create the buffers, taking in account pixel alpha or colorkey
@@ -411,13 +502,13 @@ class BufferedRenderer(object):
         :param view_size: pixel size of the view
         :param buffer_size: pixel size of the buffer
         """
-        requires_zoom_buffer = not view_size == buffer_size
-        self._zoom_buffer = None
+        requires_zoom_buffer = not self._zoom_level == 1.0
 
-        if self._clear_color == (0, 0, 0, 0):
+        if self._clear_color == self._alpha_clear_color:
             if requires_zoom_buffer:
                 self._zoom_buffer = Surface(view_size, flags=pygame.SRCALPHA)
             self._buffer = Surface(buffer_size, flags=pygame.SRCALPHA)
+            self.data.convert_surfaces(self._buffer, True)
         elif self._clear_color:
             if requires_zoom_buffer:
                 self._zoom_buffer = Surface(view_size, flags=pygame.RLEACCEL)
@@ -429,6 +520,8 @@ class BufferedRenderer(object):
             if requires_zoom_buffer:
                 self._zoom_buffer = Surface(view_size)
             self._buffer = Surface(buffer_size)
+
+        self._redraw = True
 
     def _initialize_buffers(self, view_size):
         """ Create the buffers to cache tile drawing
@@ -459,6 +552,7 @@ class BufferedRenderer(object):
                                                 range(buffer_tile_height))]
 
         # TODO: figure out what depth -actually- does
+        # values <= 8 tend to reduce performance
         self._layer_quadtree = quadtree.FastQuadTree(rects, 4)
         self.redraw_tiles()
 
@@ -469,7 +563,7 @@ class BufferedRenderer(object):
         ltw = self._tile_view.left * tw
         tth = self._tile_view.top * th
         blit = self._buffer.blit
-        map_get = self._animation_map.get
 
         for x, y, l, tile, gid in self._tile_queue:
-            blit(map_get(gid, tile), (x * tw - ltw, y * th - tth))
+            self._animation_tiles[gid].add((x, y, l))
+            blit(tile, (x * tw - ltw, y * th - tth))
