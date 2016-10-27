@@ -104,6 +104,13 @@ class TiledMapData(PyscrollDataAdapter):
         return self.tmx.width, self.tmx.height
 
     @property
+    def pixel_size(self):
+        """ This is the size of the map if completely rendered
+        :return: (int, int)
+        """
+        return [a * b for a, b in zip(self.tile_size, self.map_size)]
+
+    @property
     def visible_tile_layers(self):
         """ This must return layer numbers, not objects
         :return: [int, int, ...]

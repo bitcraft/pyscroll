@@ -20,7 +20,8 @@ def rect_to_bb(rect):
 
 
 # convenience imports
-from pyscroll.orthographic import BufferedRenderer
-from pyscroll.isometric import IsometricBufferedRenderer
+# from pyscroll.orthographic import BufferedRenderer
+# from pyscroll.isometric import IsometricBufferedRenderer
+from pyscroll.texture import TextureRenderer
 from .data import *
-from .group import *
+# from .group import *
