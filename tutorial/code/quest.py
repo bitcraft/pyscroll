@@ -216,7 +216,7 @@ class QuestGame(object):
 
         try:
             while self.running:
-                dt = clock.tick() / 1000.
+                dt = clock.tick(60) / 1000.
                 times.append(clock.get_fps())
                 # print(sum(times) / len(times))
 
