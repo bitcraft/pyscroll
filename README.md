@@ -51,23 +51,6 @@ Features
 - Pixel alpha and colorkey tilesets are supported
 
 
-Shape Drawing
-=============
-
-pyscroll has a new experimental feature for drawing shapes to the map and
-scrolling them as part of the map.  This can be useful for game that need to
-draw arbitrary shaped objects.
-
-The feature requires pytmx, and that the map files be created in the Tiled Map
-Editor.  The advantage of of using pyscroll for shape drawing is that pyscroll
-can draw the shapes much more efficiently that simply drawing the shapes each
-frame.
-
-This feature is experimental at best.  Your comments and support is appreciated!
-
-* Currently, shapes will not draw over sprites, only under.
-
-
 Installation
 ===============================================================================
 
@@ -79,8 +62,8 @@ Install from pip
 You can also manually install it
 
     python setup.py install
-    
-    
+
+
 New Game Tutorial
 =================
 
@@ -172,11 +155,11 @@ def draw():
 
       # pyscroll uses normal pygame surfaces
       surface = game_object.get_surface()
-   
+
       # pyscroll will draw surfaces in screen coordinates, so translate them
       # you need to use a rect to handle tiles that cover surfaces.
       rect = game_object.get_screen_rect()
-   
+
       # the list called 'surfaces' is required for pyscroll
       # notice the layer.  this determines which layers the sprite will cover.
       # layer numbers higher than this will cover the surface
@@ -217,3 +200,6 @@ Pass "colorkey=theColorYouWant" to the BufferedRenderer constructor.  In theory,
 
 ## Does the map layer support transparency?
 Yes...and no.  By default, pyscroll handles all transparency types very well for the tiles and you should not have issues with that.  However, if you are trying to blit/draw the map *over* existing graphics and "see through" transparent areas, then you will have to use the "alpha", or "colorkey" methods described above.
+
+## Does pyscroll support paarallax layers?
+Yes/no.  Because there is no direct support in the primary editor, Tiled, I have not implemented an API for it.  However, you can build you own parallax effects by passing "alpha=True" to the BufferedRenderer constructor.  Then it is just a matter of scrolling at different speeds.  Be warned, that rendering alpha layers is much slower.
