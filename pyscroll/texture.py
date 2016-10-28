@@ -30,7 +30,7 @@ class TextureRenderer(RendererBase):
             data, size, clamp_camera, time_source=time_source, alpha=True)
 
     def center(self, coords):
-        """ center the map on a pixel
+        """ center the map on a map pixel
 
         float numbers will be rounded.
 
@@ -72,10 +72,11 @@ class TextureRenderer(RendererBase):
                 # pretty sure it is not worth the effort, idk
                 # https://bitbucket.org/pygame/pygame/src/010a750596cf0e60c6b6268ca345c7807b913e22/src/surface.c?at=default&fileviewer=file-view-default#surface.c-1596
                 # maybe "change pixel pitch" idk.
-                ox, oy = self._tile_view.topleft
-                self._tile_view.move_ip(-dx, -dy)
+
+                # DEBUG
+                self.clear_buffer(self._buffer)
+                self._tile_view.move_ip(dx, dy)
                 self.redraw_tiles()
-                self._tile_view.topleft = ox + dx, oy + dy
 
     def draw(self, renderer, surfaces=None):
         """ Draw the map onto a surface
@@ -100,22 +101,29 @@ class TextureRenderer(RendererBase):
             self._process_animation_queue()
 
         if not self.anchored_view:
-            sdl.renderClear()
+            self.clear_buffer()
+
+        self.clear_buffer()
 
         # set the drawing offset
-        self._sdl_buffer_dst.x = -int(self._x_offset)
-        self._sdl_buffer_dst.y = -int(self._y_offset)
+        self._sdl_buffer_dst.x = -int(self._x_offset) + 128
+        self._sdl_buffer_dst.y = -int(self._y_offset) + 128
         self._sdl_buffer_dst.w = self._size[0]
         self._sdl_buffer_dst.h = self._size[1]
 
+        print(self._size)
+
         sdl.renderCopy(renderer, self._buffer, None, self._sdl_buffer_dst)
 
-    def clear_buffer(self, target, color):
+    def clear_buffer(self, target=None, color=None):
         renderer = self.ctx.renderer
-        orig = sdl.getRenderTarget(renderer)
-        sdl.setRenderTarget(renderer, self._buffer)
-        sdl.renderClear(renderer)
-        sdl.setRenderTarget(renderer, orig)
+        if target is None:
+            sdl.renderClear(renderer)
+        else:
+            orig = sdl.getRenderTarget(renderer)
+            sdl.setRenderTarget(renderer, target)
+            sdl.renderClear(renderer)
+            sdl.setRenderTarget(renderer, orig)
 
     def _draw_surfaces(self, surface, offset, surfaces):
         """ Draw surfaces onto buffer, then redraw tiles that cover them
@@ -165,6 +173,7 @@ class TextureRenderer(RendererBase):
         :param buffer_size: pixel size of the buffer
         """
         self._buffer = self.new_buffer(buffer_size)
+        self._size = sdl.queryTexture(self._buffer)[3:]
 
     def _flush_tile_queue(self, destination=None):
         """ Blit the queued tiles and block until the tile queue is empty
@@ -176,8 +185,6 @@ class TextureRenderer(RendererBase):
         rcx = sdl.renderCopyEx
 
         dst_rect = sdl.Rect()
-        dst_rect.x = 0
-        dst_rect.y = 0
         dst_rect.w = tw
         dst_rect.h = th
 

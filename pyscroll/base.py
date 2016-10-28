@@ -421,6 +421,8 @@ class RendererBase(object):
         buffer_tile_height = int(math.ceil(view_size[1] / th) + 1)
         buffer_pixel_size = buffer_tile_width * tw, buffer_tile_height * th
 
+        print(view_size)
+
         self.map_rect = Rect(0, 0, mw * tw, mh * th)
         self.view_rect.size = view_size
         self._tile_view = Rect(0, 0, buffer_tile_width, buffer_tile_height)
