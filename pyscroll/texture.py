@@ -3,7 +3,6 @@ from __future__ import print_function
 
 import logging
 import time
-from operator import gt
 
 import sdl
 
@@ -29,54 +28,14 @@ class TextureRenderer(RendererBase):
         super(TextureRenderer, self).__init__(
             data, size, clamp_camera, time_source=time_source, alpha=True)
 
-    def center(self, coords):
-        """ center the map on a map pixel
-
-        float numbers will be rounded.
-
-        :param coords: (number, number)
-        """
-        x, y = [round(i, 0) for i in coords]
-        self.view_rect.center = x, y
-
-        mw, mh = self.data.map_size
-        tw, th = self.data.tile_size
-
-        self.anchored_view = ((self._tile_view.width < mw) or
-                              (self._tile_view.height < mh))
-
-        if self.anchored_view and self.clamp_camera:
-            self.view_rect.clamp_ip(self.map_rect)
-
-        x, y = self.view_rect.center
-
-        if not self.anchored_view:
-            # calculate offset and do not scroll the map layer
-            # this is used to handle maps smaller than screen
-            self._x_offset = x - self._half_width
-            self._y_offset = y - self._half_height
-
-        else:
-            # calc the new position in tiles and offset
-            left, self._x_offset = divmod(x - self._half_width, tw)
-            top, self._y_offset = divmod(y - self._half_height, th)
-
-            # adjust the view if the view has changed without a redraw
-            dx = int(left - self._tile_view.left)
-            dy = int(top - self._tile_view.top)
-            view_change = max(abs(dx), abs(dy))
-
-            if view_change:
-                # self._buffer.scroll(-dx * tw, -dy * th)
-                # not sure how to implement texture scrolling, so just retile it
-                # pretty sure it is not worth the effort, idk
-                # https://bitbucket.org/pygame/pygame/src/010a750596cf0e60c6b6268ca345c7807b913e22/src/surface.c?at=default&fileviewer=file-view-default#surface.c-1596
-                # maybe "change pixel pitch" idk.
-
-                # DEBUG
-                self.clear_buffer(self._buffer)
-                self._tile_view.move_ip(dx, dy)
-                self.redraw_tiles()
+    def change_view(self, dx, dy):
+        # not sure how to implement texture scrolling, so just retile it
+        # pretty sure it is not worth the effort, idk
+        # https://bitbucket.org/pygame/pygame/src/010a750596cf0e60c6b6268ca345c7807b913e22/src/surface.c?at=default&fileviewer=file-view-default#surface.c-1596
+        # maybe "change pixel pitch" idk.
+        self.clear_buffer(self._buffer)  # DEBUG
+        self._tile_view.move_ip(dx, dy)
+        self.redraw_tiles()
 
     def draw(self, renderer, surfaces=None):
         """ Draw the map onto a surface
@@ -103,15 +62,13 @@ class TextureRenderer(RendererBase):
         if not self.anchored_view:
             self.clear_buffer()
 
-        self.clear_buffer()
+        self.clear_buffer()  # DEBUG
 
         # set the drawing offset
         self._sdl_buffer_dst.x = -int(self._x_offset) + 128
         self._sdl_buffer_dst.y = -int(self._y_offset) + 128
         self._sdl_buffer_dst.w = self._size[0]
         self._sdl_buffer_dst.h = self._size[1]
-
-        print(self._size)
 
         sdl.renderCopy(renderer, self._buffer, None, self._sdl_buffer_dst)
 
@@ -124,38 +81,6 @@ class TextureRenderer(RendererBase):
             sdl.setRenderTarget(renderer, target)
             sdl.renderClear(renderer)
             sdl.setRenderTarget(renderer, orig)
-
-    def _draw_surfaces(self, surface, offset, surfaces):
-        """ Draw surfaces onto buffer, then redraw tiles that cover them
-
-        :param surface: destination
-        :param offset: offset to compensate for buffer alignment
-        :param surfaces: sequence of surfaces to blit
-        """
-        surface_blit = surface.blit
-        ox, oy = offset
-        left, top = self._tile_view.topleft
-        hit = self._layer_quadtree.hit
-        get_tile = self.data.get_tile_image
-        tile_layers = tuple(self.data.visible_tile_layers)
-
-        dirty = list()
-        dirty_append = dirty.append
-        for i in surfaces:
-            try:
-                flags = i[3]
-            except IndexError:
-                dirty_append((surface_blit(i[0], i[1]), i[2]))
-            else:
-                dirty_append((surface_blit(i[0], i[1], None, flags), i[2]))
-
-        for dirty_rect, layer in dirty:
-            for r in hit(dirty_rect.move(ox, oy)):
-                x, y, tw, th = r
-                for l in [i for i in tile_layers if gt(i, layer)]:
-                    tile = get_tile((x // tw + left, y // th + top, l))
-                    if tile:
-                        surface_blit(tile, (x - ox, y - oy))
 
     def _process_animation_queue(self):
         return

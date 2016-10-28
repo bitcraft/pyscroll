@@ -4,37 +4,34 @@ from __future__ import print_function
 import logging
 import math
 import time
+from collections import defaultdict
 from functools import partial
 from heapq import heappush, heappop
 from itertools import groupby, product, chain
 from operator import gt, itemgetter
-from collections import defaultdict
 
 from pyscroll import surface_clipping_context
-from pyscroll.quadtree import FastQuadTree
 from pyscroll.animation import AnimationFrame, AnimationToken
 from pyscroll.compat import Rect
+from pyscroll.quadtree import FastQuadTree
 
 logger = logging.getLogger('orthographic')
 
 
 class RendererBase(object):
-    """ Renderer that support scrolling, zooming, layers, and animated tiles
-
-    The buffered renderer must be used with a data class to get tile, shape,
-    and animation information.  See the data class api in pyscroll.data, or
-    use the built-in pytmx support for loading maps created with Tiled.
+    """ Base for buffered tile renderers.
     """
+
     _alpha_clear_color = 0, 0, 0, 0
 
     def __init__(self, data, size, clamp_camera=True, colorkey=None, alpha=False, time_source=time.time):
 
         # default options
-        self.data = data                           # reference to data source
-        self.clamp_camera = clamp_camera           # if true, cannot scroll past map edge
-        self.anchored_view = True                  # if true, map will be fixed to upper left corner
-        self.map_rect = None                       # pygame rect of entire map
-        self.time_source = time_source             # determines how tile animations are processed
+        self.data = data  # reference to data source
+        self.clamp_camera = clamp_camera  # if true, cannot scroll past map edge
+        self.anchored_view = True  # if true, map will be fixed to upper left corner
+        self.map_rect = None  # pygame rect of entire map
+        self.time_source = time_source  # determines how tile animations are processed
 
         # internal private defaults
         if colorkey and alpha:
@@ -48,20 +45,20 @@ class RendererBase(object):
             self._clear_color = None
 
         # private attributes
-        self._size = None             # size that the camera/viewport is on screen, kinda
-        self._redraw_cutoff = None    # size of dirty tile edge that will trigger full redraw
-        self._x_offset = None         # offsets are used to scroll map in sub-tile increments
+        self._size = None  # size that the camera/viewport is on screen, kinda
+        self._redraw_cutoff = None  # size of dirty tile edge that will trigger full redraw
+        self._x_offset = None  # offsets are used to scroll map in sub-tile increments
         self._y_offset = None
-        self._buffer = None           # complete rendering of tilemap
-        self._tile_view = None        # this rect represents each tile on the buffer
-        self._half_width = None       # 'half x' attributes are used to reduce division ops.
+        self._buffer = None  # complete rendering of tilemap
+        self._tile_view = None  # this rect represents each tile on the buffer
+        self._half_width = None  # 'half x' attributes are used to reduce division ops.
         self._half_height = None
-        self._tile_queue = None       # tiles queued to be draw onto buffer
+        self._tile_queue = None  # tiles queued to be draw onto buffer
         self._animation_queue = None  # heap queue of animation token;  schedules tile changes
-        self._last_time = None        # used for scheduling animations
-        self._layer_quadtree = None   # used to draw tiles that overlap optional surfaces
-        self._zoom_buffer = None      # used to speed up zoom operations
-        self._zoom_level = 1.0        # negative numbers make map smaller, positive: bigger
+        self._last_time = None  # used for scheduling animations
+        self._layer_quadtree = None  # used to draw tiles that overlap optional surfaces
+        self._zoom_buffer = None  # used to speed up zoom operations
+        self._zoom_level = 1.0  # negative numbers make map smaller, positive: bigger
 
         # used to speed up animated tile redraws by keeping track of animated tiles
         # so they can be updated individually
@@ -116,18 +113,12 @@ class RendererBase(object):
             # adjust the view if the view has changed without a redraw
             dx = int(left - self._tile_view.left)
             dy = int(top - self._tile_view.top)
-            view_change = max(abs(dx), abs(dy))
 
-            if view_change and (view_change <= self._redraw_cutoff):
-                self._buffer.scroll(-dx * tw, -dy * th)
-                self._tile_view.move_ip(dx, dy)
-                self._queue_edge_tiles(dx, dy)
-                self._flush_tile_queue(self._buffer)
+            if dx or dy:
+                self.change_view(dx, dy)
 
-            elif view_change > self._redraw_cutoff:
-                logger.info('scrolling too quickly.  redraw forced')
-                self._tile_view.move_ip(dx, dy)
-                self.redraw_tiles(self._buffer)
+    def change_view(self, dx, dy):
+        raise NotImplementedError
 
     def draw(self, surface, rect, surfaces=None):
         """ Draw the map onto a surface
@@ -151,11 +142,7 @@ class RendererBase(object):
         :param rect: area to draw to
         :param surfaces: optional sequence of surfaces to interlace between tiles
         """
-        if self._zoom_level == 1.0:
-            self._render_map(surface, rect, surfaces)
-        else:
-            self._render_map(self._zoom_buffer, self._zoom_buffer.get_rect(), surfaces)
-            self.scaling_function(self._zoom_buffer, rect.size, surface)
+        raise NotImplementedError
 
     @property
     def zoom(self):
@@ -289,13 +276,13 @@ class RendererBase(object):
                       (rect[1] - v.top) * th,
                       rect[2] * tw, rect[3] * th))
 
-        if dx > 0:    # right side
+        if dx > 0:  # right side
             append((v.right - 1, v.top, dx, v.height))
 
         elif dx < 0:  # left side
             append((v.left, v.top, -dx, v.height))
 
-        if dy > 0:    # bottom side
+        if dy > 0:  # bottom side
             append((v.left, v.bottom - 1, v.width, dy))
 
         elif dy < 0:  # top side
@@ -420,8 +407,6 @@ class RendererBase(object):
         buffer_tile_width = int(math.ceil(view_size[0] / tw) + 1)
         buffer_tile_height = int(math.ceil(view_size[1] / th) + 1)
         buffer_pixel_size = buffer_tile_width * tw, buffer_tile_height * th
-
-        print(view_size)
 
         self.map_rect = Rect(0, 0, mw * tw, mh * th)
         self.view_rect.size = view_size

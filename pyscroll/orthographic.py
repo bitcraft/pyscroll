@@ -30,53 +30,20 @@ class BufferedRenderer(RendererBase):
         self.scaling_function = scaling_function  # what function to use when scaling the zoom buffer
         super(BufferedRenderer, self).__init__(data, size, clamp_camera, colorkey, alpha, time_source)
 
-    def center(self, coords):
-        """ center the map on a pixel
-
-        float numbers will be rounded.
-
-        :param coords: (number, number)
-        """
-        x, y = [round(i, 0) for i in coords]
-        self.view_rect.center = x, y
-
-        mw, mh = self.data.map_size
+    def change_view(self, dx, dy):
+        view_change = max(abs(dx), abs(dy))
         tw, th = self.data.tile_size
 
-        self.anchored_view = ((self._tile_view.width < mw) or
-                              (self._tile_view.height < mh))
+        if view_change and (view_change <= self._redraw_cutoff):
+            self._buffer.scroll(-dx * tw, -dy * th)
+            self._tile_view.move_ip(dx, dy)
+            self._queue_edge_tiles(dx, dy)
+            self._flush_tile_queue(self._buffer)
 
-        if self.anchored_view and self.clamp_camera:
-            self.view_rect.clamp_ip(self.map_rect)
-
-        x, y = self.view_rect.center
-
-        if not self.anchored_view:
-            # calculate offset and do not scroll the map layer
-            # this is used to handle maps smaller than screen
-            self._x_offset = x - self._half_width
-            self._y_offset = y - self._half_height
-
-        else:
-            # calc the new position in tiles and offset
-            left, self._x_offset = divmod(x - self._half_width, tw)
-            top, self._y_offset = divmod(y - self._half_height, th)
-
-            # adjust the view if the view has changed without a redraw
-            dx = int(left - self._tile_view.left)
-            dy = int(top - self._tile_view.top)
-            view_change = max(abs(dx), abs(dy))
-
-            if view_change and (view_change <= self._redraw_cutoff):
-                self._buffer.scroll(-dx * tw, -dy * th)
-                self._tile_view.move_ip(dx, dy)
-                self._queue_edge_tiles(dx, dy)
-                self._flush_tile_queue(self._buffer)
-
-            elif view_change > self._redraw_cutoff:
-                logger.info('scrolling too quickly.  redraw forced')
-                self._tile_view.move_ip(dx, dy)
-                self.redraw_tiles(self._buffer)
+        elif view_change > self._redraw_cutoff:
+            logger.info('scrolling too quickly.  redraw forced')
+            self._tile_view.move_ip(dx, dy)
+            self.redraw_tiles(self._buffer)
 
     def draw(self, surface, rect, surfaces=None):
         """ Draw the map onto a surface
@@ -106,8 +73,7 @@ class BufferedRenderer(RendererBase):
             self._render_map(self._zoom_buffer, self._zoom_buffer.get_rect(), surfaces)
             self.scaling_function(self._zoom_buffer, rect.size, surface)
 
-    @staticmethod
-    def clear_buffer(target, color):
+    def clear_buffer(self, target, color):
         target.fill(color)
 
     def _render_map(self, surface, rect, surfaces):
