@@ -9,22 +9,14 @@ from heapq import heappush, heappop
 from itertools import groupby, product, chain
 from operator import gt, itemgetter
 from collections import defaultdict
-from contextlib import contextmanager
+
 import pygame
 from pygame import Surface, Rect
+
 from pyscroll import surface_clipping_context, quadtree
 from pyscroll.animation import AnimationFrame, AnimationToken
 
 logger = logging.getLogger('orthographic')
-
-
-def blit_thread(queue, buffer):
-    token = queue.get()
-    while token is not None:
-        buffer.blit(*token)
-        queue.task_done()
-        token = queue.get()
-    queue.task_done()
 
 
 class BufferedRenderer(object):
@@ -34,6 +26,7 @@ class BufferedRenderer(object):
     and animation information.  See the data class api in pyscroll.data, or
     use the built-in pytmx support for loading maps created with Tiled.
     """
+    _alpha_clear_color = 0, 0, 0, 0
 
     def __init__(self, data, size, clamp_camera=True, colorkey=None, alpha=False,
                  time_source=time.time, scaling_function=pygame.transform.scale):
@@ -44,7 +37,7 @@ class BufferedRenderer(object):
         self.anchored_view = True                  # if true, map will be fixed to upper left corner
         self.map_rect = None                       # pygame rect of entire map
         self.time_source = time_source             # determines how tile animations are processed
-        self.scaling_function = scaling_function   # what function to use when zooming
+        self.scaling_function = scaling_function   # what function to use when scaling the zoom buffer
         self.default_shape_texture_gid = 1         # [experimental] texture to draw shapes with
         self.default_shape_color = 0, 255, 0       # [experimental] color to fill polygons with
 
@@ -55,7 +48,7 @@ class BufferedRenderer(object):
         elif colorkey:
             self._clear_color = colorkey
         elif alpha:
-            self._clear_color = (0, 0, 0, 0)
+            self._clear_color = self._alpha_clear_color
         else:
             self._clear_color = None
 
@@ -69,7 +62,7 @@ class BufferedRenderer(object):
         self._half_width = None       # 'half x' attributes are used to reduce division ops.
         self._half_height = None
         self._tile_queue = None       # tiles queued to be draw onto buffer
-        self._animation_queue = None  # heap queue of animation token.  schedules tile changes
+        self._animation_queue = None  # heap queue of animation token;  schedules tile changes
         self._animation_map = None    # map of GID to other GIDs in an animation
         self._last_time = None        # used for scheduling animations
         self._layer_quadtree = None   # used to draw tiles that overlap optional surfaces
@@ -78,38 +71,15 @@ class BufferedRenderer(object):
 
         self.tile_grid_mapping = defaultdict(set)  # used to speed up animated tile redraws
 
-        import queue
-        self._threads = list()
-        self._blit_queue = queue.Queue()
+        # used to speed up animated tile redraws by keeping track of animated tiles
+        # so they can be updated individually
+        self._animation_tiles = defaultdict(set)
 
         # this represents the viewable pixels, aka 'camera'
         self.view_rect = Rect(0, 0, 0, 0)
 
         self.reload_animations()
         self.set_size(size)
-
-    # @contextmanager
-    # def ensure_buffer(self):
-    #     self._blit_queue.join()
-    #     yield
-    #     self._blit_queue.join()
-    #
-    # def kill_threads(self):
-    #     with self.ensure_buffer():
-    #         for thread in self._threads:
-    #             self._blit_queue.put(None)
-    #     self._threads = list()
-    #
-    # def start_threads(self):
-    #     import threading
-    #     from os import cpu_count
-    #
-    #     self._threads = list()
-    #     for i in range(cpu_count()):
-    #         thread = threading.Thread(target=blit_thread, args=(self._blit_queue, self._buffer))
-    #         thread.daemon = True
-    #         thread.start()
-    #         self._threads.append(thread)
 
     def scroll(self, vector):
         """ scroll the background in pixels
@@ -160,12 +130,12 @@ class BufferedRenderer(object):
                 self._buffer.scroll(-dx * tw, -dy * th)
                 self._tile_view.move_ip(dx, dy)
                 self._queue_edge_tiles(dx, dy)
-                self._flush_tile_queue()
+                self._flush_tile_queue(self._buffer)
 
             elif view_change > self._redraw_cutoff:
                 logger.info('scrolling too quickly.  redraw forced')
                 self._tile_view.move_ip(dx, dy)
-                self.redraw_tiles()
+                self.redraw_tiles(self._buffer)
 
     def draw(self, surface, rect, surfaces=None):
         """ Draw the map onto a surface
@@ -226,14 +196,15 @@ class BufferedRenderer(object):
         self._size = size
         self._initialize_buffers(buffer_size)
 
-    def redraw_tiles(self):
+    def redraw_tiles(self, surface):
         """ redraw the visible portion of the buffer -- it is slow.
         """
+        logger.warn('pyscroll buffer redraw')
         if self._clear_color:
-            self._buffer.fill(self._clear_color)
+            surface.fill(self._clear_color)
 
         self._tile_queue = self.data.get_tile_images_by_rect(self._tile_view)
-        self._flush_tile_queue()
+        self._flush_tile_queue(surface)
 
     def get_center_offset(self):
         """ Return x, y pair that will change world coords to screen coords
@@ -364,7 +335,7 @@ class BufferedRenderer(object):
         while self._animation_queue[0].next <= self._last_time:
             token = heappop(self._animation_queue)
 
-            # advance the animation index, looping by default
+            # advance the animation frame index, looping by default
             if token.index == len(token.frames) - 1:
                 token.index = 0
             else:
@@ -379,22 +350,26 @@ class BufferedRenderer(object):
             #   * queue tiles that need to be changed
             #   * remove map entries that do not collide with screen
             needs_clear = False
-            for x, y, l in self.tile_grid_mapping[token.gid]:
+            for x, y, l in self._animation_tiles[token.gid]:
+
+                # if this tile is on the buffer (checked by using the tile view)
                 if self._tile_view.collidepoint(x, y):
-                    self._tile_queue.append((x, y, l, None, token.gid))
+                    self._tile_queue.append((x, y, l, next_frame.image, token.gid))
+                    # for i in range(0, l):
+                    #     self._tile_queue.append((x, y, i, None, token.gid))
                 else:
                     needs_clear = True
 
-            # this will delete the set of tiles locations that are checked for
+            # this will delete the set of tile locations that are checked for
             # animated tiles.  when the tile queue is flushed, any tiles in the
             # queue will be added again.  i choose to remove the set, rather
             # than removing the item in the set to reclaim memory over time...
             # though i could implement it by removing entries.  idk  -lt
             if needs_clear:
-                del self.tile_grid_mapping[token.gid]
+                del self._animation_tiles[token.gid]
 
         if self._tile_queue:
-            self._flush_tile_queue()
+            self._flush_tile_queue(self._buffer)
 
     @staticmethod
     def _calculate_zoom_buffer_size(size, value):
@@ -413,10 +388,11 @@ class BufferedRenderer(object):
         requires_zoom_buffer = not view_size == buffer_size
         self._zoom_buffer = None
 
-        if self._clear_color == (0, 0, 0, 0):
+        if self._clear_color == self._alpha_clear_color:
             if requires_zoom_buffer:
                 self._zoom_buffer = Surface(view_size, flags=pygame.SRCALPHA)
             self._buffer = Surface(buffer_size, flags=pygame.SRCALPHA)
+            self.data.convert_surfaces(self._buffer, True)
         elif self._clear_color:
             if requires_zoom_buffer:
                 self._zoom_buffer = Surface(view_size, flags=pygame.RLEACCEL)
@@ -458,28 +434,19 @@ class BufferedRenderer(object):
                                                 range(buffer_tile_height))]
 
         # TODO: figure out what depth -actually- does
+        # values <= 8 tend to reduce performance
         self._layer_quadtree = quadtree.FastQuadTree(rects, 4)
 
-        # if self._threads:
-        #     self.kill_threads()
-        # self.start_threads()
+        self.redraw_tiles(self._buffer)
 
-        self.redraw_tiles()
-
-    def _flush_tile_queue(self):
+    def _flush_tile_queue(self, surface):
         """ Blit the queued tiles and block until the tile queue is empty
         """
         tw, th = self.data.tile_size
         ltw = self._tile_view.left * tw
         tth = self._tile_view.top * th
-        # put = self._blit_queue.put
-        blit = self._buffer.blit
-        map_get = self._animation_map.get
+        surface_blit = surface.blit
 
-        # with self.ensure_buffer():
         for x, y, l, tile, gid in self._tile_queue:
-            self.tile_grid_mapping[gid].add((x, y, l))
-            blit(map_get(gid, tile), (x * tw - ltw, y * th - tth))
-            # put((map_get(gid, tile), (x * tw - ltw, y * th - tth)))
-            # if gid in self._animation_map:
-            #     pygame.gfxdraw.rectangle(self._buffer, (x * tw - ltw, y * th - tth, tw, th), (255, 0, 0, 64))
+            self._animation_tiles[gid].add((x, y, l))
+            surface_blit(tile, (x * tw - ltw, y * th - tth))
