@@ -117,8 +117,12 @@ class TextureRenderer(object):
                 # https://bitbucket.org/pygame/pygame/src/010a750596cf0e60c6b6268ca345c7807b913e22/src/surface.c?at=default&fileviewer=file-view-default#surface.c-1596
                 # maybe "change pixel pitch" idk.
                 print(dx, dy)
-                self._tile_view.move_ip(dx, dy)
+                ox, oy = self._tile_view.topleft
+                self._tile_view.move_ip(-dx, -dy)
                 self.redraw_tiles()
+                self._tile_view.topleft = ox + dx, oy + dy
+
+        print(self._x_offset, self._y_offset)
 
     def draw(self, renderer, surfaces=None):
         """ Draw the map onto a surface
@@ -151,15 +155,7 @@ class TextureRenderer(object):
         self._sdl_buffer_dst.w = self._size[0]
         self._sdl_buffer_dst.h = self._size[1]
 
-        # print(self._sdl_buffer_dst.x, self._sdl_buffer_dst.y)
-
         sdl.renderCopy(renderer, self._buffer, None, self._sdl_buffer_dst)
-
-        # with surface_clipping_context(surface, rect):
-        #     surface.blit(self._buffer, offset)
-        #     if surfaces:
-        #         surfaces_offset = -offset[0], -offset[1]
-        #         self._draw_surfaces(surface, surfaces_offset, surfaces)
 
     @property
     def zoom(self):
@@ -357,7 +353,6 @@ class TextureRenderer(object):
         self.map_rect = Rect(0, 0, mw * tw, mh * th)
         self.view_rect.size = view_size
         self._tile_view = Rect(0, 0, buffer_tile_width, buffer_tile_height)
-        self._redraw_cutoff = 1  # TODO: optimize this value
         self._create_buffers(view_size, buffer_pixel_size)
         self._half_width = view_size[0] // 2
         self._half_height = view_size[1] // 2

@@ -16,6 +16,7 @@ from pytmx.util_pygame import load_pygame
 
 import pyscroll
 import pyscroll.data
+from pyscroll.rect import Rect
 from pyscroll.group import PyscrollGroup
 
 
@@ -48,7 +49,7 @@ class Hero(pygame.sprite.Sprite):
     The Hero has three collision rects, one for the whole sprite "rect" and
     "old_rect", and another to check collisions with walls, called "feet".
 
-    The position list is used because pygame rects are inaccurate for
+    The position list is used because Rects are inaccurate for
     positioning sprites; because the values they get are 'rounded down'
     as integers, the sprite would move faster moving left or up.
 
@@ -67,7 +68,7 @@ class Hero(pygame.sprite.Sprite):
         self._position = [0, 0]
         self._old_position = self.position
         self.rect = self.image.get_rect()
-        self.feet = pygame.Rect(0, 0, self.rect.width * .5, 8)
+        self.feet = Rect(0, 0, self.rect.width * .5, 8)
 
     @property
     def position(self):
@@ -109,10 +110,10 @@ class QuestGame(object):
         # load data from pytmx
         tmx_data = load_pygame(self.filename)
 
-        # setup level geometry with simple pygame rects, loaded from pytmx
+        # setup level geometry with simple Rects, loaded from pytmx
         self.walls = list()
         for object in tmx_data.objects:
-            self.walls.append(pygame.Rect(
+            self.walls.append(Rect(
                 object.x, object.y,
                 object.width, object.height))
 
@@ -213,7 +214,7 @@ class QuestGame(object):
 
         try:
             while self.running:
-                dt = clock.tick() / 1000.
+                dt = clock.tick(120) / 1000.
 
                 self.handle_input()
                 self.update(dt)

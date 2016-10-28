@@ -9,8 +9,9 @@ from heapq import heappush, heappop
 from itertools import product, chain
 from operator import gt
 import pygame
-from pygame import Surface, Rect
+from pygame import Surface
 from pyscroll import surface_clipping_context, quadtree
+from pyscroll.rect import Rect
 from pyscroll.animation import AnimationFrame, AnimationToken
 
 logger = logging.getLogger('orthographic')

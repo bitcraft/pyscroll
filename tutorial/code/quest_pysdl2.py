@@ -85,13 +85,13 @@ class QuestGame(object):
             elif event.type == sdl.KEYDOWN:
                 sym = event.key.keysym.sym
                 if sym == sdl.K_UP:
-                    self.center[1] -= 2
+                    self.center[1] -= 4
                 elif sym == sdl.K_DOWN:
-                    self.center[1] += 2
+                    self.center[1] += 4
                 elif sym == sdl.K_LEFT:
-                    self.center[0] -= 2
+                    self.center[0] -= 4
                 elif sym == sdl.K_RIGHT:
-                    self.center[0] += 2
+                    self.center[0] += 4
 
                 self.redraw = True
 
