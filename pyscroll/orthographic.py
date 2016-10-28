@@ -6,8 +6,8 @@ import math
 import time
 from functools import partial
 from heapq import heappush, heappop
-from itertools import product, chain
-from operator import gt
+from itertools import groupby, product, chain
+from operator import gt, itemgetter
 from collections import defaultdict
 from contextlib import contextmanager
 import pygame
@@ -276,93 +276,33 @@ class BufferedRenderer(object):
         hit = self._layer_quadtree.hit
         get_tile = self.data.get_tile_image
         tile_layers = tuple(self.data.visible_tile_layers)
-
         dirty = list()
         dirty_append = dirty.append
-        for i in surfaces:
-            try:
-                flags = i[3]
-            except IndexError:
-                dirty_append((surface_blit(i[0], i[1]), i[2]))
-            else:
-                dirty_append((surface_blit(i[0], i[1], None, flags), i[2]))
 
-        # TODO: make set of covered tiles, in the case where a cluster
-        # of sprite surfaces causes excessive over tile overdrawing
-        for dirty_rect, layer in dirty:
-            for r in hit(dirty_rect.move(ox, oy)):
-                x, y, tw, th = r
-                for l in [i for i in tile_layers if gt(i, layer)]:
-                    tile = get_tile((x // tw + left, y // th + top, l))
-                    if tile:
-                        surface_blit(tile, (x - ox, y - oy))
+        # TODO: check to avoid sorting overhead
+        layer_getter = itemgetter(2)
+        surfaces.sort(key=layer_getter)
 
-    def _draw_objects(self):
-        """ Totally unoptimized drawing of objects to the map [probably broken]
-        """
-        tw, th = self.data.tile_size
-        buff = self._buffer
-        blit = buff.blit
-        map_gid = self.data.tmx.map_gid
-        default_color = self.default_shape_color
-        get_image_by_gid = self.data.get_tile_image_by_gid
-        _draw_textured_poly = pygame.gfxdraw.textured_polygon
-        _draw_poly = pygame.draw.polygon
-        _draw_lines = pygame.draw.lines
+        for layer, group in groupby(surfaces, layer_getter):
+            dirty.clear()
 
-        ox = self._tile_view.left * tw
-        oy = self._tile_view.top * th
-
-        def draw_textured_poly(texture, points):
-            try:
-                _draw_textured_poly(buff, points, texture, tw, th)
-            except pygame.error:
-                pass
-
-        def draw_poly(color, points, width=0):
-            _draw_poly(buff, color, points, width)
-
-        def draw_lines(color, points, width=2):
-            _draw_lines(buff, color, False, points, width)
-
-        def to_buffer(pt):
-            return pt[0] - ox, pt[1] - oy
-
-        for layer in self.data.visible_object_layers:
-            for o in (o for o in layer if o.visible):
-                texture_gid = getattr(o, "texture", None)
-                color = getattr(o, "color", default_color)
-
-                # BUG: this is not going to be completely accurate, because it
-                # does not take into account times where texture is flipped.
-                if texture_gid:
-                    texture_gid = map_gid(texture_gid)[0][0]
-                    texture = get_image_by_gid(int(texture_gid))
-
-                if hasattr(o, 'points'):
-                    points = [to_buffer(i) for i in o.points]
-                    if o.closed:
-                        if texture_gid:
-                            draw_textured_poly(texture, points)
-                        else:
-                            draw_poly(color, points)
-                    else:
-                        draw_lines(color, points)
-
-                elif o.gid:
-                    tile = get_image_by_gid(o.gid)
-                    if tile:
-                        pt = to_buffer((o.x, o.y))
-                        blit(tile, pt)
-
+            for i in group:
+                try:
+                    flags = i[3]
+                except IndexError:
+                    dirty_append(surface_blit(i[0], i[1]))
                 else:
-                    x, y = to_buffer((o.x, o.y))
-                    points = ((x, y), (x + o.width, y),
-                              (x + o.width, y + o.height), (x, y + o.height))
-                    if texture_gid:
-                        draw_textured_poly(texture, points)
-                    else:
-                        draw_poly(color, points)
+                    dirty_append(surface_blit(i[0], i[1], None, flags))
+
+            # TODO: make set of covered tiles, in the case where a cluster
+            # of sprite surfaces causes excessive over tile overdrawing
+            for dirty_rect in dirty:
+                for r in hit(dirty_rect.move(ox, oy)):
+                    x, y, tw, th = r
+                    for l in [i for i in tile_layers if gt(i, layer)]:
+                        tile = get_tile((x // tw + left, y // th + top, l))
+                        if tile:
+                            surface_blit(tile, (x - ox, y - oy))
 
     def _queue_edge_tiles(self, dx, dy):
         """ Queue edge tiles and clear edge areas on buffer if needed
