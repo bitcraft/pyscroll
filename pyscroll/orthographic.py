@@ -63,7 +63,6 @@ class BufferedRenderer(object):
         self._half_height = None
         self._tile_queue = None       # tiles queued to be draw onto buffer
         self._animation_queue = None  # heap queue of animation token;  schedules tile changes
-        self._animation_map = None    # map of GID to other GIDs in an animation
         self._last_time = None        # used for scheduling animations
         self._layer_quadtree = None   # used to draw tiles that overlap optional surfaces
         self._zoom_buffer = None      # used to speed up zoom operations
@@ -313,7 +312,6 @@ class BufferedRenderer(object):
         """ Reload animation information
         """
         self._update_time()
-        self._animation_map = dict()
         self._animation_queue = list()
 
         for gid, frame_data in self.data.get_animations():
@@ -324,7 +322,6 @@ class BufferedRenderer(object):
 
             ani = AnimationToken(gid, frames)
             ani.next += self._last_time
-            self._animation_map[ani.gid] = ani.frames[ani.index].image
             heappush(self._animation_queue, ani)
 
     def _process_animation_queue(self):
@@ -343,7 +340,6 @@ class BufferedRenderer(object):
 
             next_frame = token.frames[token.index]
             token.next = next_frame.duration + self._last_time
-            self._animation_map[token.gid] = next_frame.image
             heappush(self._animation_queue, token)
 
             # go through the animated tile map:
