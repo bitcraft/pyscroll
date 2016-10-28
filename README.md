@@ -95,6 +95,12 @@ The Quest demo shows how you can use a pyscroll group for drawing, how to load
 maps with PyTMX, and how pyscroll can quickly render layers.  Moving under some
 tiles will cause the Hero to be covered.
 
+The repo wiki has more in-depth explanations of the tutorial code, including
+one way to implement sprite animation.  Be sure to check it out.  Anyone is
+welcome to make additions or improvements.
+
+https://github.com/bitcraft/pyscroll/wiki
+
 
 Example Use with PyTMX
 ======================
