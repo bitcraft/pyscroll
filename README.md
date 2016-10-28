@@ -201,5 +201,5 @@ Pass "colorkey=theColorYouWant" to the BufferedRenderer constructor.  In theory,
 ## Does the map layer support transparency?
 Yes...and no.  By default, pyscroll handles all transparency types very well for the tiles and you should not have issues with that.  However, if you are trying to blit/draw the map *over* existing graphics and "see through" transparent areas, then you will have to use the "alpha", or "colorkey" methods described above.
 
-## Does pyscroll support paarallax layers?
+## Does pyscroll support parallax layers?
 Yes/no.  Because there is no direct support in the primary editor, Tiled, I have not implemented an API for it.  However, you can build you own parallax effects by passing "alpha=True" to the BufferedRenderer constructor.  Then it is just a matter of scrolling at different speeds.  Be warned, that rendering alpha layers is much slower.
