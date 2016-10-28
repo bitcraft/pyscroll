@@ -68,8 +68,6 @@ class BufferedRenderer(object):
         self._zoom_buffer = None      # used to speed up zoom operations
         self._zoom_level = 1.0        # negative numbers make map smaller, positive: bigger
 
-        self.tile_grid_mapping = defaultdict(set)  # used to speed up animated tile redraws
-
         # used to speed up animated tile redraws by keeping track of animated tiles
         # so they can be updated individually
         self._animation_tiles = defaultdict(set)
