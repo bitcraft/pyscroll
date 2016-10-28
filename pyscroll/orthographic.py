@@ -38,8 +38,6 @@ class BufferedRenderer(object):
         self.map_rect = None                       # pygame rect of entire map
         self.time_source = time_source             # determines how tile animations are processed
         self.scaling_function = scaling_function   # what function to use when scaling the zoom buffer
-        self.default_shape_texture_gid = 1         # [experimental] texture to draw shapes with
-        self.default_shape_color = 0, 255, 0       # [experimental] color to fill polygons with
 
         # internal private defaults
         if colorkey and alpha:
@@ -252,7 +250,7 @@ class BufferedRenderer(object):
         surfaces.sort(key=layer_getter)
 
         for layer, group in groupby(surfaces, layer_getter):
-            dirty.clear()
+            del dirty[:]
 
             for i in group:
                 try:

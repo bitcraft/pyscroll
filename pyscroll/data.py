@@ -180,7 +180,7 @@ class TiledMapData(PyscrollDataAdapter):
         x1, y1, x2, y2 = rect_to_bb(rect)
         images = self.tmx.images
         layers = self.tmx.layers
-        for layer in self.visible_tile_layers:
+        for layer in self.tmx.visible_tile_layers:
             for y, row in rev(layers[layer].data, y1, y2):
                 for x, gid in [i for i in rev(row, x1, x2) if i[1]]:
                     yield x, y, layer, images[gid], gid
