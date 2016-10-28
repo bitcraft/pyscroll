@@ -323,6 +323,7 @@ class BufferedRenderer(object):
     def _process_animation_queue(self):
         self._update_time()
         self._tile_queue = list()
+        tile_layers = tuple(self.data.visible_tile_layers)
 
         # test if the next scheduled tile change is ready
         while self._animation_queue[0].next <= self._last_time:
@@ -341,14 +342,21 @@ class BufferedRenderer(object):
             # go through the animated tile map:
             #   * queue tiles that need to be changed
             #   * remove map entries that do not collide with screen
+
             needs_clear = False
             for x, y, l in self._animation_tiles[token.gid]:
 
                 # if this tile is on the buffer (checked by using the tile view)
                 if self._tile_view.collidepoint(x, y):
-                    self._tile_queue.append((x, y, l, next_frame.image, token.gid))
-                    # for i in range(0, l):
-                    #     self._tile_queue.append((x, y, i, None, token.gid))
+
+                    # redraw the entire column of tiles
+                    for layer in tile_layers:
+                        if layer == l:
+                            self._tile_queue.append((x, y, layer, next_frame.image, token.gid))
+                        else:
+                            image = self.data.get_tile_image((x, y, layer))
+                            if image:
+                                self._tile_queue.append((x, y, layer, image, None))
                 else:
                     needs_clear = True
 
