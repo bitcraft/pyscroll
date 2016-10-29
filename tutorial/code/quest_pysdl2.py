@@ -44,8 +44,6 @@ class QuestGame(object):
         self.event = sdl.Event()
         self.running = False
 
-        self.redraw = False
-
         # load data from pytmx
         tmx_data = load_pysdl2_cffi(ctx, self.filename)
 
@@ -92,50 +90,26 @@ class QuestGame(object):
                 elif sym == sdl.K_RIGHT:
                     self.center[0] += 4
 
-                self.redraw = True
-
-                # using get_pressed is slightly less accurate than testing for events
-                # but is much easier to use.
-                # pressed = pygame.key.get_pressed()
-                # if pressed[K_UP]:
-                #     self.hero.velocity[1] = -HERO_MOVE_SPEED
-                # elif pressed[K_DOWN]:
-                #     self.hero.velocity[1] = HERO_MOVE_SPEED
-                # else:
-                #     self.hero.velocity[1] = 0
-                #
-                # if pressed[K_LEFT]:
-                #     self.hero.velocity[0] = -HERO_MOVE_SPEED
-                # elif pressed[K_RIGHT]:
-                #     self.hero.velocity[0] = HERO_MOVE_SPEED
-                # else:
-                #     self.hero.velocity[0] = 0
-
-    # def update(self, dt):
-    #     """ Tasks that occur over time should be handled here
-    #     """
-    #     self.group.update(dt)
-    #
-    #     # check if the sprite's feet are colliding with wall
-    #     # sprite must have a rect called feet, and move_back method,
-    #     # otherwise this will fail
-    #     for sprite in self.group.sprites():
-    #         if sprite.feet.collidelist(self.walls) > -1:
-    #             sprite.move_back(dt)
-
     def run(self):
         """ Run the game loop
         """
         self.running = True
         import time
 
+        target_time = 1/61.
+
         try:
             while self.running:
-                time.sleep(.01)
+                start = time.time()
+
                 self.handle_input()
-                # self.update(dt)
                 if self.running:
                     self.draw()
+
+                elapsed = time.time() - start
+                while elapsed < target_time:
+                    time.sleep(.001)
+                    elapsed = time.time() - start
 
         except KeyboardInterrupt:
             self.running = False
