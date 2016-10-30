@@ -3,6 +3,7 @@ from __future__ import print_function
 
 import logging
 import time
+from heapq import heappush, heappop
 
 import sdl
 
@@ -24,6 +25,7 @@ class TextureRenderer(RendererBase):
         self.ctx = ctx
         self._sdl_buffer_src = sdl.Rect()  # rect for use when doing a RenderCopy
         self._sdl_buffer_dst = sdl.Rect()  # rect for use when doing a RenderCopy
+        self._animation_map = dict()
 
         super(TextureRenderer, self).__init__(
             data, size, clamp_camera, time_source=time_source, alpha=True)
@@ -65,8 +67,8 @@ class TextureRenderer(RendererBase):
         self.clear_buffer()  # DEBUG
 
         # set the drawing offset
-        self._sdl_buffer_dst.x = -int(self._x_offset) + 128
-        self._sdl_buffer_dst.y = -int(self._y_offset) + 128
+        self._sdl_buffer_dst.x = -int(self._x_offset)
+        self._sdl_buffer_dst.y = -int(self._y_offset)
         self._sdl_buffer_dst.w = self._size[0]
         self._sdl_buffer_dst.h = self._size[1]
 
@@ -83,7 +85,28 @@ class TextureRenderer(RendererBase):
             sdl.setRenderTarget(renderer, orig)
 
     def _process_animation_queue(self):
-        return
+        self._update_time()
+        needs_redraw = False
+
+        # test if the next scheduled tile change is ready
+        while self._animation_queue[0].next <= self._last_time:
+            needs_redraw = True
+            token = heappop(self._animation_queue)
+
+            # advance the animation frame index, looping by default
+            if token.index == len(token.frames) - 1:
+                token.index = 0
+            else:
+                token.index += 1
+
+            next_frame = token.frames[token.index]
+            token.next = next_frame.duration + self._last_time
+            self._animation_map[token.gid] = next_frame.image
+            heappush(self._animation_queue, token)
+
+        # TODO: don't redraw
+        if needs_redraw:
+            self.redraw_tiles()
 
     def new_buffer(self, size, **flags):
         w, h = size
@@ -109,6 +132,8 @@ class TextureRenderer(RendererBase):
         renderer = self.ctx.renderer
         rcx = sdl.renderCopyEx
 
+        map_get = self._animation_map.get
+
         dst_rect = sdl.Rect()
         dst_rect.w = tw
         dst_rect.h = th
@@ -117,7 +142,7 @@ class TextureRenderer(RendererBase):
         sdl.setRenderTarget(self.ctx.renderer, self._buffer)
 
         for x, y, l, tile, gid in self._tile_queue:
-            texture, src_rect, angle, flip = tile
+            texture, src_rect, angle, flip = map_get(gid, tile)
             dst_rect.x = x * tw - ltw
             dst_rect.y = y * th - tth
             rcx(renderer, texture, src_rect, dst_rect, angle, None, flip)

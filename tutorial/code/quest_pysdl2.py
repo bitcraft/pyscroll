@@ -58,7 +58,6 @@ class QuestGame(object):
         # create new renderer (camera)
         screen_size = ctx.window.getWindowSize()
         self.map_layer = pyscroll.TextureRenderer(ctx, map_data, screen_size)
-
         self.center = [i // self.map_layer.zoom for i in map_data.pixel_size]
 
     def draw(self):
