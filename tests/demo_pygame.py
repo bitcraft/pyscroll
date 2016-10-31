@@ -21,10 +21,6 @@ from pygame.locals import *
 import pyscroll.orthographic
 
 logger = logging.getLogger(__name__)
-ch = logging.StreamHandler()
-ch.setLevel(logging.INFO)
-logger.addHandler(ch)
-logger.setLevel(logging.INFO)
 
 SCROLL_SPEED = 5000
 

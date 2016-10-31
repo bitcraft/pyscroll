@@ -107,7 +107,7 @@ class QuestGame(object):
 
                 elapsed = time.time() - start
                 while elapsed < target_time:
-                    time.sleep(.001)
+                    time.sleep(0)
                     elapsed = time.time() - start
 
         except KeyboardInterrupt:

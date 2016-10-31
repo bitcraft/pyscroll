@@ -67,8 +67,8 @@ class TextureRenderer(RendererBase):
         self.clear_buffer()  # DEBUG
 
         # set the drawing offset
-        self._sdl_buffer_dst.x = -int(self._x_offset)
-        self._sdl_buffer_dst.y = -int(self._y_offset)
+        self._sdl_buffer_dst.x = -int(self._x_offset) + 128
+        self._sdl_buffer_dst.y = -int(self._y_offset) + 128
         self._sdl_buffer_dst.w = self._size[0]
         self._sdl_buffer_dst.h = self._size[1]
 
