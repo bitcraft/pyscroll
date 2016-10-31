@@ -10,3 +10,9 @@ Controls:
 The window is resizeable, camera can zoom in and out using +/- keys.
 
 Enjoy!
+
+
+Tileset
+=======
+Revolution, by Fabzy
+http://opengameart.org/content/the-revolution-grasslands
