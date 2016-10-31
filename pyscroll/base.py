@@ -144,8 +144,6 @@ class RendererBase(object):
 
         x, y = self.view_rect.center
 
-        print(x, y)
-
         if not self.anchored_view:
             # calculate offset and do not scroll the map layer
             # this is used to handle maps smaller than screen

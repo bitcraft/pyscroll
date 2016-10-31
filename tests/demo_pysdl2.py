@@ -162,7 +162,7 @@ class ScrollTest:
         import time
         time_func = time.time
 
-        target_time = 1/61.
+        target_time = 1/60.
         # fps_log = collections.deque(maxlen=20)
 
         try:
@@ -173,7 +173,7 @@ class ScrollTest:
 
                 self.handle_input()
                 if self.running:
-                    self.update(dt)
+                    self.update(target_time)
                     self.draw()
 
                 dt = time_func() - start
