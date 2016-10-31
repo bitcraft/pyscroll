@@ -19,7 +19,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-SCROLL_SPEED = 50000
+SCROLL_SPEED = 5000
 
 
 class ScrollTest:
@@ -43,7 +43,7 @@ class ScrollTest:
         # create new renderer
         screen_size = ctx.window.getWindowSize()
         self.map_layer = pyscroll.TextureRenderer(ctx, map_data, screen_size)
-        self.center = [i // self.map_layer.zoom for i in map_data.pixel_size]
+        self.center = [(i // self.map_layer.zoom) // 2 for i in map_data.pixel_size]
 
         # create a font and pre-render some text to be displayed over the map
         # f = pygame.font.Font(pygame.font.get_default_font(), 20)
@@ -131,23 +131,23 @@ class ScrollTest:
         self.camera_vel[1] *= friction
 
         # make sure the movement vector stops when scrolling off the screen
-        if self.center[0] < 0:
-            self.center[0] -= self.camera_vel[0]
-            self.camera_acc[0] = 0
-            self.camera_vel[0] = 0
-        if self.center[0] >= self.map_layer.map_rect.width:
-            self.center[0] -= self.camera_vel[0]
-            self.camera_acc[0] = 0
-            self.camera_vel[0] = 0
-
-        if self.center[1] < 0:
-            self.center[1] -= self.camera_vel[1]
-            self.camera_acc[1] = 0
-            self.camera_vel[1] = 0
-        if self.center[1] >= self.map_layer.map_rect.height:
-            self.center[1] -= self.camera_vel[1]
-            self.camera_acc[1] = 0
-            self.camera_vel[1] = 0
+        # if self.center[0] < 0:
+        #     self.center[0] -= self.camera_vel[0]
+        #     self.camera_acc[0] = 0
+        #     self.camera_vel[0] = 0
+        # if self.center[0] >= self.map_layer.map_rect.width:
+        #     self.center[0] -= self.camera_vel[0]
+        #     self.camera_acc[0] = 0
+        #     self.camera_vel[0] = 0
+        #
+        # if self.center[1] < 0:
+        #     self.center[1] -= self.camera_vel[1]
+        #     self.camera_acc[1] = 0
+        #     self.camera_vel[1] = 0
+        # if self.center[1] >= self.map_layer.map_rect.height:
+        #     self.center[1] -= self.camera_vel[1]
+        #     self.camera_acc[1] = 0
+        #     self.camera_vel[1] = 0
 
         self.center[0] += self.camera_vel[0]
         self.center[1] += self.camera_vel[1]
@@ -158,7 +158,9 @@ class ScrollTest:
 
     def run(self):
         self.running = True
+
         import time
+        time_func = time.time
 
         target_time = 1/61.
         # fps_log = collections.deque(maxlen=20)
@@ -174,10 +176,9 @@ class ScrollTest:
                     self.update(dt)
                     self.draw()
 
-                dt = time.time() - start
+                dt = time_func() - start
                 while dt < target_time:
-                    time.sleep(0)
-                    dt = time.time() - start
+                    dt = time_func() - start
 
                 self.last_update_time = dt
 
@@ -216,11 +217,10 @@ if __name__ == "__main__":
 
     ctx.window = sdl.createWindow(
         "reeeeeeeee",
-        0, 0,
-        ctx.display_info.w, ctx.display_info.h,
+        0, 0, 800, 600,
         sdl.WINDOW_SHOWN)
 
-    sdl.setWindowFullscreen(ctx.window, sdl.WINDOW_FULLSCREEN)
+    # sdl.setWindowFullscreen(ctx.window, sdl.WINDOW_FULLSCREEN)
 
     ctx.renderer = sdl.createRenderer(
         ctx.window,

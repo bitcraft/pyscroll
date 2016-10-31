@@ -50,6 +50,7 @@ class RendererBase(object):
         self._x_offset = None  # offsets are used to scroll map in sub-tile increments
         self._y_offset = None
         self._buffer = None  # complete rendering of tilemap
+        self._buffer_size = None
         self._tile_view = None  # this rect represents each tile on the buffer
         self._half_width = None  # 'half x' attributes are used to reduce division ops.
         self._half_height = None
@@ -143,6 +144,8 @@ class RendererBase(object):
 
         x, y = self.view_rect.center
 
+        print(x, y)
+
         if not self.anchored_view:
             # calculate offset and do not scroll the map layer
             # this is used to handle maps smaller than screen
@@ -201,7 +204,7 @@ class RendererBase(object):
         """
         logger.warn('pyscroll buffer redraw')
         if self._clear_color:
-            self.clear_buffer(destination, self._clear_color)
+            self.clear_buffer(self._buffer, self._clear_color)
 
         self._tile_queue = self.data.get_tile_images_by_rect(self._tile_view)
         self._flush_tile_queue(destination)

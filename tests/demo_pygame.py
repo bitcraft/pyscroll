@@ -56,8 +56,7 @@ class ScrollTest:
         self.text_overlay = [f.render(i, 1, (180, 180, 0)) for i in t]
 
         # set our initial viewpoint in the center of the map
-        self.center = [self.map_layer.map_rect.width / 2,
-                       self.map_layer.map_rect.height / 2]
+        self.center = [(i // self.map_layer.zoom) // 2 for i in map_data.pixel_size]
 
         # the camera vector is used to handle camera movement
         self.camera_acc = [0, 0, 0]
@@ -160,27 +159,29 @@ class ScrollTest:
         self.map_layer.center(self.center)
 
     def run(self):
-        clock = pygame.time.Clock()
         self.running = True
-        fps = 60.
-        fps_log = collections.deque(maxlen=20)
+        target_time = 1/60.
+
+        import time
+        time_func = time.clock
 
         try:
+            dt = 0
             while self.running:
-                # somewhat smoother way to get fps and limit the framerate
-                clock.tick(fps*2)
-
-                try:
-                    fps_log.append(clock.get_fps())
-                    fps = sum(fps_log)/len(fps_log)
-                    dt = 1/fps
-                except ZeroDivisionError:
-                    continue
+                start = time_func()
+                self.last_update_time = dt
 
                 self.handle_input()
                 self.update(dt)
                 self.draw(screen)
                 pygame.display.flip()
+
+                # somewhat smoother way to get fps and limit the framerate
+                dt = time_func() - start
+                while dt < target_time:
+                    dt = time_func() - start
+
+                self.last_update_time = dt
 
         except KeyboardInterrupt:
             self.running = False
