@@ -12,7 +12,7 @@ class FastQuadTree(object):
 
     This faster version of the quadtree class is tuned for pygame's rect
     objects, or objects with a rect attribute.  The return value will always
-    be a set of a tupes that represent the items passed.  In other words,
+    be a set of a tuples that represent the items passed.  In other words,
     you will not get back the objects that were passed, just a tuple that
     describes it.
 
