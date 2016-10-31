@@ -6,8 +6,8 @@ import math
 import time
 from collections import defaultdict
 from functools import partial
-from heapq import heappush, heappop
-from itertools import groupby, product, chain
+from heapq import heappop, heappush
+from itertools import chain, groupby, product
 from operator import gt, itemgetter
 
 from pyscroll import surface_clipping_context
@@ -70,6 +70,50 @@ class RendererBase(object):
         self.reload_animations()
         self.set_size(size)
 
+    def change_view(self, dx, dy):
+        raise NotImplementedError
+
+    def draw(self, surface, rect, surfaces=None):
+        """ Draw the map onto a surface
+
+        pass a rect that defines the draw area for:
+            drawing to an area smaller that the whole window/screen
+
+        surfaces may optionally be passed that will be blitted onto the surface.
+        this must be a sequence of tuples containing a layer number, image, and
+        rect in screen coordinates.  surfaces will be drawn in order passed,
+        and will be correctly drawn with tiles from a higher layer overlapping
+        the surface.
+
+        surfaces list should be in the following format:
+        [ (layer, surface, rect), ... ]
+
+        or this:
+        [ (layer, surface, rect, blendmode_flags), ... ]
+
+        :param surface: pygame surface to draw to
+        :param rect: area to draw to
+        :param surfaces: optional sequence of surfaces to interlace between tiles
+        """
+        raise NotImplementedError
+
+    @staticmethod
+    def new_buffer(size, **flags):
+        raise NotImplementedError
+
+    def _create_buffers(self, view_size, buffer_size):
+        """ Create the buffers, taking in account pixel alpha or colorkey
+
+        :param view_size: pixel size of the view
+        :param buffer_size: pixel size of the buffer
+        """
+        raise NotImplementedError
+
+    def _flush_tile_queue(self, surface):
+        """ Blit the queued tiles and block until the tile queue is empty
+        """
+        raise NotImplementedError
+
     def scroll(self, vector):
         """ scroll the background in pixels
 
@@ -110,39 +154,13 @@ class RendererBase(object):
             left, self._x_offset = divmod(x - self._half_width, tw)
             top, self._y_offset = divmod(y - self._half_height, th)
 
-            # adjust the view if the view has changed without a redraw
+            # get the difference on each axis by tile
             dx = int(left - self._tile_view.left)
             dy = int(top - self._tile_view.top)
 
+            # adjust the view if the view has changed without a redraw
             if dx or dy:
                 self.change_view(dx, dy)
-
-    def change_view(self, dx, dy):
-        raise NotImplementedError
-
-    def draw(self, surface, rect, surfaces=None):
-        """ Draw the map onto a surface
-
-        pass a rect that defines the draw area for:
-            drawing to an area smaller that the whole window/screen
-
-        surfaces may optionally be passed that will be blitted onto the surface.
-        this must be a sequence of tuples containing a layer number, image, and
-        rect in screen coordinates.  surfaces will be drawn in order passed,
-        and will be correctly drawn with tiles from a higher layer overlapping
-        the surface.
-
-        surfaces list should be in the following format:
-        [ (layer, surface, rect), ... ]
-
-        or this:
-        [ (layer, surface, rect, blendmode_flags), ... ]
-
-        :param surface: pygame surface to draw to
-        :param rect: area to draw to
-        :param surfaces: optional sequence of surfaces to interlace between tiles
-        """
-        raise NotImplementedError
 
     @property
     def zoom(self):
@@ -366,36 +384,6 @@ class RendererBase(object):
         value = 1.0 / value
         return [int(round(i * value)) for i in size]
 
-    @staticmethod
-    def new_buffer(size, **flags):
-        raise NotImplementedError
-
-    def _create_buffers(self, view_size, buffer_size):
-        """ Create the buffers, taking in account pixel alpha or colorkey
-
-        :param view_size: pixel size of the view
-        :param buffer_size: pixel size of the buffer
-        """
-        requires_zoom_buffer = not view_size == buffer_size
-        self._zoom_buffer = None
-
-        if self._clear_color == self._alpha_clear_color:
-            if requires_zoom_buffer:
-                self._zoom_buffer = self.new_buffer(view_size, alpha=True)
-            self._buffer = self.new_buffer(buffer_size, alpha=True)
-            self.data.convert_surfaces(self._buffer, True)
-
-        elif self._clear_color:
-            if requires_zoom_buffer:
-                self._zoom_buffer = self.new_buffer(colorkey=self._clear_color)
-            self._buffer = self.new_buffer(buffer_size, colorkey=self._clear_color)
-            self._buffer.fill(self._clear_color)
-
-        else:
-            if requires_zoom_buffer:
-                self._zoom_buffer = self.new_buffer(view_size)
-            self._buffer = self.new_buffer(buffer_size)
-
     def _initialize_buffers(self, view_size):
         """ Create the buffers to cache tile drawing
 
@@ -429,15 +417,3 @@ class RendererBase(object):
         self._layer_quadtree = FastQuadTree(rects, 4)
 
         self.redraw_tiles(self._buffer)
-
-    def _flush_tile_queue(self, surface):
-        """ Blit the queued tiles and block until the tile queue is empty
-        """
-        tw, th = self.data.tile_size
-        ltw = self._tile_view.left * tw
-        tth = self._tile_view.top * th
-        surface_blit = surface.blit
-
-        for x, y, l, tile, gid in self._tile_queue:
-            self._animation_tiles[gid].add((x, y, l))
-            surface_blit(tile, (x * tw - ltw, y * th - tth))

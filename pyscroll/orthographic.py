@@ -3,7 +3,7 @@ from __future__ import print_function
 
 import logging
 import time
-from heapq import heappush, heappop
+from heapq import heappop, heappush
 from itertools import groupby
 from operator import gt, itemgetter
 
@@ -199,6 +199,32 @@ class BufferedRenderer(RendererBase):
             return surface
         else:
             return pygame.Surface(size)
+
+    def _create_buffers(self, view_size, buffer_size):
+        """ Create the buffers, taking in account pixel alpha or colorkey
+
+        :param view_size: pixel size of the view
+        :param buffer_size: pixel size of the buffer
+        """
+        requires_zoom_buffer = not view_size == buffer_size
+        self._zoom_buffer = None
+
+        if self._clear_color == self._alpha_clear_color:
+            if requires_zoom_buffer:
+                self._zoom_buffer = self.new_buffer(view_size, alpha=True)
+            self._buffer = self.new_buffer(buffer_size, alpha=True)
+            self.data.convert_surfaces(self._buffer, True)
+
+        elif self._clear_color:
+            if requires_zoom_buffer:
+                self._zoom_buffer = self.new_buffer(colorkey=self._clear_color)
+            self._buffer = self.new_buffer(buffer_size, colorkey=self._clear_color)
+            self._buffer.fill(self._clear_color)
+
+        else:
+            if requires_zoom_buffer:
+                self._zoom_buffer = self.new_buffer(view_size)
+            self._buffer = self.new_buffer(buffer_size)
 
     def _flush_tile_queue(self, surface):
         """ Blit the queued tiles and block until the tile queue is empty
