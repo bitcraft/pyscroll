@@ -160,24 +160,25 @@ class ScrollTest:
         self.running = True
 
         import time
-        time_func = time.time
+        time_func = time.clock
 
-        target_time = 1/60.
+        target_time = 1/120.
         # fps_log = collections.deque(maxlen=20)
 
         try:
             dt = 0
             while self.running:
-                start = time.time()
+                start = time_func()
                 self.last_update_time = dt
 
                 self.handle_input()
                 if self.running:
-                    self.update(target_time)
+                    self.update(dt)
                     self.draw()
 
                 dt = time_func() - start
                 while dt < target_time:
+                    time.sleep(0)
                     dt = time_func() - start
 
                 self.last_update_time = dt

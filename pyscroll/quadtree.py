@@ -1,6 +1,4 @@
 """
-Two classes for quadtree collision detection.
-
 A quadtree is used with pyscroll to detect overlapping tiles.
 """
 import itertools

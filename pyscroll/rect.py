@@ -83,7 +83,10 @@ class Rect(object):
                 self.width = args[0].width
                 self.height = args[0].height
             except AttributeError:
-                self.left, self.top, self.width, self.height = args[0]
+                try:
+                    self.left, self.top, self.width, self.height = args[0]
+                except AttributeError:
+                    raise ValueError("Invalid arguments passed to Rect initializer")
         else:
             raise ValueError("Invalid arguments passed to Rect initializer")
 
