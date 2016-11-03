@@ -40,15 +40,35 @@ class BufferedRenderer(RendererBase):
     and animation information.  See the data class api in pyscroll.data, or
     use the built-in pytmx support for loading maps created with Tiled.
     """
-    _alpha_clear_color = 0, 0, 0, 0
+    alpha_clear_color = 0, 0, 0, 0
 
     def __init__(self, data, size, clamp_camera=True, colorkey=None, alpha=False,
                  time_source=time.time, scaling_function=pygame.transform.scale):
 
+        # default_options
         self.scaling_function = scaling_function  # what function to use when scaling the zoom buffer
-        super(BufferedRenderer, self).__init__(data, size, clamp_camera, colorkey, alpha, time_source)
 
-    def change_view(self, dx, dy):
+        # internal private defaults
+        if colorkey and alpha:
+            print('cannot select both colorkey and alpha.  choose one.')
+            raise ValueError
+        elif colorkey:
+            self._clear_color = colorkey
+        elif alpha:
+            self._clear_color = self._alpha_clear_color
+        else:
+            self._clear_color = None
+
+        # private attribute
+        self._zoom_buffer = None  # used to speed up zoom operations
+
+        super(BufferedRenderer, self).__init__(data, size, clamp_camera, time_source)
+
+    def _change_offset(self, x, y):
+        self._x_offset = x
+        self._y_offset = y
+
+    def _change_view(self, dx, dy):
         view_change = max(abs(dx), abs(dy))
         tw, th = self.data.tile_size
 
@@ -91,7 +111,7 @@ class BufferedRenderer(RendererBase):
             self._render_map(self._zoom_buffer, self._zoom_buffer.get_rect(), surfaces)
             self.scaling_function(self._zoom_buffer, rect.size, surface)
 
-    def clear_buffer(self, target, color):
+    def _clear_buffer(self, target, color):
         target.fill(color)
 
     def _render_map(self, surface, rect, surfaces):
@@ -208,7 +228,7 @@ class BufferedRenderer(RendererBase):
             self._flush_tile_queue(self._buffer)
 
     @staticmethod
-    def new_buffer(size, **flags):
+    def _new_buffer(size, **flags):
         if flags.get('alpha'):
             return pygame.Surface(size, flags=pygame.SRCALPHA)
         elif flags.get('colorkey'):
@@ -227,22 +247,22 @@ class BufferedRenderer(RendererBase):
         requires_zoom_buffer = not view_size == buffer_size
         self._zoom_buffer = None
 
-        if self._clear_color == self._alpha_clear_color:
+        if self._clear_color == self.alpha_clear_color:
             if requires_zoom_buffer:
-                self._zoom_buffer = self.new_buffer(view_size, alpha=True)
-            self._buffer = self.new_buffer(buffer_size, alpha=True)
+                self._zoom_buffer = self._new_buffer(view_size, alpha=True)
+            self._buffer = self._new_buffer(buffer_size, alpha=True)
             self.data.convert_surfaces(self._buffer, True)
 
         elif self._clear_color:
             if requires_zoom_buffer:
-                self._zoom_buffer = self.new_buffer(colorkey=self._clear_color)
-            self._buffer = self.new_buffer(buffer_size, colorkey=self._clear_color)
+                self._zoom_buffer = self._new_buffer(colorkey=self._clear_color)
+            self._buffer = self._new_buffer(buffer_size, colorkey=self._clear_color)
             self._buffer.fill(self._clear_color)
 
         else:
             if requires_zoom_buffer:
-                self._zoom_buffer = self.new_buffer(view_size)
-            self._buffer = self.new_buffer(buffer_size)
+                self._zoom_buffer = self._new_buffer(view_size)
+            self._buffer = self._new_buffer(buffer_size)
 
     def _flush_tile_queue(self, surface):
         """ Blit the queued tiles and block until the tile queue is empty

@@ -37,20 +37,21 @@ class TextureRenderer(RendererBase):
     and animation information.  See the data class api in pyscroll.data, or
     use the built-in pytmx support for loading maps created with Tiled.
     """
-    def __init__(self, ctx, data, size, clamp_camera=False, time_source=time.time):
 
+    def __init__(self, ctx, data, size, clamp_camera=False, time_source=time.time):
         # private attributes
         self.ctx = ctx
-        self._sdl_buffer_src = sdl.Rect()  # rect for use when doing a RenderCopy
-        self._sdl_buffer_dst = sdl.Rect()  # rect for use when doing a RenderCopy
         self._animation_map = dict()
-
+        self._clear_color = RendererBase.alpha_clear_color
         self._buffer_rect = sdl.Rect()
 
-        super(TextureRenderer, self).__init__(
-            data, size, clamp_camera, time_source=time_source, alpha=True)
+        super(TextureRenderer, self).__init__(data, size, clamp_camera, time_source)
 
-    def change_view(self, dx, dy):
+    def _change_offset(self, x, y):
+        self._buffer_rect.x = -int(x)
+        self._buffer_rect.y = -int(y)
+
+    def _change_view(self, dx, dy):
         # not sure how to implement texture scrolling, so just retile it
         # pretty sure it is not worth the effort, idk
         # https://bitbucket.org/pygame/pygame/src/010a750596cf0e60c6b6268ca345c7807b913e22/src/surface.c?at=default&fileviewer=file-view-default#surface.c-1596
@@ -76,21 +77,15 @@ class TextureRenderer(RendererBase):
         :param renderer: ya know, the thing
         :param surfaces: optional sequence of surfaces to interlace between tiles
         """
-
         if self._animation_queue:
             self._process_animation_queue()
 
         if not self.anchored_view:
-            self.clear_buffer()
+            self._clear_buffer()
 
         sdl.renderCopy(renderer, self._buffer, None, self._buffer_rect)
 
-    def center(self, coords):
-        super(TextureRenderer, self).center(coords)
-        self._buffer_rect.x = -int(self._x_offset)
-        self._buffer_rect.y = -int(self._y_offset)
-
-    def clear_buffer(self, target, color=None):
+    def _clear_buffer(self, target, color=None):
         renderer = self.ctx.renderer
         orig = sdl.getRenderTarget(renderer)
         sdl.setRenderTarget(renderer, target)
@@ -121,7 +116,7 @@ class TextureRenderer(RendererBase):
         if needs_redraw:
             self.redraw_tiles()
 
-    def new_buffer(self, size, **flags):
+    def _new_buffer(self, size, **flags):
         w, h = size
         fmt = sdl.PIXELFORMAT_RGBA8888
         texture = sdl.createTexture(self.ctx.renderer, fmt, sdl.TEXTUREACCESS_TARGET, w, h)
@@ -133,7 +128,7 @@ class TextureRenderer(RendererBase):
         :param view_size: pixel size of the view
         :param buffer_size: pixel size of the buffer
         """
-        self._buffer = self.new_buffer(buffer_size)
+        self._buffer = self._new_buffer(buffer_size)
         size = sdl.queryTexture(self._buffer)[3:]
         self._buffer_rect.w = size[0]
         self._buffer_rect.h = size[1]
@@ -153,7 +148,7 @@ class TextureRenderer(RendererBase):
         dst_rect.w = tw
         dst_rect.h = th
 
-        self.clear_buffer(self._buffer)  # DEBUG
+        self._clear_buffer(self._buffer)  # DEBUG
 
         orig = sdl.getRenderTarget(self.ctx.renderer)
         sdl.setRenderTarget(self.ctx.renderer, self._buffer)

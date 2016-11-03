@@ -25,10 +25,8 @@ import time
 from collections import defaultdict
 from functools import partial
 from heapq import heappop, heappush
-from itertools import chain, groupby, product
-from operator import gt, itemgetter
+from itertools import chain, product
 
-from pyscroll import surface_clipping_context
 from pyscroll.animation import AnimationFrame, AnimationToken
 from pyscroll.compat import Rect
 from pyscroll.quadtree import FastQuadTree
@@ -36,62 +34,7 @@ from pyscroll.quadtree import FastQuadTree
 logger = logging.getLogger('orthographic')
 
 
-class RendererBase(object):
-    """ Base for buffered tile renderers.
-    """
-
-    _alpha_clear_color = 0, 0, 0, 0
-
-    def __init__(self, data, size, clamp_camera=True, colorkey=None, alpha=False, time_source=time.time):
-
-        # default options
-        self.data = data  # reference to data source
-        self.clamp_camera = clamp_camera  # if true, cannot scroll past map edge
-        self.anchored_view = True  # if true, map will be fixed to upper left corner
-        self.map_rect = None  # pygame rect of entire map
-        self.time_source = time_source  # determines how tile animations are processed
-
-        # internal private defaults
-        if colorkey and alpha:
-            print('cannot select both colorkey and alpha.  choose one.')
-            raise ValueError
-        elif colorkey:
-            self._clear_color = colorkey
-        elif alpha:
-            self._clear_color = self._alpha_clear_color
-        else:
-            self._clear_color = None
-
-        # private attributes
-        self._size = None  # size that the camera/viewport is on screen, kinda
-        self._redraw_cutoff = None  # size of dirty tile edge that will trigger full redraw
-        self._x_offset = None  # offsets are used to scroll map in sub-tile increments
-        self._y_offset = None
-        self._buffer = None  # complete rendering of tilemap
-        self._buffer_size = None
-        self._tile_view = None  # this rect represents each tile on the buffer
-        self._half_width = None  # 'half x' attributes are used to reduce division ops.
-        self._half_height = None
-        self._tile_queue = None  # tiles queued to be draw onto buffer
-        self._animation_queue = None  # heap queue of animation token;  schedules tile changes
-        self._last_time = None  # used for scheduling animations
-        self._layer_quadtree = None  # used to draw tiles that overlap optional surfaces
-        self._zoom_buffer = None  # used to speed up zoom operations
-        self._zoom_level = 1.0  # negative numbers make map smaller, positive: bigger
-
-        # used to speed up animated tile redraws by keeping track of animated tiles
-        # so they can be updated individually
-        self._animation_tiles = defaultdict(set)
-
-        # this represents the viewable pixels, aka 'camera'
-        self.view_rect = Rect(0, 0, 0, 0)
-
-        self.reload_animations()
-        self.set_size(size)
-
-    def change_view(self, dx, dy):
-        raise NotImplementedError
-
+class RendererAB(object):
     def draw(self, surface, rect, surfaces=None):
         """ Draw the map onto a surface
 
@@ -116,8 +59,24 @@ class RendererBase(object):
         """
         raise NotImplementedError
 
+    def redraw(self):
+        """ Clear all buffers and redraw all the tiles.  Slow!
+
+        :return:
+        """
+        raise NotImplementedError
+
+    def _change_offset(self, d, y):
+        raise NotImplementedError
+
+    def _change_view(self, dx, dy):
+        raise NotImplementedError
+
     @staticmethod
-    def new_buffer(size, **flags):
+    def _new_buffer(size, **flags):
+        raise NotImplementedError
+
+    def _clear_buffer(self, target, color):
         raise NotImplementedError
 
     def _create_buffers(self, view_size, buffer_size):
@@ -133,13 +92,71 @@ class RendererBase(object):
         """
         raise NotImplementedError
 
-    def scroll(self, vector):
+    def _render_map(self, surface, rect, surfaces):
+        """ Render the map and optional surfaces to destination surface
+
+        :param surface: pygame surface to draw to
+        :param rect: area to draw to
+        :param surfaces: optional sequence of surfaces to interlace between tiles
+        """
+        raise NotImplementedError
+
+
+class RendererBase(RendererAB):
+    """ Base for buffered tile renderers.
+    """
+
+    alpha_clear_color = 0, 0, 0, 0
+
+    def __init__(self, data, size, clamp_camera=True, time_source=time.time):
+
+        # default options
+        self.data = data  # reference to data source
+        self.clamp_camera = clamp_camera  # if true, cannot scroll past map edge
+        self.anchored_view = True  # if true, map will be fixed to upper left corner
+        self.map_rect = None  # rect of entire map
+        self.time_source = time_source  # determines how tile animations are processed
+
+        # private attributes
+        self._size = None  # size that the camera/viewport is on screen, kinda
+        self._redraw_cutoff = None  # size of dirty tile edge that will trigger full redraw
+        self._x_offset = None  # offsets are used to scroll map in sub-tile increments
+        self._y_offset = None
+        self._buffer = None  # complete rendering of tilemap
+        self._buffer_size = None
+        self._tile_view = None  # this rect represents each tile on the buffer
+        self._half_width = None  # 'half x' attributes are used to reduce division ops.
+        self._half_height = None
+        self._tile_queue = None  # tiles queued to be draw onto buffer
+        self._animation_queue = None  # heap queue of animation token;  schedules tile changes
+        self._last_time = None  # used for scheduling animations
+        self._layer_quadtree = None  # used to draw tiles that overlap optional surfaces
+        self._zoom_level = 1.0  # negative numbers make map smaller, positive: bigger
+
+        # used to speed up animated tile redraws by keeping track of animated tiles
+        # so they can be updated individually
+        self._animation_tiles = defaultdict(set)
+
+        # this represents the viewable pixels, aka 'camera'
+        self.view_rect = Rect(0, 0, 0, 0)
+
+        self.reload_animations()
+        self.set_size(size)
+
+    def redraw_tiles(self, destination=None):
+        logger.warn('pyscroll buffer redraw')
+        if self._clear_color:
+            self._clear_buffer(self._buffer, self._clear_color)
+
+        self._tile_queue = self.data.get_tile_images_by_rect(self._tile_view)
+        self._flush_tile_queue(destination)
+
+    def scroll(self, v):
         """ scroll the background in pixels
 
-        :param vector: (int, int)
+        :param v: (int, int)
         """
-        self.center((vector[0] + self.view_rect.centerx,
-                     vector[1] + self.view_rect.centery))
+        self.center((v[0] + self.view_rect.centerx, v[1] + self.view_rect.centery))
 
     def center(self, coords):
         """ center the map on a pixel
@@ -165,13 +182,13 @@ class RendererBase(object):
         if not self.anchored_view:
             # calculate offset and do not scroll the map layer
             # this is used to handle maps smaller than screen
-            self._x_offset = x - self._half_width
-            self._y_offset = y - self._half_height
+            self._change_offset(x - self._half_width, y - self._half_height)
 
         else:
             # calc the new position in tiles and offset
-            left, self._x_offset = divmod(x - self._half_width, tw)
-            top, self._y_offset = divmod(y - self._half_height, th)
+            left, ox = divmod(x - self._half_width, tw)
+            top, oy = divmod(y - self._half_height, th)
+            self._change_offset(ox, oy)
 
             # get the difference on each axis by tile
             dx = int(left - self._tile_view.left)
@@ -179,7 +196,7 @@ class RendererBase(object):
 
             # adjust the view if the view has changed without a redraw
             if dx or dy:
-                self.change_view(dx, dy)
+                self._change_view(dx, dy)
 
     @property
     def zoom(self):
@@ -212,87 +229,12 @@ class RendererBase(object):
         self._size = [int(i) for i in size]
         self._initialize_buffers(buffer_size)
 
-    def clear_buffer(self, target, color):
-        raise NotImplementedError
-
-    def redraw_tiles(self, destination=None):
-        """ redraw the visible portion of the buffer -- it is slow.
-        """
-        logger.warn('pyscroll buffer redraw')
-        if self._clear_color:
-            self.clear_buffer(self._buffer, self._clear_color)
-
-        self._tile_queue = self.data.get_tile_images_by_rect(self._tile_view)
-        self._flush_tile_queue(destination)
-
     def get_center_offset(self):
         """ Return x, y pair that will change world coords to screen coords
         :return: int, int
         """
         return (-self.view_rect.centerx + self._half_width,
                 -self.view_rect.centery + self._half_height)
-
-    def _render_map(self, surface, rect, surfaces):
-        """ Render the map and optional surfaces to destination surface
-
-        :param surface: pygame surface to draw to
-        :param rect: area to draw to
-        :param surfaces: optional sequence of surfaces to interlace between tiles
-        """
-        if self._animation_queue:
-            self._process_animation_queue()
-
-        if not self.anchored_view:
-            surface.fill(0)
-
-        offset = -self._x_offset + rect.left, -self._y_offset + rect.top
-
-        with surface_clipping_context(surface, rect):
-            surface.blit(self._buffer, offset)
-            if surfaces:
-                surfaces_offset = -offset[0], -offset[1]
-                self._draw_surfaces(surface, surfaces_offset, surfaces)
-
-    def _draw_surfaces(self, surface, offset, surfaces):
-        """ Draw surfaces onto buffer, then redraw tiles that cover them
-
-        :param surface: destination
-        :param offset: offset to compensate for buffer alignment
-        :param surfaces: sequence of surfaces to blit
-        """
-        surface_blit = surface.blit
-        ox, oy = offset
-        left, top = self._tile_view.topleft
-        hit = self._layer_quadtree.hit
-        get_tile = self.data.get_tile_image
-        tile_layers = tuple(self.data.visible_tile_layers)
-        dirty = list()
-        dirty_append = dirty.append
-
-        # TODO: check to avoid sorting overhead
-        layer_getter = itemgetter(2)
-        surfaces.sort(key=layer_getter)
-
-        for layer, group in groupby(surfaces, layer_getter):
-            del dirty[:]
-
-            for i in group:
-                try:
-                    flags = i[3]
-                except IndexError:
-                    dirty_append(surface_blit(i[0], i[1]))
-                else:
-                    dirty_append(surface_blit(i[0], i[1], None, flags))
-
-            # TODO: make set of covered tiles, in the case where a cluster
-            # of sprite surfaces causes excessive over tile overdrawing
-            for dirty_rect in dirty:
-                for r in hit(dirty_rect.move(ox, oy)):
-                    x, y, tw, th = r
-                    for l in [i for i in tile_layers if gt(i, layer)]:
-                        tile = get_tile((x // tw + left, y // th + top, l))
-                        if tile:
-                            surface_blit(tile, (x - ox, y - oy))
 
     def _queue_edge_tiles(self, dx, dy):
         """ Queue edge tiles and clear edge areas on buffer if needed
