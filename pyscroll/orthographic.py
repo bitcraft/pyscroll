@@ -49,18 +49,24 @@ class BufferedRenderer(RendererBase):
         self.scaling_function = scaling_function  # what function to use when scaling the zoom buffer
 
         # internal private defaults
+        self._x_offset = None  # offsets are used to scroll map in sub-tile increments
+        self._y_offset = None
+        self._zoom_buffer = None  # used to speed up zoom operations
+
+        # handle colorkey/alpha
         if colorkey and alpha:
             print('cannot select both colorkey and alpha.  choose one.')
             raise ValueError
         elif colorkey:
             self._clear_color = colorkey
+            self._colorkey = True
         elif alpha:
-            self._clear_color = self._alpha_clear_color
+            self._clear_color = self.alpha_clear_color
+            self._alpha = True
         else:
             self._clear_color = None
-
-        # private attribute
-        self._zoom_buffer = None  # used to speed up zoom operations
+            self._alpha = False
+            self._colorkey = False
 
         super(BufferedRenderer, self).__init__(data, size, clamp_camera, time_source)
 
@@ -227,13 +233,12 @@ class BufferedRenderer(RendererBase):
         if self._tile_queue:
             self._flush_tile_queue(self._buffer)
 
-    @staticmethod
-    def _new_buffer(size, **flags):
-        if flags.get('alpha'):
+    def _new_buffer(self, size):
+        if self._alpha:
             return pygame.Surface(size, flags=pygame.SRCALPHA)
-        elif flags.get('colorkey'):
+        elif self._colorkey:
             surface = pygame.Surface(size, flags=pygame.RLEACCEL)
-            surface.set_colorkey(flags['colorkey'])
+            surface.set_colorkey(self._clear_color)
             return surface
         else:
             return pygame.Surface(size)
@@ -244,25 +249,16 @@ class BufferedRenderer(RendererBase):
         :param view_size: pixel size of the view
         :param buffer_size: pixel size of the buffer
         """
+        logger.warn('creating pygame buffers')
         requires_zoom_buffer = not view_size == buffer_size
-        self._zoom_buffer = None
 
-        if self._clear_color == self.alpha_clear_color:
-            if requires_zoom_buffer:
-                self._zoom_buffer = self._new_buffer(view_size, alpha=True)
-            self._buffer = self._new_buffer(buffer_size, alpha=True)
-            self.data.convert_surfaces(self._buffer, True)
-
-        elif self._clear_color:
-            if requires_zoom_buffer:
-                self._zoom_buffer = self._new_buffer(colorkey=self._clear_color)
-            self._buffer = self._new_buffer(buffer_size, colorkey=self._clear_color)
-            self._buffer.fill(self._clear_color)
-
+        if requires_zoom_buffer:
+            self._zoom_buffer = self._new_buffer(view_size)
         else:
-            if requires_zoom_buffer:
-                self._zoom_buffer = self._new_buffer(view_size)
-            self._buffer = self._new_buffer(buffer_size)
+            self._zoom_buffer = None
+
+        self._buffer = self._new_buffer(buffer_size)
+        self.data.convert_surfaces(self._buffer, True)
 
     def _flush_tile_queue(self, surface):
         """ Blit the queued tiles and block until the tile queue is empty
@@ -271,7 +267,8 @@ class BufferedRenderer(RendererBase):
         ltw = self._tile_view.left * tw
         tth = self._tile_view.top * th
         surface_blit = surface.blit
+        ani_tiles = self._animation_tiles
 
         for x, y, l, tile, gid in self._tile_queue:
-            self._animation_tiles[gid].add((x, y, l))
+            ani_tiles[gid].add((x, y, l))
             surface_blit(tile, (x * tw - ltw, y * th - tth))

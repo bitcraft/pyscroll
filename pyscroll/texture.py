@@ -52,10 +52,6 @@ class TextureRenderer(RendererBase):
         self._buffer_rect.y = -int(y)
 
     def _change_view(self, dx, dy):
-        # not sure how to implement texture scrolling, so just retile it
-        # pretty sure it is not worth the effort, idk
-        # https://bitbucket.org/pygame/pygame/src/010a750596cf0e60c6b6268ca345c7807b913e22/src/surface.c?at=default&fileviewer=file-view-default#surface.c-1596
-        # maybe "change pixel pitch" idk.
         self._tile_view.move_ip(dx, dy)
         self.redraw_tiles()
 
@@ -116,7 +112,7 @@ class TextureRenderer(RendererBase):
         if needs_redraw:
             self.redraw_tiles()
 
-    def _new_buffer(self, size, **flags):
+    def _new_buffer(self, size):
         w, h = size
         fmt = sdl.PIXELFORMAT_RGBA8888
         texture = sdl.createTexture(self.ctx.renderer, fmt, sdl.TEXTUREACCESS_TARGET, w, h)

@@ -214,7 +214,9 @@ class QuestGame(object):
 
         try:
             while self.running:
-                dt = clock.tick(120) / 1000.
+                dt = clock.tick(0) / 1000.
+
+                print(clock.get_fps())
 
                 self.handle_input()
                 self.update(dt)

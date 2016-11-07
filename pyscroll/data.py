@@ -122,15 +122,19 @@ class TiledMapData(PyscrollDataAdapter):
         :param alpha: preserve alpha channel or not
         :return: None
         """
+        import operator
+
+        if alpha:
+            getter = operator.attrgetter('convert_alpha')
+        else:
+            getter = operator.attrgetter('convert')
+
         images = list()
         for i in self.tmx.images:
-            try:
-                if alpha:
-                    images.append(i.convert_alpha(parent))
-                else:
-                    images.append(i.convert(parent))
-            except AttributeError:
-                images.append(None)
+            if i:
+                images.append(getter(i)(parent))
+            else:  # this will be None sometimes
+                images.append(i)
         self.tmx.images = images
 
     @property

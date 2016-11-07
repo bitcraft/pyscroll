@@ -18,12 +18,12 @@ along with pyscroll.  If not, see <http://www.gnu.org/licenses/>.
 """
 from collections import namedtuple
 
-__all__ = ('AnimationFrame', 'AnimationToken')
+__all__ = ('AnimationFrame', 'AnimationEvent')
 
 AnimationFrame = namedtuple("AnimationFrame", "image duration")
 
 
-class AnimationToken(object):
+class AnimationEvent(object):
     __slots__ = ['next', 'gid', 'frames', 'index']
 
     def __init__(self, gid, frames):

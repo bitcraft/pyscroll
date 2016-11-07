@@ -27,7 +27,7 @@ from functools import partial
 from heapq import heappop, heappush
 from itertools import chain, product
 
-from pyscroll.animation import AnimationFrame, AnimationToken
+from pyscroll.animation import AnimationEvent, AnimationFrame
 from pyscroll.compat import Rect
 from pyscroll.quadtree import FastQuadTree
 
@@ -72,8 +72,7 @@ class RendererAB(object):
     def _change_view(self, dx, dy):
         raise NotImplementedError
 
-    @staticmethod
-    def _new_buffer(size, **flags):
+    def _new_buffer(self, size):
         raise NotImplementedError
 
     def _clear_buffer(self, target, color):
@@ -120,8 +119,6 @@ class RendererBase(RendererAB):
         # private attributes
         self._size = None  # size that the camera/viewport is on screen, kinda
         self._redraw_cutoff = None  # size of dirty tile edge that will trigger full redraw
-        self._x_offset = None  # offsets are used to scroll map in sub-tile increments
-        self._y_offset = None
         self._buffer = None  # complete rendering of tilemap
         self._buffer_size = None
         self._tile_view = None  # this rect represents each tile on the buffer
@@ -218,6 +215,14 @@ class RendererBase(RendererAB):
         self._zoom_level = value
         self._initialize_buffers(buffer_size)
 
+    @staticmethod
+    def _calculate_zoom_buffer_size(size, value):
+        if value <= 0:
+            print('zoom level cannot be zero or less')
+            raise ValueError
+        value = 1.0 / value
+        return [int(round(i * value)) for i in size]
+
     def set_size(self, size):
         """ Set the size of the map in pixels
 
@@ -282,7 +287,7 @@ class RendererBase(RendererAB):
                 image = self.data.get_tile_image_by_gid(frame_gid)
                 frames.append(AnimationFrame(image, frame_duration))
 
-            ani = AnimationToken(gid, frames)
+            ani = AnimationEvent(gid, frames)
             ani.next += self._last_time
             heappush(self._animation_queue, ani)
 
@@ -337,14 +342,6 @@ class RendererBase(RendererAB):
         if self._tile_queue:
             self._flush_tile_queue(self._buffer)
 
-    @staticmethod
-    def _calculate_zoom_buffer_size(size, value):
-        if value <= 0:
-            print('zoom level cannot be zero or less')
-            raise ValueError
-        value = 1.0 / value
-        return [int(round(i * value)) for i in size]
-
     def _initialize_buffers(self, view_size):
         """ Create the buffers to cache tile drawing
 
@@ -368,10 +365,12 @@ class RendererBase(RendererAB):
         self._y_offset = 0
 
         def make_rect(x, y):
-            return Rect((x * tw, y * th), (tw, th))
+            return Rect(x * tw, y * th, tw, th)
 
-        rects = [make_rect(*i) for i in product(range(buffer_tile_width),
-                                                range(buffer_tile_height))]
+        def xy(*r):
+            return product(*[range(i) for i in r])
+
+        rects = [make_rect(*i) for i in xy(buffer_tile_width, buffer_tile_height)]
 
         # TODO: figure out what depth -actually- does
         # values <= 8 tend to reduce performance
