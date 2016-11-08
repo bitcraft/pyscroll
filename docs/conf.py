@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# pyscroll documentation build configuration file, created by
+# mason documentation build configuration file, created by
 # sphinx-quickstart on Mon May 19 21:53:31 2014.
 #
 # This file is execfile()d with the current directory set to its
@@ -47,7 +47,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'pyscroll'
+project = u'mason'
 copyright = u'2014, bitcraft'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -200,7 +200,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-  ('index', 'pyscroll.tex', u'pyscroll Documentation',
+  ('index', 'mason.tex', u'mason Documentation',
    u'bitcraft', 'manual'),
 ]
 
@@ -230,7 +230,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'pyscroll', u'pyscroll Documentation',
+    ('index', 'mason', u'mason Documentation',
      [u'bitcraft'], 1)
 ]
 
@@ -244,8 +244,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  ('index', 'pyscroll', u'pyscroll Documentation',
-   u'bitcraft', 'pyscroll', 'One line description of project.',
+  ('index', 'mason', u'mason Documentation',
+   u'bitcraft', 'mason', 'One line description of project.',
    'Miscellaneous'),
 ]
 

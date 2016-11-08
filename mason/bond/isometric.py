@@ -21,11 +21,11 @@ from __future__ import print_function
 
 import logging
 import math
-from pyscroll.compat import Rect
-from pyscroll.orthographic import BufferedRenderer
 
+from mason.compat import Rect
+from mason.platform.graphics_pygame import PygameGraphics
 
-logger = logging.getLogger('isometric')
+logger = logging.getLogger(__file__)
 
 
 def vector3_to_iso(vector3):
@@ -40,7 +40,7 @@ def vector2_to_iso(vector2):
             ((vector2[0] + vector2[1]) >> 1) + offset[1])
 
 
-class IsometricBufferedRenderer(BufferedRenderer):
+class IsometricBufferedRenderer(PygameGraphics):
     """ TEST ISOMETRIC
 
     here be dragons.  lots of odd, untested, and unoptimised stuff.

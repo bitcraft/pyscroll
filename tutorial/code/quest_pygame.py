@@ -14,10 +14,10 @@ import pygame
 from pygame.locals import *
 from pytmx.util_pygame import load_pygame
 
-import pyscroll
-import pyscroll.data
-from pyscroll.rect import Rect
-from pyscroll.group import PyscrollGroup
+import mason
+import mason.data
+from mason.rect import Rect
+from mason.group import PyscrollGroup
 
 
 # define configuration variables here
@@ -96,9 +96,9 @@ class Hero(pygame.sprite.Sprite):
 class QuestGame(object):
     """ This class is a basic game.
 
-    This class will load data, create a pyscroll group, a hero object.
+    This class will load data, create a mason group, a hero object.
     It also reads input and moves the Hero around the map.
-    Finally, it uses a pyscroll group to render the map and Hero.
+    Finally, it uses a mason group to render the map and Hero.
     """
     filename = get_map(MAP_FILENAME)
 
@@ -117,14 +117,14 @@ class QuestGame(object):
                 object.x, object.y,
                 object.width, object.height))
 
-        # create new data source for pyscroll
-        map_data = pyscroll.data.TiledMapData(tmx_data)
+        # create new data source for mason
+        map_data = mason.data.TiledMapData(tmx_data)
 
         # create new renderer (camera)
-        self.map_layer = pyscroll.BufferedRenderer(map_data, screen.get_size())
+        self.map_layer = mason.PygameGraphics(map_data, screen.get_size())
         self.map_layer.zoom = 2
 
-        # pyscroll supports layered rendering.  our map has 3 'under' layers
+        # mason supports layered rendering.  our map has 3 'under' layers
         # layers begin with 0, so the layers are 0, 1, and 2.
         # since we want the sprite to be on top of layer 1, we set the default
         # layer for sprites as 2
@@ -214,7 +214,7 @@ class QuestGame(object):
 
         try:
             while self.running:
-                dt = clock.tick(0) / 1000.
+                dt = clock.tick_busy_loop(59) / 1000.
 
                 print(clock.get_fps())
 

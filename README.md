@@ -17,7 +17,7 @@ data structures, tile storage, ect.
 pyscroll is compatible with pytmx (https://github.com/bitcraft/pytmx), so you
 can use your Tiled maps.  It also has out-of-the-box support for PyGame Sprites.
 
-The included class, BufferedRenderer, gives great framerates, supports layered
+The included class, PygameGraphics, gives great framerates, supports layered
 rendering and can draw itself.  It supports fast layered tile rendering with
 alpha channel support.  It also includes animated tile rendering and zooming!
 
@@ -102,7 +102,7 @@ map_data = pyscroll.TiledMapData(tmx_data)
 
 # Make the scrolling layer
 screen_size = (400, 400)
-map_layer = pyscroll.BufferedRenderer(map_data, screen_size)
+map_layer = pyscroll.PygameGraphics(map_data, screen_size)
 
 # make the PyGame SpriteGroup with a scrolling map
 group = pyscroll.PyscrollGroup(map_layer=map_layer)
@@ -145,7 +145,7 @@ pyscroll can use a list of surfaces and render them on the map, taking account
 their layer position.
 
 ```python
-map_layer = pyscroll.BufferedRenderer(map_data, map_size)
+map_layer = pyscroll.PygameGraphics(map_data, map_size)
 
 # just an example for clarity.  here's a made up game engine
 
@@ -179,7 +179,7 @@ Pyscroll by default will not handle maps that are not completely filled with til
 ##### 1. In Tiled (or your data), fill in the empty spots with a tile
 For best performance, you must have a tile in each part of the map.  You can create a simple background layer, and fill with single color tiles where there are gaps.  Pyscroll is very fast even with several layers, so there is virtually no penalty.
 
-##### 2. Pass "alpha=True" to the BufferedRenderer constructor.
+##### 2. Pass "alpha=True" to the PygameGraphics constructor.
 All internal buffers will now support 'per-pixel alpha' and the areas without tiles will be fully transparent.  You *may* still have graphical oddities depending on if you clear the screen or not, so you may have to experiment here.  Since per-pixel alpha buffers are used, overall performance will be reduced.
 
 
@@ -194,7 +194,7 @@ Yes!  There are two ways to handle this situation...both are experimental, but s
 When drawing the screen, first blit what you want to be under the map (like a background, or parallax layer), then draw the pyscroll renderer or group.  Since per-pixel alpha buffers are used, overall performance will be reduced.
 
 ##### 2. Set a colorkey.
-Pass "colorkey=theColorYouWant" to the BufferedRenderer constructor.  In theory, you can now blit the map layer over other surfaces with transparency, but beware that it will produce some nasty side effects:
+Pass "colorkey=theColorYouWant" to the PygameGraphics constructor.  In theory, you can now blit the map layer over other surfaces with transparency, but beware that it will produce some nasty side effects:
 1. Overall, performance will be reduced, as empty ares are being filled with the colorkey color.
 2. If mixing 'per-pixel alpha' tilesets, the edges of your tiles may be discolored and look wrong.
 
@@ -202,4 +202,4 @@ Pass "colorkey=theColorYouWant" to the BufferedRenderer constructor.  In theory,
 Yes...and no.  By default, pyscroll handles all transparency types very well for the tiles and you should not have issues with that.  However, if you are trying to blit/draw the map *over* existing graphics and "see through" transparent areas, then you will have to use the "alpha", or "colorkey" methods described above.
 
 ## Does pyscroll support parallax layers?
-Yes/no.  Because there is no direct support in the primary editor, Tiled, I have not implemented an API for it.  However, you can build you own parallax effects by passing "alpha=True" to the BufferedRenderer constructor.  Then it is just a matter of scrolling at different speeds.  Be warned, that rendering alpha layers is much slower.
+Yes/no.  Because there is no direct support in the primary editor, Tiled, I have not implemented an API for it.  However, you can build you own parallax effects by passing "alpha=True" to the PygameGraphics constructor.  Then it is just a matter of scrolling at different speeds.  Be warned, that rendering alpha layers is much slower.

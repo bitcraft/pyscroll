@@ -21,23 +21,31 @@ from __future__ import print_function
 
 import logging
 import time
+from contextlib import contextmanager
 from heapq import heappop, heappush
 from itertools import groupby
 from operator import gt, itemgetter
 
 import pygame
 
-from pyscroll import surface_clipping_context
-from pyscroll.base import RendererBase
+from mason.bond.orthographic import OrthographicTiler
 
-logger = logging.getLogger('orthographic')
+logger = logging.getLogger(__file__)
 
 
-class BufferedRenderer(RendererBase):
+@contextmanager
+def surface_clipping_context(surface, clip):
+    original = surface.get_clip()
+    surface.set_clip(clip)
+    yield
+    surface.set_clip(original)
+
+
+class PygameGraphics(OrthographicTiler):
     """ Renderer that support scrolling, zooming, layers, and animated tiles
 
     The buffered renderer must be used with a data class to get tile, shape,
-    and animation information.  See the data class api in pyscroll.data, or
+    and animation information.  See the data class api in mason.data, or
     use the built-in pytmx support for loading maps created with Tiled.
     """
     alpha_clear_color = 0, 0, 0, 0
@@ -67,7 +75,7 @@ class BufferedRenderer(RendererBase):
             self._alpha = False
             self._colorkey = False
 
-        super(BufferedRenderer, self).__init__(data, size, clamp_camera, time_source)
+        super(PygameGraphics, self).__init__(data, size, clamp_camera, time_source)
 
     def _change_offset(self, x, y):
         self._x_offset = x

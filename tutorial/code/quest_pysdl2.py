@@ -1,7 +1,7 @@
 # coding=utf-8
 """ Quest - An epic journey.
 
-Simple demo that demonstrates PyTMX and pyscroll.
+Simple demo that demonstrates PyTMX and mason.
 
 requires pysdl2_cffi and pytmx.  runs on pypy!
 
@@ -14,9 +14,9 @@ import os.path
 import sdl
 from pytmx.util_pysdl2_cffi import load_pysdl2_cffi
 
-import pyscroll
-import pyscroll.data
-from pyscroll.rect import Rect
+import mason
+import mason.data
+from mason.rect import Rect
 
 # define configuration variables here
 RESOURCES_DIR = 'data'
@@ -33,9 +33,9 @@ def get_map(filename):
 class QuestGame(object):
     """ This class is a basic game.
 
-    This class will load data, create a pyscroll group, a hero object.
+    This class will load data, create a mason group, a hero object.
     It also reads input and moves the Hero around the map.
-    Finally, it uses a pyscroll group to render the map and Hero.
+    Finally, it uses a mason group to render the map and Hero.
     """
     filename = get_map(MAP_FILENAME)
 
@@ -52,12 +52,12 @@ class QuestGame(object):
         for obj in tmx_data.objects:
             self.walls.append(Rect(obj.x, obj.y, obj.width, obj.height))
 
-        # create new data source for pyscroll
-        map_data = pyscroll.data.TiledMapData(tmx_data)
+        # create new data source for mason
+        map_data = mason.data.TiledMapData(tmx_data)
 
         # create new renderer (camera)
         screen_size = ctx.window.getWindowSize()
-        self.map_layer = pyscroll.TextureRenderer(ctx, map_data, screen_size)
+        self.map_layer = mason.GraphicsPysdl2cffi(ctx, map_data, screen_size)
         self.center = [(i // self.map_layer.zoom) // 2 for i in map_data.pixel_size]
 
     def draw(self):

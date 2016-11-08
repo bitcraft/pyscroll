@@ -19,5 +19,6 @@ along with pyscroll.  If not, see <http://www.gnu.org/licenses/>.
 try:
     from pygame import Rect
 except ImportError:
-    from pyscroll.rect import Rect
+    from mason.rect import Rect
+
 

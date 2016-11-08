@@ -11,8 +11,8 @@ See the "Quest" tutorial for a more simple use with
 pygame sprites and groups.
 """
 from pytmx.util_pysdl2_cffi import load_pysdl2_cffi
-import pyscroll
-import pyscroll.data
+import mason
+import mason.data
 import collections
 import sdl
 import logging
@@ -23,7 +23,7 @@ SCROLL_SPEED = 5000
 
 
 class ScrollTest:
-    """ Test and demo of pyscroll
+    """ Test and demo of mason
 
     For normal use, please see the quest demo, not this.
 
@@ -38,11 +38,11 @@ class ScrollTest:
         tmx_data = load_pysdl2_cffi(ctx, filename)
 
         # create new data source
-        map_data = pyscroll.data.TiledMapData(tmx_data)
+        map_data = mason.data.TiledMapData(tmx_data)
 
         # create new renderer
         screen_size = ctx.window.getWindowSize()
-        self.map_layer = pyscroll.TextureRenderer(ctx, map_data, screen_size)
+        self.map_layer = mason.GraphicsPysdl2cffi(ctx, map_data, screen_size)
         self.center = [(i // self.map_layer.zoom) // 2 for i in map_data.pixel_size]
 
         # create a font and pre-render some text to be displayed over the map
@@ -63,10 +63,10 @@ class ScrollTest:
     def draw(self):
         renderer = self.ctx.renderer
 
-        # tell the map_layer (BufferedRenderer) to draw to the surface
+        # tell the map_layer (PygameGraphics) to draw to the surface
         # the draw function requires a rect to draw to.
         self.map_layer.center(self.center)
-        self.map_layer.draw(renderer)
+        self.map_layer.draw()
         sdl.renderPresent(renderer)
 
         # blit our text over the map

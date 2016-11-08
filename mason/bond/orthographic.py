@@ -27,65 +27,15 @@ from functools import partial
 from heapq import heappop, heappush
 from itertools import chain, product
 
-from pyscroll.animation import AnimationEvent, AnimationFrame
-from pyscroll.compat import Rect
-from pyscroll.quadtree import FastQuadTree
+from mason.animation import AnimationEvent, AnimationFrame
+from mason.compat import Rect
+from mason.platform.graphics import RendererAB
+from mason.quadtree import FastQuadTree
 
-logger = logging.getLogger('orthographic')
-
-
-class RendererAB(object):
-
-    def _change_offset(self, d, y):
-        raise NotImplementedError
-
-    def _change_view(self, dx, dy):
-        raise NotImplementedError
-
-    def _new_buffer(self, size):
-        raise NotImplementedError
-
-    def _clear_buffer(self, target, color):
-        raise NotImplementedError
-
-    def _clear_screen(self):
-        """ Clear the area of the screen where map is drawn
-
-        :return:
-        """
-        raise NotImplementedError
-
-    def _create_buffers(self, view_size, buffer_size):
-        """ Create the buffers, taking in account pixel alpha or colorkey
-
-        :param view_size: pixel size of the view
-        :param buffer_size: pixel size of the buffer
-        """
-        raise NotImplementedError
-
-    def _copy_buffer(self):
-        """ Copy the buffer to the screen
-
-        :return: None
-        """
-        raise NotImplementedError
-
-    def _flush_tile_queue(self, surface):
-        """ Draw the queued tiles to the buffer and block until the tile queue is empty
-        """
-        raise NotImplementedError
-
-    def _draw_map(self, surface, rect, surfaces):
-        """ Render the map and optional surfaces to destination surface
-
-        :param surface: pygame surface to draw to
-        :param rect: area to draw to
-        :param surfaces: optional sequence of surfaces to interlace between tiles
-        """
-        raise NotImplementedError
+logger = logging.getLogger(__file__)
 
 
-class RendererBase(RendererAB):
+class OrthographicTiler(RendererAB):
     """ Base for buffered tile renderers.
     """
 
@@ -127,6 +77,17 @@ class RendererBase(RendererAB):
         self.reload_animations()
         self.set_size(size)
 
+    def _update_time(self):
+        self._last_time = time.time() * 1000
+
+    @staticmethod
+    def _calculate_zoom_buffer_size(size, value):
+        if value <= 0:
+            print('zoom level cannot be zero or less')
+            raise ValueError
+        value = 1.0 / value
+        return [int(round(i * value)) for i in size]
+
     def draw(self):
         """ Draw the map onto a surface
         """
@@ -139,7 +100,7 @@ class RendererBase(RendererAB):
         self._copy_buffer()
 
     def redraw_tiles(self, destination=None):
-        logger.warn('pyscroll buffer redraw')
+        logger.warn('mason buffer redraw')
         if self._clear_color or self._always_clear:
             self._clear_buffer(self._buffer, self._clear_color)
 
@@ -213,14 +174,6 @@ class RendererBase(RendererAB):
         self._zoom_level = value
         self._initialize_buffers(buffer_size)
 
-    @staticmethod
-    def _calculate_zoom_buffer_size(size, value):
-        if value <= 0:
-            print('zoom level cannot be zero or less')
-            raise ValueError
-        value = 1.0 / value
-        return [int(round(i * value)) for i in size]
-
     def set_size(self, size):
         """ Set the size of the map in pixels
 
@@ -238,6 +191,22 @@ class RendererBase(RendererAB):
         """
         return (-self.view_rect.centerx + self._half_width,
                 -self.view_rect.centery + self._half_height)
+
+    def reload_animations(self):
+        """ Reload animation information
+        """
+        self._update_time()
+        self._animation_queue = list()
+
+        for gid, frame_data in self.data.get_animations():
+            frames = list()
+            for frame_gid, frame_duration in frame_data:
+                image = self.data.get_tile_image_by_gid(frame_gid)
+                frames.append(AnimationFrame(image, frame_duration))
+
+            ani = AnimationEvent(gid, frames)
+            ani.next += self._last_time
+            heappush(self._animation_queue, ani)
 
     def _queue_edge_tiles(self, dx, dy):
         """ Queue edge tiles and clear edge areas on buffer if needed
@@ -269,25 +238,6 @@ class RendererBase(RendererAB):
 
         elif dy < 0:  # top side
             append((v.left, v.top, v.width, -dy))
-
-    def _update_time(self):
-        self._last_time = time.time() * 1000
-
-    def reload_animations(self):
-        """ Reload animation information
-        """
-        self._update_time()
-        self._animation_queue = list()
-
-        for gid, frame_data in self.data.get_animations():
-            frames = list()
-            for frame_gid, frame_duration in frame_data:
-                image = self.data.get_tile_image_by_gid(frame_gid)
-                frames.append(AnimationFrame(image, frame_duration))
-
-            ani = AnimationEvent(gid, frames)
-            ani.next += self._last_time
-            heappush(self._animation_queue, ani)
 
     def _process_animation_queue(self):
         self._update_time()

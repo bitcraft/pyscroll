@@ -10,15 +10,15 @@ Window is resizable.
 See the "Quest" tutorial for a more simple use with
 pygame sprites and groups.
 """
-from pytmx.util_pygame import load_pygame
-import pygame
-import pyscroll
-import pyscroll.data
-import collections
 import logging
-from pygame.locals import *
 
-import pyscroll.orthographic
+import pygame
+from pygame.locals import *
+from pytmx.util_pygame import load_pygame
+
+import mason
+import mason.data
+import mason.platform.graphics_pygame
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +31,7 @@ def init_screen(width, height):
 
 
 class ScrollTest:
-    """ Test and demo of pyscroll
+    """ Test and demo of mason
 
     For normal use, please see the quest demo, not this.
 
@@ -42,10 +42,10 @@ class ScrollTest:
         tmx_data = load_pygame(filename)
 
         # create new data source
-        map_data = pyscroll.data.TiledMapData(tmx_data)
+        map_data = mason.data.TiledMapData(tmx_data)
 
         # create new renderer
-        self.map_layer = pyscroll.orthographic.BufferedRenderer(map_data, screen.get_size())
+        self.map_layer = mason.platform.graphics_pygame.PygameGraphics(map_data, screen.get_size())
 
         # create a font and pre-render some text to be displayed over the map
         f = pygame.font.Font(pygame.font.get_default_font(), 20)
@@ -68,7 +68,7 @@ class ScrollTest:
 
     def draw(self, surface):
 
-        # tell the map_layer (BufferedRenderer) to draw to the surface
+        # tell the map_layer (PygameGraphics) to draw to the surface
         # the draw function requires a rect to draw to.
         self.map_layer.draw(surface, surface.get_rect())
 
@@ -193,7 +193,7 @@ if __name__ == "__main__":
     pygame.init()
     pygame.font.init()
     screen = init_screen(800, 600)
-    pygame.display.set_caption('pyscroll Test')
+    pygame.display.set_caption('mason Test')
 
     try:
         filename = sys.argv[1]

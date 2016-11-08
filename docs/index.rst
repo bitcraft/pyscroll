@@ -20,7 +20,7 @@ uses a lot of magic to get reasonable framerates out of PyGame.  It only exists
 to draw a map.  It doesn't load images or data, so you can use your own custom
 data structures, tile storage, ect.
 
-The included class, BufferedRenderer, gives great framerates, supports layered
+The included class, PygameGraphics, gives great framerates, supports layered
 rendering and can draw itself.
 
 pyscroll is compatible with pytmx (https://github.com/bitcraft/pytmx), so you
@@ -86,7 +86,7 @@ pyscroll and pytmx can load your maps from Tiled and use you PyGame Sprites.
 
     # Make the scrolling layer
     screen_size = (400, 400)
-    map_layer = pyscroll.BufferedRenderer(map_data, screen_size)
+    map_layer = pyscroll.PygameGraphics(map_data, screen_size)
 
     # make the PyGame SpriteGroup with a scrolling map
     group = pyscroll.PyscrollGroup(map_layer=map_layer)

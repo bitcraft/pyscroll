@@ -23,7 +23,7 @@ If you are developing your own map format, please use this
 as a template.  Just fill in values that work for your game.
 """
 from itertools import product
-from pyscroll import rect_to_bb
+from mason import rect_to_bb
 import pytmx
 
 __all__ = ('PyscrollDataAdapter', 'TiledMapData')
@@ -83,7 +83,7 @@ class PyscrollDataAdapter(object):
 
         This is an optimization that you can make for your data.
         If you can provide access to tile information in a batch,
-        then pyscroll can access data faster and render quicker.
+        then mason can access data faster and render quicker.
 
         To implement an optimization, override this method.
 

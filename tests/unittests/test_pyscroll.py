@@ -1,8 +1,10 @@
-import mock
 import unittest
+
+import mock
 import pygame
-from pyscroll.orthographic import BufferedRenderer
-from pyscroll.data import PyscrollDataAdapter
+
+from mason.data import PyscrollDataAdapter
+from mason.platform.graphics_pygame import PygameGraphics
 
 
 class DummyDataAdapter(PyscrollDataAdapter):
@@ -27,7 +29,7 @@ class DummyBufferer:
 class TestTileQueue(unittest.TestCase):
     def setUp(self):
         self.mock = DummyBufferer()
-        self.queue = BufferedRenderer._queue_edge_tiles
+        self.queue = PygameGraphics._queue_edge_tiles
 
     def verify_queue(self, expected):
         queue = {i[:2] for i in self.mock._tile_queue}

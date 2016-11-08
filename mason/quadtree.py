@@ -2,7 +2,7 @@
 A quadtree is used with pyscroll to detect overlapping tiles.
 """
 import itertools
-from pyscroll.compat import Rect
+from mason.compat import Rect
 
 
 class FastQuadTree(object):

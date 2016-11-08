@@ -3,18 +3,18 @@
 #python setup.py sdist upload -r pypi
 from setuptools import setup
 
-setup(name='pyscroll',
+setup(name='mason',
       version='2.16.11',
       description='Scrolling maps library for pygame and python 2.7 & 3.3+',
       author='bitcraft',
       author_email='leif.theden@gmail.com',
-      url='http://github.com/bitcraft/pyscroll',
-      packages=['pyscroll'],
+      url='http://github.com/bitcraft/mason',
+      packages=['mason'],
       install_requires=['pygame'],
       license='LGPLv3',
       long_description='see readme.md',
       package_data={
-          'pyscroll': ['license.txt', 'readme.md']},
+          'mason': ['license.txt', 'readme.md']},
       classifiers=[
           "Intended Audience :: Developers",
           "Development Status :: 4 - Beta",

@@ -53,7 +53,7 @@
 <span id="pyscroll-pyscroll"></span><h2>pyscroll.pyscroll<a class="headerlink" href="#module-pyscroll.pyscroll" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="pyscroll.pyscroll.BufferedRenderer">
-<em class="property">class </em><tt class="descclassname">pyscroll.pyscroll.</tt><tt class="descname">BufferedRenderer</tt><big>(</big><em>data</em>, <em>size</em>, <em>colorkey=None</em>, <em>padding=4</em>, <em>clamp_camera=False</em><big>)</big><a class="headerlink" href="#pyscroll.pyscroll.BufferedRenderer" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">pyscroll.pyscroll.</tt><tt class="descname">PygameGraphics</tt><big>(</big><em>data</em>, <em>size</em>, <em>colorkey=None</em>, <em>padding=4</em>, <em>clamp_camera=False</em><big>)</big><a class="headerlink" href="#pyscroll.pyscroll.BufferedRenderer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></p>
 <p>Renderer that can be updated incrementally</p>
 <p>Base class to render a map onto a buffer that is suitable for blitting onto
@@ -167,7 +167,7 @@ not benefit from updates, but it won&#8217;t hurt either.</p>
 <dl class="class">
 <dt id="pyscroll.pyscroll.ThreadedRenderer">
 <em class="property">class </em><tt class="descclassname">pyscroll.pyscroll.</tt><tt class="descname">ThreadedRenderer</tt><big>(</big><em>*args</em>, <em>**kwargs</em><big>)</big><a class="headerlink" href="#pyscroll.pyscroll.ThreadedRenderer" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#pyscroll.pyscroll.BufferedRenderer" title="pyscroll.pyscroll.BufferedRenderer"><tt class="xref py py-class docutils literal"><span class="pre">pyscroll.pyscroll.BufferedRenderer</span></tt></a></p>
+<dd><p>Bases: <a class="reference internal" href="#pyscroll.pyscroll.BufferedRenderer" title="pyscroll.pyscroll.PygameGraphics"><tt class="xref py py-class docutils literal"><span class="pre">pyscroll.pyscroll.PygameGraphics</span></tt></a></p>
 <p>Off-screen tiling is handled in a thread</p>
 <dl class="method">
 <dt id="pyscroll.pyscroll.ThreadedRenderer.flush">
