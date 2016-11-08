@@ -61,7 +61,6 @@ class BufferedRenderer(RendererBase):
             self._clear_color = colorkey
             self._colorkey = True
         elif alpha:
-            self._clear_color = self.alpha_clear_color
             self._alpha = True
         else:
             self._clear_color = None
@@ -112,24 +111,21 @@ class BufferedRenderer(RendererBase):
         :param surfaces: optional sequence of surfaces to interlace between tiles
         """
         if self._zoom_level == 1.0:
-            self._render_map(surface, rect, surfaces)
+            self._draw_map(surface, rect, surfaces)
         else:
-            self._render_map(self._zoom_buffer, self._zoom_buffer.get_rect(), surfaces)
+            self._draw_map(self._zoom_buffer, self._zoom_buffer.get_rect(), surfaces)
             self.scaling_function(self._zoom_buffer, rect.size, surface)
 
     def _clear_buffer(self, target, color):
         target.fill(color)
 
-    def _render_map(self, surface, rect, surfaces):
+    def _draw_map(self, surface, rect, surfaces):
         """ Render the map and optional surfaces to destination surface
 
         :param surface: pygame surface to draw to
         :param rect: area to draw to
         :param surfaces: optional sequence of surfaces to interlace between tiles
         """
-        if self._animation_queue:
-            self._process_animation_queue()
-
         if not self.anchored_view:
             surface.fill(0)
 

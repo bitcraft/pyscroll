@@ -64,7 +64,7 @@ class QuestGame(object):
         renderer = self.ctx.renderer
 
         self.map_layer.center(self.center)
-        self.map_layer.draw(renderer)
+        self.map_layer.draw()
         sdl.renderPresent(renderer)
 
     def handle_input(self):

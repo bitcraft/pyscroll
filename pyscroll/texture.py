@@ -21,7 +21,7 @@ from __future__ import print_function
 
 import logging
 import time
-from heapq import heappush, heappop
+from heapq import heappop, heappush
 
 import sdl
 
@@ -42,8 +42,8 @@ class TextureRenderer(RendererBase):
         # private attributes
         self.ctx = ctx
         self._animation_map = dict()
-        self._clear_color = RendererBase.alpha_clear_color
         self._buffer_rect = sdl.Rect()
+        self._always_clear = True
 
         super(TextureRenderer, self).__init__(data, size, clamp_camera, time_source)
 
@@ -55,31 +55,8 @@ class TextureRenderer(RendererBase):
         self._tile_view.move_ip(dx, dy)
         self.redraw_tiles()
 
-    def draw(self, renderer, surfaces=None):
-        """ Draw the map onto a surface
-
-        pass a rect that defines the draw area for:
-            drawing to an area smaller that the whole window/screen
-
-        surfaces may optionally be passed that will be blitted onto the surface.
-        this must be a sequence of tuples containing a layer number, image, and
-        rect in screen coordinates.  surfaces will be drawn in order passed,
-        and will be correctly drawn with tiles from a higher layer overlapping
-        the surface.
-
-        surfaces list should be in the following format:
-        [ (layer, texture, rect), ... ]
-
-        :param renderer: ya know, the thing
-        :param surfaces: optional sequence of surfaces to interlace between tiles
-        """
-        if self._animation_queue:
-            self._process_animation_queue()
-
-        if not self.anchored_view:
-            self._clear_buffer()
-
-        sdl.renderCopy(renderer, self._buffer, None, self._buffer_rect)
+    def _copy_buffer(self):
+        sdl.renderCopy(self.ctx.renderer, self._buffer, None, self._buffer_rect)
 
     def _clear_buffer(self, target, color=None):
         renderer = self.ctx.renderer

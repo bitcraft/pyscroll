@@ -35,36 +35,6 @@ logger = logging.getLogger('orthographic')
 
 
 class RendererAB(object):
-    def draw(self, surface, rect, surfaces=None):
-        """ Draw the map onto a surface
-
-        pass a rect that defines the draw area for:
-            drawing to an area smaller that the whole window/screen
-
-        surfaces may optionally be passed that will be blitted onto the surface.
-        this must be a sequence of tuples containing a layer number, image, and
-        rect in screen coordinates.  surfaces will be drawn in order passed,
-        and will be correctly drawn with tiles from a higher layer overlapping
-        the surface.
-
-        surfaces list should be in the following format:
-        [ (layer, surface, rect), ... ]
-
-        or this:
-        [ (layer, surface, rect, blendmode_flags), ... ]
-
-        :param surface: pygame surface to draw to
-        :param rect: area to draw to
-        :param surfaces: optional sequence of surfaces to interlace between tiles
-        """
-        raise NotImplementedError
-
-    def redraw(self):
-        """ Clear all buffers and redraw all the tiles.  Slow!
-
-        :return:
-        """
-        raise NotImplementedError
 
     def _change_offset(self, d, y):
         raise NotImplementedError
@@ -78,6 +48,13 @@ class RendererAB(object):
     def _clear_buffer(self, target, color):
         raise NotImplementedError
 
+    def _clear_screen(self):
+        """ Clear the area of the screen where map is drawn
+
+        :return:
+        """
+        raise NotImplementedError
+
     def _create_buffers(self, view_size, buffer_size):
         """ Create the buffers, taking in account pixel alpha or colorkey
 
@@ -86,12 +63,19 @@ class RendererAB(object):
         """
         raise NotImplementedError
 
-    def _flush_tile_queue(self, surface):
-        """ Blit the queued tiles and block until the tile queue is empty
+    def _copy_buffer(self):
+        """ Copy the buffer to the screen
+
+        :return: None
         """
         raise NotImplementedError
 
-    def _render_map(self, surface, rect, surfaces):
+    def _flush_tile_queue(self, surface):
+        """ Draw the queued tiles to the buffer and block until the tile queue is empty
+        """
+        raise NotImplementedError
+
+    def _draw_map(self, surface, rect, surfaces):
         """ Render the map and optional surfaces to destination surface
 
         :param surface: pygame surface to draw to
@@ -117,6 +101,8 @@ class RendererBase(RendererAB):
         self.time_source = time_source  # determines how tile animations are processed
 
         # private attributes
+        self._always_clear = False  # force the buffer to be cleared when redrawing
+        self._clear_color = self.alpha_clear_color
         self._size = None  # size that the camera/viewport is on screen, kinda
         self._redraw_cutoff = None  # size of dirty tile edge that will trigger full redraw
         self._buffer = None  # complete rendering of tilemap
@@ -129,6 +115,7 @@ class RendererBase(RendererAB):
         self._last_time = None  # used for scheduling animations
         self._layer_quadtree = None  # used to draw tiles that overlap optional surfaces
         self._zoom_level = 1.0  # negative numbers make map smaller, positive: bigger
+        self._requires_animation_refresh = False  # flag to check for new tile changes
 
         # used to speed up animated tile redraws by keeping track of animated tiles
         # so they can be updated individually
@@ -140,9 +127,20 @@ class RendererBase(RendererAB):
         self.reload_animations()
         self.set_size(size)
 
+    def draw(self):
+        """ Draw the map onto a surface
+        """
+        if self._animation_queue:
+            self._process_animation_queue()
+
+        if not self.anchored_view:
+            self._clear_screen()
+
+        self._copy_buffer()
+
     def redraw_tiles(self, destination=None):
         logger.warn('pyscroll buffer redraw')
-        if self._clear_color:
+        if self._clear_color or self._always_clear:
             self._clear_buffer(self._buffer, self._clear_color)
 
         self._tile_queue = self.data.get_tile_images_by_rect(self._tile_view)
@@ -294,10 +292,12 @@ class RendererBase(RendererAB):
     def _process_animation_queue(self):
         self._update_time()
         self._tile_queue = list()
-        tile_layers = tuple(self.data.visible_tile_layers)
+        self._requires_animation_refresh = False
 
         # test if the next scheduled tile change is ready
         while self._animation_queue[0].next <= self._last_time:
+            self._requires_animation_refresh = True
+
             token = heappop(self._animation_queue)
 
             # advance the animation frame index, looping by default
@@ -309,38 +309,6 @@ class RendererBase(RendererAB):
             next_frame = token.frames[token.index]
             token.next = next_frame.duration + self._last_time
             heappush(self._animation_queue, token)
-
-            # go through the animated tile map:
-            #   * queue tiles that need to be changed
-            #   * remove map entries that do not collide with screen
-
-            needs_clear = False
-            for x, y, l in self._animation_tiles[token.gid]:
-
-                # if this tile is on the buffer (checked by using the tile view)
-                if self._tile_view.collidepoint(x, y):
-
-                    # redraw the entire column of tiles
-                    for layer in tile_layers:
-                        if layer == l:
-                            self._tile_queue.append((x, y, layer, next_frame.image, token.gid))
-                        else:
-                            image = self.data.get_tile_image((x, y, layer))
-                            if image:
-                                self._tile_queue.append((x, y, layer, image, None))
-                else:
-                    needs_clear = True
-
-            # this will delete the set of tile locations that are checked for
-            # animated tiles.  when the tile queue is flushed, any tiles in the
-            # queue will be added again.  i choose to remove the set, rather
-            # than removing the item in the set to reclaim memory over time...
-            # though i could implement it by removing entries.  idk  -lt
-            if needs_clear:
-                del self._animation_tiles[token.gid]
-
-        if self._tile_queue:
-            self._flush_tile_queue(self._buffer)
 
     def _initialize_buffers(self, view_size):
         """ Create the buffers to cache tile drawing
@@ -373,7 +341,7 @@ class RendererBase(RendererAB):
         rects = [make_rect(*i) for i in xy(buffer_tile_width, buffer_tile_height)]
 
         # TODO: figure out what depth -actually- does
-        # values <= 8 tend to reduce performance
+        # values >= 8 tend to reduce performance
         self._layer_quadtree = FastQuadTree(rects, 4)
 
         self.redraw_tiles(self._buffer)

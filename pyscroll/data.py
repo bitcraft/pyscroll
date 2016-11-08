@@ -191,6 +191,12 @@ class TiledMapData(PyscrollDataAdapter):
         except ValueError:
             return None
 
+    def set_tile_image_by_gid(self, position, gid):
+        """ Set a tile's image by changing the gid (experimental)
+        """
+        x, y, layer = position
+        self.tmx.layers[layer][y][x] = gid
+
     def get_tile_image_by_gid(self, gid):
         """ Return surface for a gid (experimental)
         """
