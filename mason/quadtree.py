@@ -1,7 +1,9 @@
+# -*- coding: utf-8 -*-
 """
-A quadtree is used with pyscroll to detect overlapping tiles.
+A quadtree is used with mason to detect overlapping tiles.
 """
 import itertools
+
 from mason.compat import Rect
 
 

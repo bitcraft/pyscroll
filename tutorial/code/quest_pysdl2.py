@@ -1,4 +1,4 @@
-# coding=utf-8
+# -*- coding: utf-8 -*-
 """ Quest - An epic journey.
 
 Simple demo that demonstrates PyTMX and mason.

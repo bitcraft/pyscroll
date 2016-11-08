@@ -1,30 +1,27 @@
+# -*- coding: utf-8 -*-
 """
 Copyright (C) 2012-2016
 
-This file is part of pyscroll.
+This file is part of mason.
 
-pyscroll is free software: you can redistribute it and/or modify
+mason is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 
-pyscroll is distributed in the hope that it will be useful,
+mason is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with pyscroll.  If not, see <http://www.gnu.org/licenses/>.
-"""
-"""
-This file contains a few classes for accessing data
-
-If you are developing your own map format, please use this
-as a template.  Just fill in values that work for your game.
+along with mason.  If not, see <http://www.gnu.org/licenses/>.
 """
 from itertools import product
-from mason import rect_to_bb
+
 import pytmx
+
+from mason import rect_to_bb
 
 __all__ = ('PyscrollDataAdapter', 'TiledMapData')
 
@@ -35,9 +32,9 @@ class PyscrollDataAdapter(object):
     # the following can be class/instance attributes
     # or properties.  they are listed here as class
     # instances, but use as properties is fine, too.
-    tile_size = None             # (int, int): size of each tile in pixels
-    map_size = None              # (int, int): size of map in tiles
-    visible_tile_layers = None   # list of visible layer integers
+    tile_size = None  # (int, int): size of each tile in pixels
+    map_size = None  # (int, int): size of map in tiles
+    visible_tile_layers = None  # list of visible layer integers
 
     def convert_surfaces(self, parent, alpha=False):
         """ Convert all images in the data to match the parent
@@ -207,6 +204,7 @@ class TiledMapData(PyscrollDataAdapter):
 
         More efficient because data is accessed and cached locally
         """
+
         def rev(seq, start, stop):
             if start < 0:
                 start = 0

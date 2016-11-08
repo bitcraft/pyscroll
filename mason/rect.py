@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
    Pygame uses Rect objects to store and manipulate rectangular areas. A Rect
    can be created from a combination of left, top, width, and height values.

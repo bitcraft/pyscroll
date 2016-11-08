@@ -1,20 +1,21 @@
+# -*- coding: utf-8 -*-
 """
 Copyright (C) 2012-2016
 
-This file is part of pyscroll.
+This file is part of mason.
 
-pyscroll is free software: you can redistribute it and/or modify
+mason is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 
-pyscroll is distributed in the hope that it will be useful,
+mason is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with pyscroll.  If not, see <http://www.gnu.org/licenses/>.
+along with mason.  If not, see <http://www.gnu.org/licenses/>.
 """
 from __future__ import division
 from __future__ import print_function
@@ -25,8 +26,9 @@ import time
 from collections import defaultdict
 from functools import partial
 from heapq import heappop, heappush
-from itertools import chain, product
+from itertools import chain
 
+from mason import range_product, rectifier
 from mason.animation import AnimationEvent, AnimationFrame
 from mason.compat import Rect
 from mason.platform.graphics import RendererAB
@@ -282,13 +284,9 @@ class OrthographicTiler(RendererAB):
         self._x_offset = 0
         self._y_offset = 0
 
-        def make_rect(x, y):
-            return Rect(x * tw, y * th, tw, th)
-
-        def xy(*r):
-            return product(*[range(i) for i in r])
-
-        rects = [make_rect(*i) for i in xy(buffer_tile_width, buffer_tile_height)]
+        make_rect = rectifier(tw, th)
+        rects = [make_rect(*i) for i in range_product(buffer_tile_width,
+                                                      buffer_tile_height)]
 
         # TODO: figure out what depth -actually- does
         # values >= 8 tend to reduce performance

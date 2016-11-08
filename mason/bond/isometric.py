@@ -1,20 +1,21 @@
+# -*- coding: utf-8 -*-
 """
 Copyright (C) 2012-2016
 
-This file is part of pyscroll.
+This file is part of mason.
 
-pyscroll is free software: you can redistribute it and/or modify
+mason is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 
-pyscroll is distributed in the hope that it will be useful,
+mason is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with pyscroll.  If not, see <http://www.gnu.org/licenses/>.
+along with mason.  If not, see <http://www.gnu.org/licenses/>.
 """
 from __future__ import division
 from __future__ import print_function
@@ -48,6 +49,7 @@ class IsometricBufferedRenderer(PygameGraphics):
     - coalescing of surfaces is not supported
     - drawing may have depth sorting issues
     """
+
     def _draw_surfaces(self, surface, rect, surfaces):
         if surfaces is not None:
             [(surface.blit(i[0], i[1]), i[2]) for i in surfaces]
@@ -143,20 +145,20 @@ class IsometricBufferedRenderer(PygameGraphics):
             self._tile_view.move_ip(dx, dy)
             self.redraw_tiles()
 
-    # def redraw_tiles(self):
-    #     """ redraw the visible portion of the buffer -- it is slow.
-    #     """
-    #     if self._clear_color:
-    #         self._buffer.fill(self._clear_color)
-    #
-    #     v = self._tile_view
-    #     self._tile_queue = list()
-    #     for x in range(v.left, v.right):
-    #         for y in range(v.top, v.bottom):
-    #             ix, iy = vector2_to_iso((x, y))
-    #             tile = self.data.get_tile_image((ix, iy, 0))
-    #             if tile:
-    #                 self._tile_queue.append((x, y, 0, tile, 0))
-    #                 print((x, y), (ix, iy))
-    #
-    #     self._flush_tile_queue()
+            # def redraw_tiles(self):
+            #     """ redraw the visible portion of the buffer -- it is slow.
+            #     """
+            #     if self._clear_color:
+            #         self._buffer.fill(self._clear_color)
+            #
+            #     v = self._tile_view
+            #     self._tile_queue = list()
+            #     for x in range(v.left, v.right):
+            #         for y in range(v.top, v.bottom):
+            #             ix, iy = vector2_to_iso((x, y))
+            #             tile = self.data.get_tile_image((ix, iy, 0))
+            #             if tile:
+            #                 self._tile_queue.append((x, y, 0, tile, 0))
+            #                 print((x, y), (ix, iy))
+            #
+            #     self._flush_tile_queue()

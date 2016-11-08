@@ -1,20 +1,21 @@
+# -*- coding: utf-8 -*-
 """
 Copyright (C) 2012-2016
 
-This file is part of pyscroll.
+This file is part of mason.
 
-pyscroll is free software: you can redistribute it and/or modify
+mason is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 
-pyscroll is distributed in the hope that it will be useful,
+mason is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with pyscroll.  If not, see <http://www.gnu.org/licenses/>.
+along with mason.  If not, see <http://www.gnu.org/licenses/>.
 """
 from __future__ import division
 from __future__ import print_function
@@ -69,10 +70,8 @@ class GraphicsPysdl2cffi(OrthographicTiler):
 
     def _clear_buffer(self, target, color=None):
         renderer = self.ctx.renderer
-        orig = sdl.getRenderTarget(renderer)
-        sdl.setRenderTarget(renderer, target)
-        sdl.renderClear(renderer)
-        sdl.setRenderTarget(renderer, orig)
+        with render_target_context(renderer, target):
+            sdl.renderClear(renderer)
 
     def _process_animation_queue(self):
         self._update_time()
@@ -122,15 +121,12 @@ class GraphicsPysdl2cffi(OrthographicTiler):
         ltw = self._tile_view.left * tw
         tth = self._tile_view.top * th
         renderer = self.ctx.renderer
-        rcx = sdl.renderCopyEx
-
         map_get = self._animation_map.get
+        rcx = sdl.renderCopyEx
 
         dst_rect = sdl.Rect()
         dst_rect.w = tw
         dst_rect.h = th
-
-        self._clear_buffer(self._buffer)  # DEBUG
 
         with render_target_context(self.ctx.renderer, self._buffer):
             for x, y, l, tile, gid in self._tile_queue:

@@ -1,32 +1,25 @@
+# -*- coding: utf-8 -*-
 """
 Copyright (C) 2012-2016
 
-This file is part of pyscroll.
+This file is part of mason.
 
-pyscroll is free software: you can redistribute it and/or modify
+mason is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 
-pyscroll is distributed in the hope that it will be useful,
+mason is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with pyscroll.  If not, see <http://www.gnu.org/licenses/>.
+along with mason.  If not, see <http://www.gnu.org/licenses/>.
 """
+from itertools import product
 
-__version__ = '2.16.11'
-__author__ = 'bitcraft'
-__author_email__ = 'leif.theden@gmail.com'
-__description__ = 'Pygame Scrolling - Python 2.7 & 3.3+'
-
-
-def rect_to_bb(rect):
-    x, y, w, h = rect
-    return x, y, x + w - 1, y + h - 1
-
+from .compat import Rect
 
 # convenience imports
 try:
@@ -41,4 +34,27 @@ except ImportError:
     pass
 
 from .data import *
+
 # from .group import *
+
+
+__version__ = '3.0.0'
+__author__ = 'bitcraft'
+__author_email__ = 'leif.theden@gmail.com'
+__description__ = 'Pygame Scrolling - Python 2.7 & 3.3+'
+
+
+def rectifier(width, height):
+    def rectify(x, y):
+        return Rect(x * width, y * height, width, height)
+
+    return rectify
+
+
+def rect_to_bb(rect):
+    x, y, w, h = rect
+    return x, y, x + w - 1, y + h - 1
+
+
+def range_product(*r):
+    return product(*[range(i) for i in r])
