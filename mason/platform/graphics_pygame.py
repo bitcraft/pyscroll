@@ -146,75 +146,74 @@ class PygameGraphics(OrthographicTiler):
                 surfaces_offset = -offset[0], -offset[1]
                 self._draw_surfaces(surface, surfaces_offset, surfaces)
 
-    def _draw_surfaces(self, screen_surface, offset, surfaces):
+    def _draw_surfaces(self, destination, offset, surfaces):
         """ Draw surfaces onto buffer, then redraw tiles that cover them
 
-        :param surface: destination
+        :param destination: destination
         :param offset: offset to compensate for buffer alignment
         :param surfaces: sequence of surfaces to blit
         """
-        surface_blit = screen_surface.blit
+        destination_blit = destination.blit
         ox, oy = offset
         left, top = self._tile_view.topleft
         hit = self._layer_quadtree.hit
-        get_tile = self.data.get_tile_image
-        tile_layers = tuple(self.data.visible_tile_layers)
+        get_tiles = self.data.get_tile_images_by_rect
         dirty = list()
         dirty_append = dirty.append
+        tw, th = self.data.tile_size
 
-        # collect tiles that are covered
-        tmp = list()
-        i = surfaces[0]
-        # dirty_rect = surface_blit(i[0], i[1])
-        dirty_rect = pygame.Rect(i[1])
-        hits = hit(dirty_rect.move(ox, oy))
+        out_rect = None
 
-        for hit in hits:
-            hit2 = [i // 32 for i in hit]
-            hit2[0] += left
-            hit2[1] += top
-            tiles = self.data.get_tile_images_by_rect(hit2)
+        for sprite in surfaces:
+            # tokenize the sprite to blit
+            sprite_surface, sprite_rect, sprite_layer = sprite
+            token = sprite_layer, sprite_rect.topleft, sprite_surface, 0
+            dirty_append(token)
 
+            # create rect that contains all the dirty tiles
+            hits = hit(sprite_rect.move(ox, oy))
+            damage = sprite_rect.unionall(list(hits))
+            out_rect = pygame.Rect(damage)
+
+            # convert screen coords to tile coords
+            damage.left //= tw
+            damage.top //= th
+            damage.width //= tw
+            damage.height //= th
+
+            # adjust for the view
+            damage.left += left + 1
+            damage.top += top + 1
+
+            # get all the covered tiles, in render order
             # tokenize each covered tile
-            for tile in tiles:
-                x, y, layer, surface, gid = tile
+            for tile in get_tiles(damage):
+                x, y, tile_layer, surface, gid = tile
+
+                # if sprite_layer > tile_layer:
+
+                # adjust for view
                 x -= left
                 y -= top
-                token = layer, x * 32 - ox, y * 32 - oy, surface, gid
-                tmp.append(token)
 
-        # tokenize the sprite to blit
-        surface, rect, layer = surfaces[0]
-        x, y, w, h = rect
-        token = layer, x, y, surface, 1
-        tmp.append(token)
+                # convert tile coords to screen coords
+                token = tile_layer, (x * tw - ox, y * th - oy), surface, gid
+                dirty_append(token)
 
-        tmp.sort()
+        # sort tiles and surfaces for best rendering
+        dirty.sort()
 
-        for token in tmp:
-            layer, x, y, surface, gid = token
-            surface_blit(surface, (x, y))
+        debug_draws = list()
+        for layer, position, surface, gid in dirty:
+            dirty_rect = destination_blit(surface, position)
+            debug_draws.append(dirty_rect)
 
-        # for layer, group in groupby(surfaces, layer_getter):
-        #     del dirty[:]
-        #
-        #     for i in group:
-        #         try:
-        #             flags = i[3]
-        #         except IndexError:
-        #             dirty_append(surface_blit(i[0], i[1]))
-        #         else:
-        #             dirty_append(surface_blit(i[0], i[1], None, flags))
-        #
-        #     # TODO: make set of covered tiles, in the case where a cluster
-        #     # of sprite surfaces causes excessive over tile overdrawing
-        #     for dirty_rect in dirty:
-        #         for r in hit(dirty_rect.move(ox, oy)):
-        #             x, y, tw, th = r
-        #             for l in [i for i in tile_layers if gt(i, layer)]:
-        #                 tile = get_tile((x // tw + left, y // th + top, l))
-        #                 if tile:
-        #                     surface_blit(tile, (x - ox, y - oy))
+        debug = 0
+        if debug:
+            for dirty_rect in debug_draws:
+                pygame.draw.rect(destination, (255, 0, 255), dirty_rect, 2)
+
+            pygame.draw.rect(destination, (255, 255, 0), out_rect, 2)
 
     def _process_animation_queue(self):
         self._update_time()
