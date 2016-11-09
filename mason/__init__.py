@@ -17,31 +17,15 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with mason.  If not, see <http://www.gnu.org/licenses/>.
 """
-from itertools import product
-
-from .compat import Rect
-
-# convenience imports
-try:
-    from mason.platform.graphics_pygame import PygameGraphics
-    from mason.bond.isometric import IsometricBufferedRenderer
-except ImportError:
-    pass
-
-try:
-    from mason.platform.graphics_pysdl2cffi import GraphicsPysdl2cffi
-except ImportError:
-    pass
-
-from .data import *
-
-# from .group import *
-
 
 __version__ = '3.0.0'
 __author__ = 'bitcraft'
 __author_email__ = 'leif.theden@gmail.com'
 __description__ = 'Pygame Scrolling - Python 2.7 & 3.3+'
+
+from itertools import product
+
+from .compat import Rect
 
 
 def rectifier(width, height):
@@ -58,3 +42,20 @@ def rect_to_bb(rect):
 
 def range_product(*r):
     return product(*[range(i) for i in r])
+
+
+# convenience imports
+from .data import *
+from .group import *
+
+try:
+    from mason.platform.graphics_pygame import PygameGraphics
+    from mason.bond.isometric import IsometricBufferedRenderer
+except ImportError:
+    pass
+
+try:
+    from mason.platform.graphics_pysdl2cffi import GraphicsPysdl2cffi
+except ImportError:
+    pass
+

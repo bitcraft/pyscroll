@@ -166,26 +166,34 @@ class PygameGraphics(OrthographicTiler):
         layer_getter = itemgetter(2)
         surfaces.sort(key=layer_getter)
 
-        for layer, group in groupby(surfaces, layer_getter):
-            del dirty[:]
+        i = surfaces[0]
+        dirty_rect = surface_blit(i[0], i[1])
+        hits = hit(dirty_rect.move(ox, oy))
+        hit = hits.pop()
+        print(list(hits))
+        tiles = self.data.get_tile_images_by_rect(hit)
+        print(list(tiles))
 
-            for i in group:
-                try:
-                    flags = i[3]
-                except IndexError:
-                    dirty_append(surface_blit(i[0], i[1]))
-                else:
-                    dirty_append(surface_blit(i[0], i[1], None, flags))
-
-            # TODO: make set of covered tiles, in the case where a cluster
-            # of sprite surfaces causes excessive over tile overdrawing
-            for dirty_rect in dirty:
-                for r in hit(dirty_rect.move(ox, oy)):
-                    x, y, tw, th = r
-                    for l in [i for i in tile_layers if gt(i, layer)]:
-                        tile = get_tile((x // tw + left, y // th + top, l))
-                        if tile:
-                            surface_blit(tile, (x - ox, y - oy))
+        # for layer, group in groupby(surfaces, layer_getter):
+        #     del dirty[:]
+        #
+        #     for i in group:
+        #         try:
+        #             flags = i[3]
+        #         except IndexError:
+        #             dirty_append(surface_blit(i[0], i[1]))
+        #         else:
+        #             dirty_append(surface_blit(i[0], i[1], None, flags))
+        #
+        #     # TODO: make set of covered tiles, in the case where a cluster
+        #     # of sprite surfaces causes excessive over tile overdrawing
+        #     for dirty_rect in dirty:
+        #         for r in hit(dirty_rect.move(ox, oy)):
+        #             x, y, tw, th = r
+        #             for l in [i for i in tile_layers if gt(i, layer)]:
+        #                 tile = get_tile((x // tw + left, y // th + top, l))
+        #                 if tile:
+        #                     surface_blit(tile, (x - ox, y - oy))
 
     def _process_animation_queue(self):
         self._update_time()
