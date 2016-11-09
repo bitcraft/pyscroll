@@ -98,7 +98,8 @@ class OrthographicTiler(RendererAB):
 
         self._copy_buffer()
 
-        offset = self._x_offset, self._y_offset
+        offset = -self._buffer_rect.x, -self._buffer_rect.y
+
         self._draw_surfaces(self._buffer, offset, sprites)
 
     def _draw_surfaces(self, destination, offset, surfaces):
@@ -113,14 +114,14 @@ class OrthographicTiler(RendererAB):
         get_tiles = self.data.get_tile_images_by_cube
         tw, th = self.data.tile_size
         z_top = int(len(list(self.data.visible_tile_layers)))
-        dirty = list()
-        dirty_append = dirty.append
+        render_queue = list()
+        render_queue_append = render_queue.append
 
         for sprite in surfaces:
             # tokenize the sprite to blit
             sprite_surface, sprite_rect, sprite_layer = sprite
             token = sprite_layer, sprite_rect, sprite_surface, 0
-            dirty_append(token)
+            render_queue_append(token)
 
             # create rect that contains all the dirty tiles
             world_rect = sprite_rect.move(ox, oy)
@@ -146,15 +147,14 @@ class OrthographicTiler(RendererAB):
 
                 # convert tile coords to screen coords
                 token = z, (x1 * tw - ox, y1 * th - oy, tw, th), text_info, gid
-                dirty_append(token)
+                render_queue_append(token)
 
         # sort tiles and surfaces for best rendering
-        dirty.sort()
+        render_queue.sort()
 
         copy_sprite = partial(self._copy_sprite, destination)
-        for layer, position, surface, gid in dirty:
+        for layer, position, surface, gid in render_queue:
             copy_sprite(surface, position)
-            print(layer, surface)
 
     def redraw_tiles(self, destination=None):
         logger.warn('mason buffer redraw')
