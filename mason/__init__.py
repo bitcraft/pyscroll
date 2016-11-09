@@ -28,6 +28,13 @@ from itertools import product
 from .compat import Rect
 
 
+def snapper(interval):
+    def snap(value):
+        return round(value / interval) * interval
+
+    return snap
+
+
 def rectifier(width, height):
     def rectify(x, y):
         return Rect(x * width, y * height, width, height)
@@ -58,4 +65,3 @@ try:
     from mason.platform.graphics_pysdl2cffi import GraphicsPysdl2cffi
 except ImportError:
     pass
-

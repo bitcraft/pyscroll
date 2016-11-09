@@ -32,7 +32,6 @@ from mason import range_product, rectifier
 from mason.animation import AnimationEvent, AnimationFrame
 from mason.compat import Rect
 from mason.platform.graphics import RendererAB
-from mason.quadtree import FastQuadTree
 
 logger = logging.getLogger(__file__)
 
@@ -65,7 +64,6 @@ class OrthographicTiler(RendererAB):
         self._tile_queue = None  # tiles queued to be draw onto buffer
         self._animation_queue = None  # heap queue of animation token;  schedules tile changes
         self._last_time = None  # used for scheduling animations
-        self._layer_quadtree = None  # used to draw tiles that overlap optional surfaces
         self._zoom_level = 1.0  # negative numbers make map smaller, positive: bigger
         self._requires_animation_refresh = False  # flag to check for new tile changes
 
@@ -287,9 +285,5 @@ class OrthographicTiler(RendererAB):
         make_rect = rectifier(tw, th)
         rects = [make_rect(*i) for i in range_product(buffer_tile_width,
                                                       buffer_tile_height)]
-
-        # TODO: figure out what depth -actually- does
-        # values >= 8 tend to reduce performance
-        self._layer_quadtree = FastQuadTree(rects, 4)
 
         self.redraw_tiles(self._buffer)

@@ -22,10 +22,10 @@ from __future__ import print_function
 
 import logging
 import time
+from math import ceil
+
 from contextlib import contextmanager
 from heapq import heappop, heappush
-from itertools import groupby
-from operator import gt, itemgetter
 
 import pygame
 
@@ -156,11 +156,10 @@ class PygameGraphics(OrthographicTiler):
         destination_blit = destination.blit
         ox, oy = offset
         left, top = self._tile_view.topleft
-        hit = self._layer_quadtree.hit
         get_tiles = self.data.get_tile_images_by_rect
+        tw, th = self.data.tile_size
         dirty = list()
         dirty_append = dirty.append
-        tw, th = self.data.tile_size
 
         out_rect = None
 
@@ -171,34 +170,42 @@ class PygameGraphics(OrthographicTiler):
             dirty_append(token)
 
             # create rect that contains all the dirty tiles
-            hits = hit(sprite_rect.move(ox, oy))
-            damage = sprite_rect.unionall(list(hits))
-            out_rect = pygame.Rect(damage)
+            damage = sprite_rect.move(ox, oy)
 
             # convert screen coords to tile coords
-            damage.left //= tw
-            damage.top //= th
-            damage.width //= tw
-            damage.height //= th
+            # truncate/round down the left/top edge
+            _left = damage.left // tw
+            _top = damage.top // th
+
+            # round up the right/bottom edges
+
+            _right = ceil(damage.right / float(tw))
+            _bottom = ceil(damage.bottom / float(th))
+
+            _width = _right - _left
+            _height = _bottom - _top
+
+            damage = pygame.Rect(_left, _top, _width, _height)
+            out_rect = pygame.Rect(*[i * 32 for i in damage]).move(-ox, -oy)
 
             # adjust for the view
-            damage.left += left + 1
-            damage.top += top + 1
+            damage.left += left
+            damage.top += top
 
             # get all the covered tiles, in render order
             # tokenize each covered tile
             for tile in get_tiles(damage):
                 x, y, tile_layer, surface, gid = tile
 
-                # if sprite_layer > tile_layer:
+                if sprite_layer < tile_layer:
 
-                # adjust for view
-                x -= left
-                y -= top
+                    # adjust for view
+                    x -= left
+                    y -= top
 
-                # convert tile coords to screen coords
-                token = tile_layer, (x * tw - ox, y * th - oy), surface, gid
-                dirty_append(token)
+                    # convert tile coords to screen coords
+                    token = tile_layer, (x * tw - ox, y * th - oy), surface, gid
+                    dirty_append(token)
 
         # sort tiles and surfaces for best rendering
         dirty.sort()
@@ -208,7 +215,7 @@ class PygameGraphics(OrthographicTiler):
             dirty_rect = destination_blit(surface, position)
             debug_draws.append(dirty_rect)
 
-        debug = 0
+        debug = 1
         if debug:
             for dirty_rect in debug_draws:
                 pygame.draw.rect(destination, (255, 0, 255), dirty_rect, 2)
