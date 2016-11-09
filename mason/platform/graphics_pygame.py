@@ -146,14 +146,14 @@ class PygameGraphics(OrthographicTiler):
                 surfaces_offset = -offset[0], -offset[1]
                 self._draw_surfaces(surface, surfaces_offset, surfaces)
 
-    def _draw_surfaces(self, surface, offset, surfaces):
+    def _draw_surfaces(self, screen_surface, offset, surfaces):
         """ Draw surfaces onto buffer, then redraw tiles that cover them
 
         :param surface: destination
         :param offset: offset to compensate for buffer alignment
         :param surfaces: sequence of surfaces to blit
         """
-        surface_blit = surface.blit
+        surface_blit = screen_surface.blit
         ox, oy = offset
         left, top = self._tile_view.topleft
         hit = self._layer_quadtree.hit
@@ -162,17 +162,38 @@ class PygameGraphics(OrthographicTiler):
         dirty = list()
         dirty_append = dirty.append
 
-        # TODO: check to avoid sorting overhead
-        layer_getter = itemgetter(2)
-        surfaces.sort(key=layer_getter)
-
+        # collect tiles that are covered
+        tmp = list()
         i = surfaces[0]
-        dirty_rect = surface_blit(i[0], i[1])
+        # dirty_rect = surface_blit(i[0], i[1])
+        dirty_rect = pygame.Rect(i[1])
         hits = hit(dirty_rect.move(ox, oy))
-        hit = hits.pop()
-        print(list(hits))
-        tiles = self.data.get_tile_images_by_rect(hit)
-        print(list(tiles))
+
+        for hit in hits:
+            hit2 = [i // 32 for i in hit]
+            hit2[0] += left
+            hit2[1] += top
+            tiles = self.data.get_tile_images_by_rect(hit2)
+
+            # tokenize each covered tile
+            for tile in tiles:
+                x, y, layer, surface, gid = tile
+                x -= left
+                y -= top
+                token = layer, x * 32 - ox, y * 32 - oy, surface, gid
+                tmp.append(token)
+
+        # tokenize the sprite to blit
+        surface, rect, layer = surfaces[0]
+        x, y, w, h = rect
+        token = layer, x, y, surface, 1
+        tmp.append(token)
+
+        tmp.sort()
+
+        for token in tmp:
+            layer, x, y, surface, gid = token
+            surface_blit(surface, (x, y))
 
         # for layer, group in groupby(surfaces, layer_getter):
         #     del dirty[:]

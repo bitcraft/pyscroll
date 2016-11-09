@@ -215,7 +215,7 @@ class QuestGame(object):
 
         try:
             while self.running:
-                dt = clock.tick_busy_loop() / 1000.
+                dt = clock.tick_busy_loop(50) / 1000.
 
                 print(clock.get_fps())
 
