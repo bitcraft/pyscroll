@@ -22,8 +22,6 @@ from __future__ import print_function
 
 import logging
 import time
-from math import ceil
-
 from contextlib import contextmanager
 from heapq import heappop, heappush
 
@@ -97,7 +95,10 @@ class PygameGraphics(OrthographicTiler):
             self._tile_view.move_ip(dx, dy)
             self.redraw_tiles(self._buffer)
 
-    def draw(self, surface, rect, surfaces=None):
+    def _copy_sprite(self, destination, sprite, rect):
+        return destination.blit(sprite, rect)
+
+    def draw(self, sprites, surface=None, rect=None):
         """ Draw the map onto a surface
 
         pass a rect that defines the draw area for:
@@ -117,12 +118,12 @@ class PygameGraphics(OrthographicTiler):
 
         :param surface: pygame surface to draw to
         :param rect: area to draw to
-        :param surfaces: optional sequence of surfaces to interlace between tiles
+        :param sprites: optional sequence of surfaces to interlace between tiles
         """
         if self._zoom_level == 1.0:
-            self._draw_map(surface, rect, surfaces)
+            self._draw_map(surface, rect, sprites)
         else:
-            self._draw_map(self._zoom_buffer, self._zoom_buffer.get_rect(), surfaces)
+            self._draw_map(self._zoom_buffer, self._zoom_buffer.get_rect(), sprites)
             self.scaling_function(self._zoom_buffer, rect.size, surface)
 
     def _clear_buffer(self, target, color):
@@ -145,67 +146,6 @@ class PygameGraphics(OrthographicTiler):
             if surfaces:
                 surfaces_offset = -offset[0], -offset[1]
                 self._draw_surfaces(surface, surfaces_offset, surfaces)
-
-    def _draw_surfaces(self, destination, offset, surfaces):
-        """ Draw surfaces onto buffer, then redraw tiles that cover them
-
-        :param destination: destination
-        :param offset: offset to compensate for buffer alignment
-        :param surfaces: sequence of surfaces to blit
-        """
-        destination_blit = destination.blit
-        ox, oy = offset
-        left, top = self._tile_view.topleft
-        get_tiles = self.data.get_tile_images_by_cube
-        tw, th = self.data.tile_size
-        z_top = len(list(self.data.visible_tile_layers))
-        dirty = list()
-        dirty_append = dirty.append
-
-        for sprite in surfaces:
-            # tokenize the sprite to blit
-            sprite_surface, sprite_rect, sprite_layer = sprite
-            token = sprite_layer, sprite_rect.topleft, sprite_surface, 0
-            dirty_append(token)
-
-            # create rect that contains all the dirty tiles
-            world_rect = sprite_rect.move(ox, oy)
-
-            # convert screen coords to tile coords
-            # truncate/round down the left/top edge
-            x1 = (world_rect.left // tw) + left
-            y1 = (world_rect.top // th) + top
-
-            # round up the right/bottom edges
-            x2 = ceil(world_rect.right / float(tw)) + left - 1
-            y2 = ceil(world_rect.bottom / float(th)) + top - 1
-
-            # a 3d area to redraw tiles
-            damage = x1, y1, sprite_layer + 1, x2, y2, z_top
-
-            # get all the covered tiles, in render order
-            # tokenize each covered tile
-            for z, x1, y1, surface, gid in get_tiles(damage):
-                # adjust for view
-                x1 -= left
-                y1 -= top
-
-                # convert tile coords to screen coords
-                token = z, (x1 * tw - ox, y1 * th - oy), surface, gid
-                dirty_append(token)
-
-        # sort tiles and surfaces for best rendering
-        dirty.sort()
-
-        debug_draws = list()
-        for layer, position, surface, gid in dirty:
-            dirty_rect = destination_blit(surface, position)
-            debug_draws.append(dirty_rect)
-
-        debug = 0
-        if debug:
-            for dirty_rect in debug_draws:
-                pygame.draw.rect(destination, (255, 0, 255), dirty_rect, 2)
 
     def _process_animation_queue(self):
         self._update_time()

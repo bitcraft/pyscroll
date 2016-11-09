@@ -73,6 +73,14 @@ class GraphicsPysdl2cffi(OrthographicTiler):
         with render_target_context(renderer, target):
             sdl.renderClear(renderer)
 
+    def _copy_sprite(self, destination, sprite, rect):
+        texture, src_rect, angle, flip = sprite
+
+        dst_rect = sdl.Rect()
+        dst_rect.x, dst_rect.y, dst_rect.w, dst_rect.h = [int(i) for i in rect]
+
+        sdl.renderCopy(self.ctx.renderer, texture, src_rect, dst_rect)
+
     def _process_animation_queue(self):
         self._update_time()
         needs_redraw = False
@@ -98,10 +106,10 @@ class GraphicsPysdl2cffi(OrthographicTiler):
             self.redraw_tiles()
 
     def _new_buffer(self, size):
-        w, h = size
         fmt = sdl.PIXELFORMAT_RGBA8888
-        texture = sdl.createTexture(self.ctx.renderer, fmt, sdl.TEXTUREACCESS_TARGET, w, h)
-        return texture
+        flags = sdl.TEXTUREACCESS_TARGET
+        w, h = size
+        return sdl.createTexture(self.ctx.renderer, fmt, flags, w, h)
 
     def _create_buffers(self, view_size, buffer_size):
         """ Create the buffers, taking in account pixel alpha or colorkey

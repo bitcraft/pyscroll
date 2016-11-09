@@ -21,14 +21,13 @@ from __future__ import division
 from __future__ import print_function
 
 import logging
-import math
 import time
 from collections import defaultdict
 from functools import partial
 from heapq import heappop, heappush
 from itertools import chain
+from math import ceil
 
-from mason import range_product, rectifier
 from mason.animation import AnimationEvent, AnimationFrame
 from mason.compat import Rect
 from mason.platform.graphics import RendererAB
@@ -88,7 +87,7 @@ class OrthographicTiler(RendererAB):
         value = 1.0 / value
         return [int(round(i * value)) for i in size]
 
-    def draw(self):
+    def draw(self, sprites):
         """ Draw the map onto a surface
         """
         if self._animation_queue:
@@ -98,6 +97,64 @@ class OrthographicTiler(RendererAB):
             self._clear_screen()
 
         self._copy_buffer()
+
+        offset = self._x_offset, self._y_offset
+        self._draw_surfaces(self._buffer, offset, sprites)
+
+    def _draw_surfaces(self, destination, offset, surfaces):
+        """ Draw surfaces onto buffer, then redraw tiles that cover them
+
+        :param destination: destination
+        :param offset: offset to compensate for buffer alignment
+        :param surfaces: sequence of surfaces to blit
+        """
+        ox, oy = offset
+        left, top = self._tile_view.topleft
+        get_tiles = self.data.get_tile_images_by_cube
+        tw, th = self.data.tile_size
+        z_top = int(len(list(self.data.visible_tile_layers)))
+        dirty = list()
+        dirty_append = dirty.append
+
+        for sprite in surfaces:
+            # tokenize the sprite to blit
+            sprite_surface, sprite_rect, sprite_layer = sprite
+            token = sprite_layer, sprite_rect, sprite_surface, 0
+            dirty_append(token)
+
+            # create rect that contains all the dirty tiles
+            world_rect = sprite_rect.move(ox, oy)
+
+            # convert screen coords to tile coords
+            # truncate/round down the left/top edge
+            x1 = int((world_rect.left // tw) + left)
+            y1 = int((world_rect.top // th) + top)
+
+            # round up the right/bottom edges
+            x2 = int(ceil(world_rect.right / float(tw)) + left - 1)
+            y2 = int(ceil(world_rect.bottom / float(th)) + top - 1)
+
+            # a 3d area to redraw tiles
+            damage = x1, y1, int(sprite_layer + 1), x2, y2, z_top
+
+            # get all the covered tiles, in render order
+            # tokenize each covered tile
+            for z, x1, y1, text_info, gid in get_tiles(damage):
+                # adjust for view
+                x1 -= left
+                y1 -= top
+
+                # convert tile coords to screen coords
+                token = z, (x1 * tw - ox, y1 * th - oy, tw, th), text_info, gid
+                dirty_append(token)
+
+        # sort tiles and surfaces for best rendering
+        dirty.sort()
+
+        copy_sprite = partial(self._copy_sprite, destination)
+        for layer, position, surface, gid in dirty:
+            copy_sprite(surface, position)
+            print(layer, surface)
 
     def redraw_tiles(self, destination=None):
         logger.warn('mason buffer redraw')
@@ -268,8 +325,8 @@ class OrthographicTiler(RendererAB):
         """
         tw, th = self.data.tile_size
         mw, mh = self.data.map_size
-        buffer_tile_width = int(math.ceil(view_size[0] / tw) + 1)
-        buffer_tile_height = int(math.ceil(view_size[1] / th) + 1)
+        buffer_tile_width = int(ceil(view_size[0] / tw) + 1)
+        buffer_tile_height = int(ceil(view_size[1] / th) + 1)
         buffer_pixel_size = buffer_tile_width * tw, buffer_tile_height * th
 
         self.map_rect = Rect(0, 0, mw * tw, mh * th)
@@ -281,9 +338,5 @@ class OrthographicTiler(RendererAB):
         self._half_height = view_size[1] // 2
         self._x_offset = 0
         self._y_offset = 0
-
-        make_rect = rectifier(tw, th)
-        rects = [make_rect(*i) for i in range_product(buffer_tile_width,
-                                                      buffer_tile_height)]
 
         self.redraw_tiles(self._buffer)

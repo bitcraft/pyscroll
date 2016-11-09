@@ -67,3 +67,13 @@ class RendererAB(object):
         :param surfaces: optional sequence of surfaces to interlace between tiles
         """
         raise NotImplementedError
+
+    def _copy_sprite(self, destination, sprite, rect):
+        """
+
+        :param destination:
+        :param sprite:
+        :param rect:
+        :return:
+        """
+        raise NotImplementedError

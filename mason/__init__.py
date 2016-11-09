@@ -59,7 +59,7 @@ def range_product(*r):
 
 # convenience imports
 from .data import *
-from .group import *
+# from .group import *
 
 try:
     from mason.platform.graphics_pygame import PygameGraphics
