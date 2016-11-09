@@ -28,6 +28,12 @@ from itertools import product
 from .compat import Rect
 
 
+def rev(seq, start, stop):
+    if start < 0:
+        start = 0
+    return enumerate(seq[start:stop + 1], start)
+
+
 def snapper(interval):
     def snap(value):
         return round(value / interval) * interval

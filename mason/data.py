@@ -19,9 +19,7 @@ along with mason.  If not, see <http://www.gnu.org/licenses/>.
 """
 from itertools import product
 
-import pytmx
-
-from mason import rect_to_bb
+from mason import rect_to_bb, rev
 
 __all__ = ('PyscrollDataAdapter', 'TiledMapData')
 
@@ -170,6 +168,8 @@ class TiledMapData(PyscrollDataAdapter):
 
         :return: Sequence of pytmx object layers/groups
         """
+        import pytmx
+
         return (layer for layer in self.tmx.visible_layers
                 if isinstance(layer, pytmx.TiledObjectGroup))
 
@@ -204,12 +204,6 @@ class TiledMapData(PyscrollDataAdapter):
 
         More efficient because data is accessed and cached locally
         """
-
-        def rev(seq, start, stop):
-            if start < 0:
-                start = 0
-            return enumerate(seq[start:stop + 1], start)
-
         x1, y1, x2, y2 = rect_to_bb(rect)
         images = self.tmx.images
         layers = self.tmx.layers
@@ -217,3 +211,16 @@ class TiledMapData(PyscrollDataAdapter):
             for y, row in rev(layers[layer].data, y1, y2):
                 for x, gid in [i for i in rev(row, x1, x2) if i[1]]:
                     yield x, y, layer, images[gid], gid
+
+    def get_tile_images_by_cube(self, cube):
+        """ Speed up data access
+
+        More efficient because data is accessed and cached locally
+        """
+        x1, y1, z1, x2, y2, z2 = cube
+        images = self.tmx.images
+        layers = self.tmx.layers
+        for layer in range(z1, z2):
+            for y, row in rev(layers[layer].data, y1, y2):
+                for x, gid in [i for i in rev(row, x1, x2) if i[1]]:
+                    yield layer, x, y, images[gid], gid
