@@ -123,7 +123,7 @@ class QuestGame(object):
 
         # create new renderer (camera)
         self.map_layer = mason.PygameGraphics(map_data, screen.get_size())
-        self.map_layer.zoom = 2
+        self.map_layer.zoom = 1
 
         # mason supports layered rendering.  our map has 3 'under' layers
         # layers begin with 0, so the layers are 0, 1, and 2.
@@ -145,7 +145,7 @@ class QuestGame(object):
         self.group.center(self.hero.rect.center)
 
         # draw the map and all sprites
-        self.group.draw(surface)
+        self.group.draw(surface=surface)
 
     def handle_input(self):
         """ Handle pygame input events

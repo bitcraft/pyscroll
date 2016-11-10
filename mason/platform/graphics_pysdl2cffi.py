@@ -47,19 +47,15 @@ class GraphicsPysdl2cffi(OrthographicTiler):
     and animation information.  See the data class api in mason.data, or
     use the built-in pytmx support for loading maps created with Tiled.
     """
+    _always_clear = True
 
     def __init__(self, ctx, data, size, clamp_camera=False, time_source=time.time):
         # private attributes
         self.ctx = ctx
         self._animation_map = dict()
         self._buffer_rect = sdl.Rect()
-        self._always_clear = True
 
         super(GraphicsPysdl2cffi, self).__init__(data, size, clamp_camera, time_source)
-
-    def _change_offset(self, x, y):
-        self._buffer_rect.x = -int(x)
-        self._buffer_rect.y = -int(y)
 
     def _change_view(self, dx, dy):
         self._tile_view.move_ip(dx, dy)
@@ -81,34 +77,10 @@ class GraphicsPysdl2cffi(OrthographicTiler):
 
         sdl.renderCopy(self.ctx.renderer, texture, src_rect, dst_rect)
 
-    def _process_animation_queue(self):
-        self._update_time()
-        needs_redraw = False
-
-        # test if the next scheduled tile change is ready
-        while self._animation_queue[0].next <= self._last_time:
-            needs_redraw = True
-            token = heappop(self._animation_queue)
-
-            # advance the animation frame index, looping by default
-            if token.index == len(token.frames) - 1:
-                token.index = 0
-            else:
-                token.index += 1
-
-            next_frame = token.frames[token.index]
-            token.next = next_frame.duration + self._last_time
-            self._animation_map[token.gid] = next_frame.image
-            heappush(self._animation_queue, token)
-
-        # TODO: don't redraw
-        if needs_redraw:
-            self.redraw_tiles()
-
-    def _new_buffer(self, size):
+    def _new_buffer(self, desired_size):
         fmt = sdl.PIXELFORMAT_RGBA8888
         flags = sdl.TEXTUREACCESS_TARGET
-        w, h = size
+        w, h = desired_size
         return sdl.createTexture(self.ctx.renderer, fmt, flags, w, h)
 
     def _create_buffers(self, view_size, buffer_size):
@@ -119,8 +91,7 @@ class GraphicsPysdl2cffi(OrthographicTiler):
         """
         self._buffer = self._new_buffer(buffer_size)
         size = sdl.queryTexture(self._buffer)[3:]
-        self._buffer_rect.w = size[0]
-        self._buffer_rect.h = size[1]
+        self._buffer_rect.w = self._buffer_rect.h = size
 
     def _flush_tile_queue(self, destination=None):
         """ Blit the queued tiles and block until the tile queue is empty

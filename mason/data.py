@@ -210,7 +210,7 @@ class TiledMapData(PyscrollDataAdapter):
         for layer in self.tmx.visible_tile_layers:
             for y, row in rev(layers[layer].data, y1, y2):
                 for x, gid in [i for i in rev(row, x1, x2) if i[1]]:
-                    yield x, y, layer, images[gid], gid
+                    yield layer, x, y, images[gid], gid
 
     def get_tile_images_by_cube(self, cube):
         """ Speed up data access

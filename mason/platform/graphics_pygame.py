@@ -56,9 +56,8 @@ class PygameGraphics(OrthographicTiler):
         self.scaling_function = scaling_function  # what function to use when scaling the zoom buffer
 
         # internal private defaults
-        self._x_offset = None  # offsets are used to scroll map in sub-tile increments
-        self._y_offset = None
         self._zoom_buffer = None  # used to speed up zoom operations
+        self._buffer_rect = pygame.Rect(0, 0, 100, 100)
 
         # handle colorkey/alpha
         if colorkey and alpha:
@@ -76,15 +75,11 @@ class PygameGraphics(OrthographicTiler):
 
         super(PygameGraphics, self).__init__(data, size, clamp_camera, time_source)
 
-    def _change_offset(self, x, y):
-        self._x_offset = x
-        self._y_offset = y
-
     def _change_view(self, dx, dy):
         view_change = max(abs(dx), abs(dy))
-        tw, th = self.data.tile_size
 
         if view_change and (view_change <= self._redraw_cutoff):
+            tw, th = self.data.tile_size
             self._buffer.scroll(-dx * tw, -dy * th)
             self._tile_view.move_ip(dx, dy)
             self._queue_edge_tiles(dx, dy)
@@ -120,83 +115,28 @@ class PygameGraphics(OrthographicTiler):
         :param rect: area to draw to
         :param sprites: optional sequence of surfaces to interlace between tiles
         """
-        if self._zoom_level == 1.0:
-            self._draw_map(surface, rect, sprites)
-        else:
-            self._draw_map(self._zoom_buffer, self._zoom_buffer.get_rect(), sprites)
-            self.scaling_function(self._zoom_buffer, rect.size, surface)
+        if self._animation_queue:
+            self._process_animation_queue()
+
+        if not self.anchored_view:
+            self._clear_screen()
+
+        with surface_clipping_context(surface, rect):
+            if self._zoom_level == 1.0:
+                self._copy_buffer(surface)
+            else:
+                self._copy_buffer(surface)
+                # self._draw_map(self._zoom_buffer, self._zoom_buffer.get_rect(), sprites)
+                # self.scaling_function(self._zoom_buffer, rect.size, surface)
+
+            if sprites:
+                self._draw_surfaces(surface, sprites)
+
+    def _copy_buffer(self, destination):
+        destination.blit(self._buffer, self._buffer_rect)
 
     def _clear_buffer(self, target, color):
         target.fill(color)
-
-    def _draw_map(self, surface, rect, surfaces):
-        """ Render the map and optional surfaces to destination surface
-
-        :param surface: pygame surface to draw to
-        :param rect: area to draw to
-        :param surfaces: optional sequence of surfaces to interlace between tiles
-        """
-        if not self.anchored_view:
-            surface.fill(0)
-
-        offset = -self._x_offset + rect.left, -self._y_offset + rect.top
-
-        with surface_clipping_context(surface, rect):
-            surface.blit(self._buffer, offset)
-            if surfaces:
-                surfaces_offset = -offset[0], -offset[1]
-                self._draw_surfaces(surface, surfaces_offset, surfaces)
-
-    def _process_animation_queue(self):
-        self._update_time()
-        self._tile_queue = list()
-        tile_layers = tuple(self.data.visible_tile_layers)
-
-        # test if the next scheduled tile change is ready
-        while self._animation_queue[0].next <= self._last_time:
-            token = heappop(self._animation_queue)
-
-            # advance the animation frame index, looping by default
-            if token.index == len(token.frames) - 1:
-                token.index = 0
-            else:
-                token.index += 1
-
-            next_frame = token.frames[token.index]
-            token.next = next_frame.duration + self._last_time
-            heappush(self._animation_queue, token)
-
-            # go through the animated tile map:
-            #   * queue tiles that need to be changed
-            #   * remove map entries that do not collide with screen
-
-            needs_clear = False
-            for x, y, l in self._animation_tiles[token.gid]:
-
-                # if this tile is on the buffer (checked by using the tile view)
-                if self._tile_view.collidepoint(x, y):
-
-                    # redraw the entire column of tiles
-                    for layer in tile_layers:
-                        if layer == l:
-                            self._tile_queue.append((x, y, layer, next_frame.image, token.gid))
-                        else:
-                            image = self.data.get_tile_image((x, y, layer))
-                            if image:
-                                self._tile_queue.append((x, y, layer, image, None))
-                else:
-                    needs_clear = True
-
-            # this will delete the set of tile locations that are checked for
-            # animated tiles.  when the tile queue is flushed, any tiles in the
-            # queue will be added again.  i choose to remove the set, rather
-            # than removing the item in the set to reclaim memory over time...
-            # though i could implement it by removing entries.  idk  -lt
-            if needs_clear:
-                del self._animation_tiles[token.gid]
-
-        if self._tile_queue:
-            self._flush_tile_queue(self._buffer)
 
     def _new_buffer(self, size):
         if self._alpha:
@@ -223,6 +163,7 @@ class PygameGraphics(OrthographicTiler):
             self._zoom_buffer = None
 
         self._buffer = self._new_buffer(buffer_size)
+        self._buffer_rect.size = buffer_size
         self.data.convert_surfaces(self._buffer, True)
 
     def _flush_tile_queue(self, surface):
@@ -234,6 +175,6 @@ class PygameGraphics(OrthographicTiler):
         surface_blit = surface.blit
         ani_tiles = self._animation_tiles
 
-        for x, y, l, tile, gid in self._tile_queue:
-            ani_tiles[gid].add((x, y, l))
+        for z, x, y, tile, gid in self._tile_queue:
+            ani_tiles[gid].add((x, y))
             surface_blit(tile, (x * tw - ltw, y * th - tth))

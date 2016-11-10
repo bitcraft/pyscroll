@@ -17,7 +17,20 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with mason.  If not, see <http://www.gnu.org/licenses/>.
 """
+__all__ = ('Rect', 'SDLRect')
+
+
 try:
     from pygame import Rect
+
+    SDLRect = Rect
+
 except ImportError:
-    from mason.rect import Rect
+    try:
+        import sdl2
+
+        from mason.rect import Rect
+
+        SDLRect = sdl2.Rect
+    except ImportError:
+        pass

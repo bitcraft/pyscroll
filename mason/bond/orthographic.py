@@ -28,8 +28,9 @@ from heapq import heappop, heappush
 from itertools import chain
 from math import ceil
 
+from mason import butter
 from mason.animation import AnimationEvent, AnimationFrame
-from mason.compat import Rect
+from mason.compat import Rect, SDLRect
 from mason.platform.graphics import RendererAB
 
 logger = logging.getLogger(__file__)
@@ -40,6 +41,7 @@ class OrthographicTiler(RendererAB):
     """
 
     alpha_clear_color = 0, 0, 0, 0
+    _always_clear = False  # force the buffer to be cleared when redrawing
 
     def __init__(self, data, size, clamp_camera=True, time_source=time.time):
 
@@ -47,34 +49,49 @@ class OrthographicTiler(RendererAB):
         self.data = data  # reference to data source
         self.clamp_camera = clamp_camera  # if true, cannot scroll past map edge
         self.anchored_view = True  # if true, map will be fixed to upper left corner
-        self.map_rect = None  # rect of entire map
+        self.map_rect = None  # rect of entire map in pixels
         self.time_source = time_source  # determines how tile animations are processed
 
         # private attributes
-        self._always_clear = False  # force the buffer to be cleared when redrawing
         self._clear_color = self.alpha_clear_color
-        self._size = None  # size that the camera/viewport is on screen, kinda
         self._redraw_cutoff = None  # size of dirty tile edge that will trigger full redraw
+        self._size = None  # size that the camera/viewport is on screen, kinda
         self._buffer = None  # complete rendering of tilemap
-        self._buffer_size = None
+        self._buffer_size = None  # size of the buffer; typically larger than the screen
         self._tile_view = None  # this rect represents each tile on the buffer
         self._half_width = None  # 'half x' attributes are used to reduce division ops.
         self._half_height = None
         self._tile_queue = None  # tiles queued to be draw onto buffer
-        self._animation_queue = None  # heap queue of animation token;  schedules tile changes
         self._last_time = None  # used for scheduling animations
+        self._animation_queue = None  # priority queue of animation token;  schedules tile changes
         self._zoom_level = 1.0  # negative numbers make map smaller, positive: bigger
-        self._requires_animation_refresh = False  # flag to check for new tile changes
+        self._sprite_offset = None
+
+        # Hack for now
+        if SDLRect is Rect:
+            # pygame
+            self._buffer_rect = Rect(0, 0, 0, 0)
+        else:
+            # pysdl2_cffi
+            self._buffer_rect = SDLRect()
 
         # used to speed up animated tile redraws by keeping track of animated tiles
         # so they can be updated individually
+        self._animation_flag = False
         self._animation_tiles = defaultdict(set)
+        self._animation_map = dict()
 
         # this represents the viewable pixels, aka 'camera'
         self.view_rect = Rect(0, 0, 0, 0)
 
         self.reload_animations()
         self.set_size(size)
+
+    def _change_offset(self, x, y):
+        x, y = int(x), int(y)
+        self._buffer_rect.x = -x
+        self._buffer_rect.y = -y
+        self._sprite_offset = x, y
 
     def _update_time(self):
         self._last_time = time.time() * 1000
@@ -87,35 +104,34 @@ class OrthographicTiler(RendererAB):
         value = 1.0 / value
         return [int(round(i * value)) for i in size]
 
-    def draw(self, sprites):
+    def draw(self, sprites, surface=None, rect=None):
         """ Draw the map onto a surface
         """
         if self._animation_queue:
             self._process_animation_queue()
+            if self._animation_flag:
+                self.redraw_tiles()
 
         if not self.anchored_view:
             self._clear_screen()
 
+        self._draw_map()
         self._copy_buffer()
+        self._draw_surfaces(self._buffer, sprites)
 
-        offset = -self._buffer_rect.x, -self._buffer_rect.y
-
-        self._draw_surfaces(self._buffer, offset, sprites)
-
-    def _draw_surfaces(self, destination, offset, surfaces):
+    def _draw_surfaces(self, destination, surfaces):
         """ Draw surfaces onto buffer, then redraw tiles that cover them
 
         :param destination: destination
-        :param offset: offset to compensate for buffer alignment
         :param surfaces: sequence of surfaces to blit
         """
-        ox, oy = offset
-        left, top = self._tile_view.topleft
-        get_tiles = self.data.get_tile_images_by_cube
-        tw, th = self.data.tile_size
+        ox, oy = self._sprite_offset
         z_top = int(len(list(self.data.visible_tile_layers)))
+        map_get = self._animation_map.get
         render_queue = list()
         render_queue_append = render_queue.append
+
+        butterer = butter(self.data.tile_size, z_top, self._tile_view.topleft)
 
         for sprite in surfaces:
             # tokenize the sprite to blit
@@ -123,38 +139,57 @@ class OrthographicTiler(RendererAB):
             token = sprite_layer, sprite_rect, sprite_surface, 0
             render_queue_append(token)
 
-            # create rect that contains all the dirty tiles
+            # move the sprite rect to compensate for the buffer offset
             world_rect = sprite_rect.move(ox, oy)
 
-            # convert screen coords to tile coords
-            # truncate/round down the left/top edge
-            x1 = int((world_rect.left // tw) + left)
-            y1 = int((world_rect.top // th) + top)
+            # get 3d area of the tiles that are interesting with the sprite
+            damage = butterer(world_rect, sprite_layer)
 
-            # round up the right/bottom edges
-            x2 = int(ceil(world_rect.right / float(tw)) + left - 1)
-            y2 = int(ceil(world_rect.bottom / float(th)) + top - 1)
+            # mark the interesting tiles as damaged, which will cause them to be redrawn
+            for z, position, tex_info, gid in self.damage_tiles(damage):
+                tex_info = map_get(gid, tex_info)
+                token = (z, position, tex_info, gid)
+                render_queue.append(token)
 
-            # a 3d area to redraw tiles
-            damage = x1, y1, int(sprite_layer + 1), x2, y2, z_top
-
-            # get all the covered tiles, in render order
-            # tokenize each covered tile
-            for z, x1, y1, text_info, gid in get_tiles(damage):
-                # adjust for view
-                x1 -= left
-                y1 -= top
-
-                # convert tile coords to screen coords
-                token = z, (x1 * tw - ox, y1 * th - oy, tw, th), text_info, gid
-                render_queue_append(token)
-
-        # sort tiles and surfaces for best rendering
+        # sort tiles and surfaces for correct render order
         render_queue.sort()
 
+        # copy tiles and sprites directly to the screen, not buffer
         copy_sprite = partial(self._copy_sprite, destination)
         for layer, position, surface, gid in render_queue:
             copy_sprite(surface, position)
+
+    def damage_tiles(self, damage):
+        """
+
+        :param damage:
+        :return:
+        """
+        # get all the covered tiles, in render order
+        # tokenize each covered tile
+        ox, oy = self._sprite_offset
+        tw, th = self.data.tile_size
+        left, top = self._tile_view.topleft
+
+        for z, x1, y1, tex_info, gid in self.data.get_tile_images_by_cube(damage):
+            # adjust for view
+            x1 -= left
+            y1 -= top
+
+            # convert tile coords to screen coords
+            token = z, (x1 * tw - ox, y1 * th - oy, tw, th), tex_info, gid
+
+            yield token
+
+    def damage_tiles2(self, damage):
+        """
+
+        :param damage:
+        :return:
+        """
+        for z, x1, y1, tex_info, gid in self.data.get_tile_images_by_cube(damage):
+            token = z, x1, y1, tex_info, gid
+            yield token
 
     def redraw_tiles(self, destination=None):
         logger.warn('mason buffer redraw')
@@ -272,6 +307,8 @@ class OrthographicTiler(RendererAB):
         :param dy: Edge along Y axis to enqueue
         :return: None
         """
+        # TODO: possibly clean animation tiles
+
         v = self._tile_view
         fill = partial(self._buffer.fill, self._clear_color)
         tw, th = self.data.tile_size
@@ -297,25 +334,86 @@ class OrthographicTiler(RendererAB):
             append((v.left, v.top, v.width, -dy))
 
     def _process_animation_queue(self):
+        """
+
+        :return:
+        """
         self._update_time()
         self._tile_queue = list()
-        self._requires_animation_refresh = False
+        self._animation_flag = False
+        map_get = self._animation_map.get
+        render_queue = list()
+        z_top = int(len(list(self.data.visible_tile_layers)))
 
         # test if the next scheduled tile change is ready
         while self._animation_queue[0].next <= self._last_time:
-            self._requires_animation_refresh = True
+            self._animation_flag = True
 
+            # get the next tile change "animation token"
             token = heappop(self._animation_queue)
 
-            # advance the animation frame index, looping by default
-            if token.index == len(token.frames) - 1:
-                token.index = 0
-            else:
-                token.index += 1
+            # advance animation and reschedule it
+            self._process_animation_token(token)
 
-            next_frame = token.frames[token.index]
-            token.next = next_frame.duration + self._last_time
-            heappush(self._animation_queue, token)
+            # determine if this gid should be removed from the animation map
+            # gids will be removed if the a tile is no longer on the screen
+            needs_clear = False
+
+            # iterate over all the tile positions on the screen for this gid
+            for x, y in self._animation_tiles[token.gid]:
+
+                # TODO: move to change_view and remove this check
+                # determine if this tile is still on the buffer (checked by using the tile view)
+                if not self._tile_view.collidepoint(x, y):
+                    needs_clear = True
+                    continue
+
+                damage = x, y, 0, x, y, z_top
+                for z, x1, y1, tex_info, gid in self.data.get_tile_images_by_cube(damage):
+                    tex_info = map_get(gid, tex_info)
+                    tile = z, x1, y1, tex_info, gid
+                    render_queue.append(tile)
+
+            # this will delete the set of tile locations that are checked for
+            # animated tiles.  when the tile queue is flushed, any tiles in the
+            # queue will be added again.  i choose to remove the set, rather
+            # than removing the item in the set to reclaim memory over time...
+            # though i could implement it by removing entries.  idk  -lt
+            if needs_clear:
+                del self._animation_tiles[token.gid]
+
+        # sort tiles and surfaces for correct render order
+        import operator
+
+        getter = operator.itemgetter(0, 1, 2)
+        render_queue.sort(key=getter)
+
+        self._tile_queue = render_queue
+        self._flush_tile_queue(self._buffer)
+
+    def _process_animation_token(self, token):
+        """
+
+        :param token:
+        :return:
+        """
+        # advance the animation frame index, looping by default
+        if token.index == len(token.frames) - 1:
+            token.index = 0
+        else:
+            token.index += 1
+
+        # get the next frame to be displayed (index already changed)
+        next_frame = token.frames[token.index]
+
+        # reset the timer for the change
+        token.next = next_frame.duration + self._last_time
+
+        # set the animation map
+        self._animation_map[token.gid] = next_frame.image
+
+        # put token back into the queue
+        heappush(self._animation_queue, token)
 
     def _initialize_buffers(self, view_size):
         """ Create the buffers to cache tile drawing
@@ -338,5 +436,7 @@ class OrthographicTiler(RendererAB):
         self._half_height = view_size[1] // 2
         self._x_offset = 0
         self._y_offset = 0
+
+        # TODO: clear the animation map
 
         self.redraw_tiles(self._buffer)

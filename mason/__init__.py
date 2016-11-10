@@ -28,6 +28,37 @@ from itertools import product
 from .compat import Rect
 
 
+def butter(tile_size, top_layer, offset=None):
+    """ Spread out the rect dimensions so it aligns with the tile grid
+
+    The result will never be smaller than the input, and will always contain it.
+
+    Returns dimensions suitable for AABB
+    """
+    from math import ceil
+
+    tw, th = tile_size
+
+    if offset is None:
+        left, top = 0, 0
+    else:
+        left, top = offset
+
+    def func(rect, sprite_layer):
+        # convert screen coords to tile coords
+        # truncate/round down the left/top edge
+        x1 = int((rect.left // tw) + left)
+        y1 = int((rect.top // th) + top)
+
+        # round up the right/bottom edges
+        x2 = int(ceil(rect.right / float(tw)) + left - 1)
+        y2 = int(ceil(rect.bottom / float(th)) + top - 1)
+
+        return x1, y1, int(sprite_layer + 1), x2, y2, top_layer
+
+    return func
+
+
 def rev(seq, start, stop):
     if start < 0:
         start = 0
@@ -59,13 +90,14 @@ def range_product(*r):
 
 # convenience imports
 from .data import *
+
 # from .group import *
 
 try:
     from mason.platform.graphics_pygame import PygameGraphics
     from mason.bond.isometric import IsometricBufferedRenderer
 except ImportError:
-    pass
+    raise
 
 try:
     from mason.platform.graphics_pysdl2cffi import GraphicsPysdl2cffi

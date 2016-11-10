@@ -68,6 +68,13 @@ class RendererAB(object):
         """
         raise NotImplementedError
 
+    def _draw_surfaces(self):
+        """
+
+        :return:
+        """
+        raise NotImplementedError
+
     def _copy_sprite(self, destination, sprite, rect):
         """
 
