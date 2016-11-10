@@ -33,11 +33,11 @@ except ImportError:
     logger.warn("not importing pygame types")
 
 try:
-    import sdl2
+    import sdl
 
     from mason.rect import Rect
 
-    SDLRect = sdl2.Rect
+    SDLRect = sdl.Rect
     logger.warn("loaded pysdl2_cffi types")
 
 except ImportError:

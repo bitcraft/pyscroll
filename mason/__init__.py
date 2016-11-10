@@ -17,15 +17,14 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with mason.  If not, see <http://www.gnu.org/licenses/>.
 """
+from __future__ import absolute_import
+
+from itertools import product
 
 __version__ = '3.0.0'
 __author__ = 'bitcraft'
 __author_email__ = 'leif.theden@gmail.com'
 __description__ = 'Pygame Scrolling - Python 2.7 & 3.3+'
-
-from itertools import product
-
-from .compat import Rect
 
 
 def butter(tile_size, top_layer, offset=None):
@@ -90,6 +89,7 @@ def range_product(*r):
 
 # convenience imports
 from .data import *
+from .compat import Rect
 
 # from .group import *
 

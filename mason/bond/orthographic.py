@@ -115,7 +115,6 @@ class OrthographicTiler(RendererAB):
         if not self.anchored_view:
             self._clear_screen()
 
-        self._draw_map()
         self._copy_buffer()
         self._draw_surfaces(self._buffer, sprites)
 

@@ -16,7 +16,7 @@ from pytmx.util_pysdl2_cffi import load_pysdl2_cffi
 
 import mason
 import mason.data
-from mason.rect import Rect
+from mason.compat import Rect
 
 # define configuration variables here
 RESOURCES_DIR = 'data'

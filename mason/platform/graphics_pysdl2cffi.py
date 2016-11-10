@@ -91,7 +91,7 @@ class GraphicsPysdl2cffi(OrthographicTiler):
         """
         self._buffer = self._new_buffer(buffer_size)
         size = sdl.queryTexture(self._buffer)[3:]
-        self._buffer_rect.w = self._buffer_rect.h = size
+        self._buffer_rect.w, self._buffer_rect.h = size
 
     def _flush_tile_queue(self, destination=None):
         """ Blit the queued tiles and block until the tile queue is empty
@@ -108,7 +108,7 @@ class GraphicsPysdl2cffi(OrthographicTiler):
         dst_rect.h = th
 
         with render_target_context(self.ctx.renderer, self._buffer):
-            for x, y, l, tile, gid in self._tile_queue:
+            for z, x, y, tile, gid in self._tile_queue:
                 texture, src_rect, angle, flip = map_get(gid, tile)
                 dst_rect.x = x * tw - ltw
                 dst_rect.y = y * th - tth
