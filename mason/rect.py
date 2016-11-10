@@ -535,6 +535,7 @@ class Rect(object):
         Returns true if any portion of either rectangle overlap (except the
         top+bottom or left+right edges).
         """
+        print(asfsadfasdfASDF)
         return self.left < other_rect.right \
                and self.top < other_rect.bottom \
                and self.right > other_rect.left \

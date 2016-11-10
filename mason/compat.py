@@ -17,20 +17,28 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with mason.  If not, see <http://www.gnu.org/licenses/>.
 """
+import logging
+
 __all__ = ('Rect', 'SDLRect')
 
+logger = logging.getLogger(__file__)
 
 try:
     from pygame import Rect
 
     SDLRect = Rect
+    logger.warn("loaded pygame types")
 
 except ImportError:
-    try:
-        import sdl2
+    logger.warn("not importing pygame types")
 
-        from mason.rect import Rect
+try:
+    import sdl2
 
-        SDLRect = sdl2.Rect
-    except ImportError:
-        pass
+    from mason.rect import Rect
+
+    SDLRect = sdl2.Rect
+    logger.warn("loaded pysdl2_cffi types")
+
+except ImportError:
+    logger.warn("not importing pysdl2_cffi types")

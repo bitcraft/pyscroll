@@ -97,7 +97,7 @@ try:
     from mason.platform.graphics_pygame import PygameGraphics
     from mason.bond.isometric import IsometricBufferedRenderer
 except ImportError:
-    raise
+    pass
 
 try:
     from mason.platform.graphics_pysdl2cffi import GraphicsPysdl2cffi

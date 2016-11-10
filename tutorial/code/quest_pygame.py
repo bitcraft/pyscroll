@@ -17,9 +17,8 @@ from pytmx.util_pygame import load_pygame
 
 import mason
 import mason.data
-from mason.rect import Rect
+from mason.compat import Rect
 from mason.group import PyscrollGroup
-
 
 # define configuration variables here
 RESOURCES_DIR = 'data'
@@ -210,19 +209,26 @@ class QuestGame(object):
     def run(self):
         """ Run the game loop
         """
-        clock = pygame.time.Clock()
+        import time
+
+        target_time = 1 / 60.
+
         self.running = True
 
         try:
             while self.running:
-                dt = clock.tick_busy_loop() / 1000.
-
-                print(clock.get_fps())
+                start = time.time()
 
                 self.handle_input()
-                self.update(dt)
+                self.update(target_time)
                 self.draw(screen)
+
                 pygame.display.flip()
+
+                elapsed = time.time() - start
+                while elapsed < target_time:
+                    time.sleep(.001)
+                    elapsed = time.time() - start
 
         except KeyboardInterrupt:
             self.running = False

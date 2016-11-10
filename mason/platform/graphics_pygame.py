@@ -93,6 +93,10 @@ class PygameGraphics(OrthographicTiler):
     def _copy_sprite(self, destination, sprite, rect):
         return destination.blit(sprite, rect)
 
+    def _clear_screen(self):
+        surface = pygame.display.get_surface()
+        surface.fill(0)
+
     def draw(self, sprites, surface=None, rect=None):
         """ Draw the map onto a surface
 

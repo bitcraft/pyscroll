@@ -109,6 +109,11 @@ class TiledMapData(PyscrollDataAdapter):
 
     def __init__(self, tmx):
         self.tmx = tmx
+        # self.data = list()
+        # x2, y2 = self.map_size
+        # z2 = len(list(self.visible_tile_layers))
+        # cube = 0, 0, 0, x2, y2, z2
+        # self.data = list(self.get_tile_images_by_cube(cube))
 
     def convert_surfaces(self, parent, alpha=False):
         """ Convert all images in the data to match the parent
@@ -197,7 +202,7 @@ class TiledMapData(PyscrollDataAdapter):
     def get_tile_image_by_gid(self, gid):
         """ Return surface for a gid (experimental)
         """
-        return self.tmx.get_tile_image_by_gid(gid)
+        return self.tmx.images[gid]
 
     def get_tile_images_by_rect(self, rect):
         """ Speed up data access
