@@ -71,13 +71,6 @@ def snapper(interval):
     return snap
 
 
-def rectifier(width, height):
-    def rectify(x, y):
-        return Rect(x * width, y * height, width, height)
-
-    return rectify
-
-
 def rect_to_bb(rect):
     x, y, w, h = rect
     return x, y, x + w - 1, y + h - 1

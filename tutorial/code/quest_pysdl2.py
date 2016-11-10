@@ -17,6 +17,7 @@ from pytmx.util_pysdl2_cffi import load_pysdl2_cffi
 import mason
 import mason.data
 from mason.compat import Rect
+from mason.bond.orthographic import OrthographicTiler
 
 # define configuration variables here
 RESOURCES_DIR = 'data'
@@ -117,7 +118,10 @@ class QuestGame(object):
 
         # create new renderer (camera)
         screen_size = ctx.window.getWindowSize()
-        self.map_layer = mason.GraphicsPysdl2cffi(ctx, map_data, screen_size)
+
+        renderer = mason.GraphicsPysdl2cffi(ctx)
+        renderer.data = map_data
+        self.map_layer = OrthographicTiler(renderer, map_data, screen_size)
 
         self.hero = Hero()
         self.hero.load_textures(self.ctx.renderer)

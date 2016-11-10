@@ -20,26 +20,51 @@ along with mason.  If not, see <http://www.gnu.org/licenses/>.
 
 
 class RendererAB(object):
-    def _change_offset(self, d, y):
+    """ The Tiling logic is graphics library agnostic.
+
+    To support a new graphics library, implement this class
+    """
+    def change_offset(self, x, y):
+        """ Adjust the offset that the buffer is shown at
+
+        :param x:
+        :param y:
+        :return:
+        """
         raise NotImplementedError
 
-    def _change_view(self, dx, dy):
+    def change_view(self, dx, dy):
+        """ Adjust the tiles that are shown
+
+        :param dx:
+        :param dy:
+        :return:
+        """
         raise NotImplementedError
 
-    def _new_buffer(self, size):
+    def new_buffer(self, size):
+        """ Create new buffer for the map
+
+        :param size:
+        :return:
+        """
         raise NotImplementedError
 
-    def _clear_buffer(self, target, color):
+    def clear_buffer(self):
+        """ Clear the buffer
+
+        :return:
+        """
         raise NotImplementedError
 
-    def _clear_screen(self):
+    def clear_screen(self):
         """ Clear the area of the screen where map is drawn
 
         :return:
         """
         raise NotImplementedError
 
-    def _create_buffers(self, view_size, buffer_size):
+    def create_buffers(self, view_size, buffer_size):
         """ Create the buffers, taking in account pixel alpha or colorkey
 
         :param view_size: pixel size of the view
@@ -47,35 +72,26 @@ class RendererAB(object):
         """
         raise NotImplementedError
 
-    def _copy_buffer(self):
+    def copy_buffer(self):
         """ Copy the buffer to the screen
 
         :return: None
         """
         raise NotImplementedError
 
-    def _flush_tile_queue(self, surface):
+    def flush_tile_queue(self, surface):
         """ Draw the queued tiles to the buffer and block until the tile queue is empty
         """
         raise NotImplementedError
 
-    def _draw_map(self, surface, rect, surfaces):
-        """ Render the map and optional surfaces to destination surface
-
-        :param surface: pygame surface to draw to
-        :param rect: area to draw to
-        :param surfaces: optional sequence of surfaces to interlace between tiles
-        """
-        raise NotImplementedError
-
-    def _draw_surfaces(self):
+    def draw_surfaces(self):
         """
 
         :return:
         """
         raise NotImplementedError
 
-    def _copy_sprite(self, destination, sprite, rect):
+    def copy_sprite(self, destination, sprite, rect):
         """
 
         :param destination:

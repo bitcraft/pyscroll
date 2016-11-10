@@ -50,7 +50,7 @@ class IsometricBufferedRenderer(PygameGraphics):
     - drawing may have depth sorting issues
     """
 
-    def _draw_surfaces(self, surface, rect, surfaces):
+    def draw_surfaces(self, surface, rect, surfaces):
         if surfaces is not None:
             [(surface.blit(i[0], i[1]), i[2]) for i in surfaces]
 
@@ -70,7 +70,7 @@ class IsometricBufferedRenderer(PygameGraphics):
         self.view_rect.size = view_size
         self._tile_view = Rect(0, 0, buffer_tile_width, buffer_tile_height)
         self._redraw_cutoff = 1  # TODO: optimize this value
-        self._create_buffers(view_size, buffer_pixel_size)
+        self.create_buffers(view_size, buffer_pixel_size)
         self._half_width = view_size[0] // 2
         self._half_height = view_size[1] // 2
         self._x_offset = 0
@@ -78,7 +78,7 @@ class IsometricBufferedRenderer(PygameGraphics):
 
         self.redraw_tiles()
 
-    def _flush_tile_queue(self):
+    def flush_tile_queue(self):
         """ Blits (x, y, layer) tuples to buffer from iterator
         """
         iterator = self._tile_queue
@@ -138,7 +138,7 @@ class IsometricBufferedRenderer(PygameGraphics):
             self._buffer.scroll(-dx * tw, -dy * th)
             self._tile_view.move_ip(dx, dy)
             self._queue_edge_tiles(dx, dy)
-            self._flush_tile_queue()
+            self.flush_tile_queue()
 
         elif view_change > self._redraw_cutoff:
             # logger.info('scrolling too quickly.  redraw forced')

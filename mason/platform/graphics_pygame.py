@@ -18,16 +18,15 @@ You should have received a copy of the GNU General Public License
 along with mason.  If not, see <http://www.gnu.org/licenses/>.
 """
 from __future__ import division
-from __future__ import print_function
 
 import logging
 import time
 from contextlib import contextmanager
-from heapq import heappop, heappush
+from functools import partial
 
 import pygame
 
-from mason.bond.orthographic import OrthographicTiler
+from mason.platform.graphics import RendererAB
 
 logger = logging.getLogger(__file__)
 
@@ -40,7 +39,7 @@ def surface_clipping_context(surface, clip):
     surface.set_clip(original)
 
 
-class PygameGraphics(OrthographicTiler):
+class PygameGraphics(RendererAB):
     """ Renderer that support scrolling, zooming, layers, and animated tiles
 
     The buffered renderer must be used with a data class to get tile, shape,
@@ -49,8 +48,7 @@ class PygameGraphics(OrthographicTiler):
     """
     alpha_clear_color = 0, 0, 0, 0
 
-    def __init__(self, data, size, clamp_camera=True, colorkey=None, alpha=False,
-                 time_source=time.time, scaling_function=pygame.transform.scale):
+    def __init__(self, colorkey=None, alpha=False, scaling_function=pygame.transform.scale):
 
         # default_options
         self.scaling_function = scaling_function  # what function to use when scaling the zoom buffer
@@ -73,9 +71,7 @@ class PygameGraphics(OrthographicTiler):
             self._alpha = False
             self._colorkey = False
 
-        super(PygameGraphics, self).__init__(data, size, clamp_camera, time_source)
-
-    def _change_view(self, dx, dy):
+    def change_view(self, dx, dy):
         view_change = max(abs(dx), abs(dy))
 
         if view_change and (view_change <= self._redraw_cutoff):
@@ -83,17 +79,17 @@ class PygameGraphics(OrthographicTiler):
             self._buffer.scroll(-dx * tw, -dy * th)
             self._tile_view.move_ip(dx, dy)
             self._queue_edge_tiles(dx, dy)
-            self._flush_tile_queue(self._buffer)
+            self.flush_tile_queue(self._buffer)
 
         elif view_change > self._redraw_cutoff:
             logger.info('scrolling too quickly.  redraw forced')
             self._tile_view.move_ip(dx, dy)
             self.redraw_tiles(self._buffer)
 
-    def _copy_sprite(self, destination, sprite, rect):
+    def copy_sprite(self, destination, sprite, rect):
         return destination.blit(sprite, rect)
 
-    def _clear_screen(self):
+    def clear_screen(self):
         surface = pygame.display.get_surface()
         surface.fill(0)
 
@@ -123,26 +119,26 @@ class PygameGraphics(OrthographicTiler):
             self._process_animation_queue()
 
         if not self.anchored_view:
-            self._clear_screen()
+            self.clear_screen()
 
         with surface_clipping_context(surface, rect):
             if self._zoom_level == 1.0:
-                self._copy_buffer(surface)
+                self.copy_buffer(surface)
             else:
-                self._copy_buffer(surface)
+                self.copy_buffer(surface)
                 # self._draw_map(self._zoom_buffer, self._zoom_buffer.get_rect(), sprites)
                 # self.scaling_function(self._zoom_buffer, rect.size, surface)
 
             if sprites:
-                self._draw_surfaces(surface, sprites)
+                self.draw_surfaces(surface, sprites)
 
-    def _copy_buffer(self, destination):
+    def copy_buffer(self, destination):
         destination.blit(self._buffer, self._buffer_rect)
 
-    def _clear_buffer(self, target, color):
+    def clear_buffer(self, target, color):
         target.fill(color)
 
-    def _new_buffer(self, size):
+    def new_buffer(self, size):
         if self._alpha:
             return pygame.Surface(size, flags=pygame.SRCALPHA)
         elif self._colorkey:
@@ -152,7 +148,7 @@ class PygameGraphics(OrthographicTiler):
         else:
             return pygame.Surface(size)
 
-    def _create_buffers(self, view_size, buffer_size):
+    def create_buffers(self, view_size, buffer_size):
         """ Create the buffers, taking in account pixel alpha or colorkey
 
         :param view_size: pixel size of the view
@@ -162,15 +158,15 @@ class PygameGraphics(OrthographicTiler):
         requires_zoom_buffer = not view_size == buffer_size
 
         if requires_zoom_buffer:
-            self._zoom_buffer = self._new_buffer(view_size)
+            self._zoom_buffer = self.new_buffer(view_size)
         else:
             self._zoom_buffer = None
 
-        self._buffer = self._new_buffer(buffer_size)
+        self._buffer = self.new_buffer(buffer_size)
         self._buffer_rect.size = buffer_size
         self.data.convert_surfaces(self._buffer, True)
 
-    def _flush_tile_queue(self, surface):
+    def flush_tile_queue(self, surface):
         """ Blit the queued tiles and block until the tile queue is empty
         """
         tw, th = self.data.tile_size
@@ -182,3 +178,36 @@ class PygameGraphics(OrthographicTiler):
         for z, x, y, tile, gid in self._tile_queue:
             ani_tiles[gid].add((x, y))
             surface_blit(tile, (x * tw - ltw, y * th - tth))
+
+    def _queue_edge_tiles(self, dx, dy):
+        """ Queue edge tiles and clear edge areas on buffer if needed
+
+        :param dx: Edge along X axis to enqueue
+        :param dy: Edge along Y axis to enqueue
+        :return: None
+        """
+        # TODO: possibly clean animation tiles
+
+        v = self._tile_view
+        fill = partial(self._buffer.fill, self._clear_color)
+        tw, th = self.data.tile_size
+        self._tile_queue = iter([])
+
+        def append(rect):
+            self._tile_queue = chain(self._tile_queue, self.data.get_tile_images_by_rect(rect))
+            if self._clear_color:
+                fill(((rect[0] - v.left) * tw,
+                      (rect[1] - v.top) * th,
+                      rect[2] * tw, rect[3] * th))
+
+        if dx > 0:  # right side
+            append((v.right - 1, v.top, dx, v.height))
+
+        elif dx < 0:  # left side
+            append((v.left, v.top, -dx, v.height))
+
+        if dy > 0:  # bottom side
+            append((v.left, v.bottom - 1, v.width, dy))
+
+        elif dy < 0:  # top side
+            append((v.left, v.top, v.width, -dy))

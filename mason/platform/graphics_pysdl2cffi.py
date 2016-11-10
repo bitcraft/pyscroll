@@ -23,11 +23,10 @@ from __future__ import print_function
 import logging
 import time
 from contextlib import contextmanager
-from heapq import heappop, heappush
 
 import sdl
 
-from mason.bond.orthographic import OrthographicTiler
+from mason.platform.graphics import RendererAB
 
 logger = logging.getLogger(__file__)
 
@@ -40,36 +39,44 @@ def render_target_context(renderer, target):
     sdl.setRenderTarget(renderer, original)
 
 
-class GraphicsPysdl2cffi(OrthographicTiler):
+class GraphicsPysdl2cffi(RendererAB):
     """ Renderer that support scrolling, zooming, layers, and animated tiles
 
     The buffered renderer must be used with a data class to get tile, shape,
     and animation information.  See the data class api in mason.data, or
     use the built-in pytmx support for loading maps created with Tiled.
     """
-    _always_clear = True
+    _always_redraw_all_tiles = True
 
-    def __init__(self, ctx, data, size, clamp_camera=False, time_source=time.time):
+    def __init__(self, ctx):
         # private attributes
         self.ctx = ctx
+        self._buffer = None
         self._animation_map = dict()
         self._buffer_rect = sdl.Rect()
+        self._sprite_offset = 0, 0
 
-        super(GraphicsPysdl2cffi, self).__init__(data, size, clamp_camera, time_source)
+    def change_offset(self, x, y):
+        x, y = int(x), int(y)
+        self._buffer_rect.x = -x
+        self._buffer_rect.y = -y
+        self._sprite_offset = x, y
 
-    def _change_view(self, dx, dy):
-        self._tile_view.move_ip(dx, dy)
-        self.redraw_tiles()
+    def change_view(self, dx, dy):
+        pass
 
-    def _copy_buffer(self):
+    def copy_buffer(self):
         sdl.renderCopy(self.ctx.renderer, self._buffer, None, self._buffer_rect)
 
-    def _clear_buffer(self, target, color=None):
+    def clear_buffer(self):
         renderer = self.ctx.renderer
-        with render_target_context(renderer, target):
+        with render_target_context(renderer, self._buffer):
             sdl.renderClear(renderer)
 
-    def _copy_sprite(self, destination, sprite, rect):
+    def clear_screen(self):
+        sdl.renderClear(self.ctx.renderer)
+
+    def copy_sprite(self, destination, sprite, rect):
         texture, src_rect, angle, flip = sprite
 
         dst_rect = sdl.Rect()
@@ -77,39 +84,39 @@ class GraphicsPysdl2cffi(OrthographicTiler):
 
         sdl.renderCopy(self.ctx.renderer, texture, src_rect, dst_rect)
 
-    def _new_buffer(self, desired_size):
+    def new_buffer(self, desired_size):
         fmt = sdl.PIXELFORMAT_RGBA8888
         flags = sdl.TEXTUREACCESS_TARGET
         w, h = desired_size
         return sdl.createTexture(self.ctx.renderer, fmt, flags, w, h)
 
-    def _create_buffers(self, view_size, buffer_size):
+    def create_buffers(self, view_size, buffer_size):
         """ Create the buffers, taking in account pixel alpha or colorkey
 
         :param view_size: pixel size of the view
         :param buffer_size: pixel size of the buffer
         """
-        self._buffer = self._new_buffer(buffer_size)
+        self._buffer = self.new_buffer(buffer_size)
         size = sdl.queryTexture(self._buffer)[3:]
         self._buffer_rect.w, self._buffer_rect.h = size
 
-    def _flush_tile_queue(self, destination=None):
+    def flush_tile_queue(self, tile_queue):
         """ Blit the queued tiles and block until the tile queue is empty
+
+        tex_info: (texture, src, angle, flip)
+        tiles_queue: [(z, x, y, tex_info, gid), ...]
+
         """
-        tw, th = self.data.tile_size
-        ltw = self._tile_view.left * tw
-        tth = self._tile_view.top * th
         renderer = self.ctx.renderer
-        map_get = self._animation_map.get
         rcx = sdl.renderCopyEx
 
         dst_rect = sdl.Rect()
-        dst_rect.w = tw
-        dst_rect.h = th
+        dst_rect.w = 32
+        dst_rect.h = 32
 
-        with render_target_context(self.ctx.renderer, self._buffer):
-            for z, x, y, tile, gid in self._tile_queue:
-                texture, src_rect, angle, flip = map_get(gid, tile)
-                dst_rect.x = x * tw - ltw
-                dst_rect.y = y * th - tth
+        with render_target_context(renderer, self._buffer):
+            for z, x, y, tile, gid in tile_queue:
+                dst_rect.x = x
+                dst_rect.y = y
+                texture, src_rect, angle, flip = tile
                 rcx(renderer, texture, src_rect, dst_rect, angle, None, flip)
