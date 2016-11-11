@@ -19,6 +19,7 @@ import mason
 import mason.data
 from mason.compat import Rect
 from mason.group import PyscrollGroup
+from mason.bond.orthographic import OrthographicTiler
 
 # define configuration variables here
 RESOURCES_DIR = 'data'
@@ -121,7 +122,9 @@ class QuestGame(object):
         map_data = mason.data.TiledMapData(tmx_data)
 
         # create new renderer (camera)
-        self.map_layer = mason.PygameGraphics(map_data, screen.get_size())
+        renderer = mason.PygameGraphics(alpha=True)
+        renderer.data = map_data
+        self.map_layer = OrthographicTiler(renderer, map_data, screen.get_size())
         self.map_layer.zoom = 1
 
         # mason supports layered rendering.  our map has 3 'under' layers
@@ -227,7 +230,7 @@ class QuestGame(object):
 
                 elapsed = time.time() - start
                 while elapsed < target_time:
-                    time.sleep(.001)
+                    time.sleep(0)
                     elapsed = time.time() - start
 
         except KeyboardInterrupt:

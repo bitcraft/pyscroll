@@ -21,7 +21,6 @@ from __future__ import division
 from __future__ import print_function
 
 import logging
-import time
 from contextlib import contextmanager
 
 import sdl
@@ -40,14 +39,8 @@ def render_target_context(renderer, target):
 
 
 class GraphicsPysdl2cffi(RendererAB):
-    """ Renderer that support scrolling, zooming, layers, and animated tiles
-
-    The buffered renderer must be used with a data class to get tile, shape,
-    and animation information.  See the data class api in mason.data, or
-    use the built-in pytmx support for loading maps created with Tiled.
+    """ Renderer for use with pysdl2_cffi
     """
-    _always_redraw_all_tiles = True
-
     def __init__(self, ctx):
         # private attributes
         self.ctx = ctx
@@ -66,25 +59,34 @@ class GraphicsPysdl2cffi(RendererAB):
         pass
 
     def copy_buffer(self):
+        """ Copy the buffer to the screen
+
+        :return:
+        """
         sdl.renderCopy(self.ctx.renderer, self._buffer, None, self._buffer_rect)
 
     def clear_buffer(self):
+        """ Clear the buffer
+
+        :return:
+        """
         renderer = self.ctx.renderer
         with render_target_context(renderer, self._buffer):
             sdl.renderClear(renderer)
 
     def clear_screen(self):
+        """ Clear the screen
+
+        :return:
+        """
         sdl.renderClear(self.ctx.renderer)
 
-    def copy_sprite(self, destination, sprite, rect):
-        texture, src_rect, angle, flip = sprite
-
-        dst_rect = sdl.Rect()
-        dst_rect.x, dst_rect.y, dst_rect.w, dst_rect.h = [int(i) for i in rect]
-
-        sdl.renderCopy(self.ctx.renderer, texture, src_rect, dst_rect)
-
     def new_buffer(self, desired_size):
+        """ New buffer for use as render target
+
+        :param desired_size:
+        :return:
+        """
         fmt = sdl.PIXELFORMAT_RGBA8888
         flags = sdl.TEXTUREACCESS_TARGET
         w, h = desired_size
@@ -96,27 +98,33 @@ class GraphicsPysdl2cffi(RendererAB):
         :param view_size: pixel size of the view
         :param buffer_size: pixel size of the buffer
         """
+        print(view_size, buffer_size)
         self._buffer = self.new_buffer(buffer_size)
         size = sdl.queryTexture(self._buffer)[3:]
-        self._buffer_rect.w, self._buffer_rect.h = size
+        self._buffer_rect.w, self._buffer_rect.h = 1632, 1248
+        print(view_size, buffer_size, size)
+
+    def flush_sprite_queue(self, sprite_queue):
+        """ Copy a list of sprites to the screen
+
+        :param sprite_queue:
+        :return:
+        """
+        renderer = self.ctx.renderer
+        dst_rect = sdl.Rect()
+        rcx = sdl.renderCopyEx
+
+        for sprite, rect in sprite_queue:
+            texture, src_rect, angle, flip = sprite
+            dst_rect.x, dst_rect.y, dst_rect.w, dst_rect.h = [int(i) for i in rect]
+            rcx(renderer, texture, src_rect, dst_rect, angle, None, flip)
 
     def flush_tile_queue(self, tile_queue):
-        """ Blit the queued tiles and block until the tile queue is empty
+        """ Copy a list of tiles to the buffer
 
         tex_info: (texture, src, angle, flip)
         tiles_queue: [(z, x, y, tex_info, gid), ...]
 
         """
-        renderer = self.ctx.renderer
-        rcx = sdl.renderCopyEx
-
-        dst_rect = sdl.Rect()
-        dst_rect.w = 32
-        dst_rect.h = 32
-
-        with render_target_context(renderer, self._buffer):
-            for z, x, y, tile, gid in tile_queue:
-                dst_rect.x = x
-                dst_rect.y = y
-                texture, src_rect, angle, flip = tile
-                rcx(renderer, texture, src_rect, dst_rect, angle, None, flip)
+        with render_target_context(self.ctx.renderer, self._buffer):
+            self.flush_sprite_queue(tile_queue)

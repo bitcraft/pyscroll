@@ -79,24 +79,12 @@ class RendererAB(object):
         """
         raise NotImplementedError
 
-    def flush_tile_queue(self, surface):
+    def flush_tile_queue(self, tile_queue):
         """ Draw the queued tiles to the buffer and block until the tile queue is empty
         """
         raise NotImplementedError
 
-    def draw_surfaces(self):
-        """
-
-        :return:
-        """
-        raise NotImplementedError
-
-    def copy_sprite(self, destination, sprite, rect):
-        """
-
-        :param destination:
-        :param sprite:
-        :param rect:
-        :return:
+    def flush_sprite_queue(self, sprite_queue):
+        """ Copy sprites to the screen and block until finished
         """
         raise NotImplementedError

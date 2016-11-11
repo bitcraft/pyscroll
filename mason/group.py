@@ -70,4 +70,4 @@ class PyscrollGroup(pygame.sprite.LayeredUpdates):
                 new_surfaces_append((spr.image, new_rect, gl(spr)))
             spritedict[spr] = new_rect
 
-        return self._map_layer.draw(new_surfaces, surface, surface.get_rect())
+        return self._map_layer.draw(new_surfaces)

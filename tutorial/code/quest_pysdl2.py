@@ -122,6 +122,7 @@ class QuestGame(object):
         renderer = mason.GraphicsPysdl2cffi(ctx)
         renderer.data = map_data
         self.map_layer = OrthographicTiler(renderer, map_data, screen_size)
+        self.map_layer.zoom = 2
 
         self.hero = Hero()
         self.hero.load_textures(self.ctx.renderer)
