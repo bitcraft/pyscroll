@@ -1,19 +1,18 @@
-from __future__ import division
-from __future__ import print_function
+from __future__ import division, print_function
 
 import logging
 import math
 import time
 from functools import partial
-from heapq import heappush, heappop
-from itertools import groupby, product, chain
+from heapq import heappop, heappush
+from itertools import chain, groupby, product
 from operator import gt, itemgetter
 from collections import defaultdict
 
 import pygame
-from pygame import Surface, Rect
+from pygame import Rect, Surface
 
-from pyscroll import surface_clipping_context, quadtree
+from pyscroll import quadtree, surface_clipping_context
 from pyscroll.animation import AnimationFrame, AnimationToken
 
 logger = logging.getLogger('orthographic')
@@ -51,6 +50,7 @@ class BufferedRenderer(object):
             self._clear_color = None
 
         # private attributes
+        self._previous_blit = None    # rect of the previous map blit when map edges are visible
         self._size = None             # size that the camera/viewport is on screen, kinda
         self._redraw_cutoff = None    # size of dirty tile edge that will trigger full redraw
         self._x_offset = None         # offsets are used to scroll map in sub-tile increments
@@ -96,41 +96,59 @@ class BufferedRenderer(object):
 
         mw, mh = self.data.map_size
         tw, th = self.data.tile_size
+        vw, vh = self._tile_view.size
 
-        self.anchored_view = ((self._tile_view.width < mw) or
-                              (self._tile_view.height < mh))
-
-        if self.anchored_view and self.clamp_camera:
+        if self.clamp_camera:
             self.view_rect.clamp_ip(self.map_rect)
+            x, y = self.view_rect.center
 
-        x, y = self.view_rect.center
+        # calc the new position in tiles and offset
+        left, self._x_offset = divmod(x - self._half_width, tw)
+        top, self._y_offset = divmod(y - self._half_height, th)
 
-        if not self.anchored_view:
-            # calculate offset and do not scroll the map layer
-            # this is used to handle maps smaller than screen
-            self._x_offset = x - self._half_width
-            self._y_offset = y - self._half_height
+        # wont't fill view, but clamp it
 
-        else:
-            # calc the new position in tiles and offset
-            left, self._x_offset = divmod(x - self._half_width, tw)
-            top, self._y_offset = divmod(y - self._half_height, th)
+        if not self.clamp_camera:
+            # handle non-anchored axes
+            # not anchored, so the rendered map is being offset by values larger
+            # than the tile size.  this occurs when the edges of the map are inside
+            # the screen.  a situation like is shows a background under the map.
 
-            # adjust the view if the view has changed without a redraw
-            dx = int(left - self._tile_view.left)
-            dy = int(top - self._tile_view.top)
-            view_change = max(abs(dx), abs(dy))
+            if left > mw - vw:
+                left = mw - vw
+                self._x_offset = x - self._half_width - (mw - vw) * tw
+                self.anchored_view = False
 
-            if view_change and (view_change <= self._redraw_cutoff):
-                self._buffer.scroll(-dx * tw, -dy * th)
-                self._tile_view.move_ip(dx, dy)
-                self._queue_edge_tiles(dx, dy)
-                self._flush_tile_queue(self._buffer)
+            elif left < 0:
+                left = 0
+                self._x_offset = x - self._half_width
+                self.anchored_view = False
 
-            elif view_change > self._redraw_cutoff:
-                logger.info('scrolling too quickly.  redraw forced')
-                self._tile_view.move_ip(dx, dy)
-                self.redraw_tiles(self._buffer)
+            if top > mh - vh:
+                top = mh - vh
+                self._y_offset = y - self._half_height - (mh - vh) * th
+                self.anchored_view = False
+
+            elif top < 0:
+                top = 0
+                self._y_offset = y - self._half_height
+                self.anchored_view = False
+
+        # adjust the view if the view has changed without a redraw
+        dx = int(left - self._tile_view.left)
+        dy = int(top - self._tile_view.top)
+        view_change = max(abs(dx), abs(dy))
+
+        if view_change and (view_change <= self._redraw_cutoff):
+            self._buffer.scroll(-dx * tw, -dy * th)
+            self._tile_view.move_ip(dx, dy)
+            self._queue_edge_tiles(dx, dy)
+            self._flush_tile_queue(self._buffer)
+
+        elif view_change > self._redraw_cutoff:
+            logger.info('scrolling too quickly.  redraw forced')
+            self._tile_view.move_ip(dx, dy)
+            self.redraw_tiles(self._buffer)
 
     def draw(self, surface, rect, surfaces=None):
         """ Draw the map onto a surface
@@ -218,13 +236,14 @@ class BufferedRenderer(object):
         if self._animation_queue:
             self._process_animation_queue()
 
+        # TODO: could maybe optimize to remove just the edges
         if not self.anchored_view:
-            surface.fill(0)
+            surface.fill(0, self._previous_blit)
 
         offset = -self._x_offset + rect.left, -self._y_offset + rect.top
 
         with surface_clipping_context(surface, rect):
-            surface.blit(self._buffer, offset)
+            self.previous_blit = surface.blit(self._buffer, offset)
             if surfaces:
                 surfaces_offset = -offset[0], -offset[1]
                 self._draw_surfaces(surface, surfaces_offset, surfaces)

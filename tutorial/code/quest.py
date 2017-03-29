@@ -120,8 +120,8 @@ class QuestGame(object):
         map_data = pyscroll.data.TiledMapData(tmx_data)
 
         # create new renderer (camera)
-        self.map_layer = pyscroll.BufferedRenderer(map_data, screen.get_size())
-        self.map_layer.zoom = 2
+        self.map_layer = pyscroll.BufferedRenderer(map_data, screen.get_size(), clamp_camera=False)
+        self.map_layer.zoom = 1
 
         # pyscroll supports layered rendering.  our map has 3 'under' layers
         # layers begin with 0, so the layers are 0, 1, and 2.
@@ -133,6 +133,8 @@ class QuestGame(object):
 
         # put the hero in the center of the map
         self.hero.position = self.map_layer.map_rect.center
+        self.hero._position[0] += 200
+        self.hero._position[1] += 400
 
         # add our hero to the group
         self.group.add(self.hero)
@@ -216,7 +218,7 @@ class QuestGame(object):
 
         try:
             while self.running:
-                dt = clock.tick(60) / 1000.
+                dt = clock.tick(120) / 1000.
                 times.append(clock.get_fps())
                 # print(sum(times) / len(times))
 
