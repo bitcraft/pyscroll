@@ -4,7 +4,7 @@
 from setuptools import setup
 
 setup(name='pyscroll',
-      version='2.16.11',
+      version='2.16.12',
       description='Scrolling maps library for pygame and python 2.7 & 3.3+',
       author='bitcraft',
       author_email='leif.theden@gmail.com',
@@ -23,8 +23,9 @@ setup(name='pyscroll',
           "Programming Language :: Python :: 3.3",
           "Programming Language :: Python :: 3.4",
           "Programming Language :: Python :: 3.5",
+          "Programming Language :: Python :: 3.6",
           "Topic :: Games/Entertainment",
           "Topic :: Multimedia :: Graphics",
           "Topic :: Software Development :: Libraries :: pygame",
       ],
-)
+      )

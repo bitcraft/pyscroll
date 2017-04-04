@@ -24,8 +24,11 @@ class BufferedRenderer(object):
     The buffered renderer must be used with a data class to get tile, shape,
     and animation information.  See the data class api in pyscroll.data, or
     use the built-in pytmx support for loading maps created with Tiled.
+    
+    NOTE: colorkey and alpha transparency is quite slow
     """
     _alpha_clear_color = 0, 0, 0, 0
+    _rgb_clear_color = 0, 0, 0
 
     def __init__(self, data, size, clamp_camera=True, colorkey=None, alpha=False,
                  time_source=time.time, scaling_function=pygame.transform.scale):
@@ -47,7 +50,7 @@ class BufferedRenderer(object):
         elif alpha:
             self._clear_color = self._alpha_clear_color
         else:
-            self._clear_color = None
+            self._clear_color = self._rgb_clear_color
 
         # private attributes
         self._previous_blit = None    # rect of the previous map blit when map edges are visible
@@ -98,21 +101,25 @@ class BufferedRenderer(object):
         tw, th = self.data.tile_size
         vw, vh = self._tile_view.size
 
+        # TODO: remove check from here; cache it
+        # small_map = (self._tile_view.width >= mw) or (self._tile_view.height >= mh)
+
+        # prevent camera from exposing edges of the map
         if self.clamp_camera:
+            self.anchored_view = True
             self.view_rect.clamp_ip(self.map_rect)
             x, y = self.view_rect.center
 
-        # calc the new position in tiles and offset
+        # calc the new position in tiles and pixel offset
         left, self._x_offset = divmod(x - self._half_width, tw)
         top, self._y_offset = divmod(y - self._half_height, th)
 
-        # wont't fill view, but clamp it
-
+        # test if camera will expose edges of the map
         if not self.clamp_camera:
-            # handle non-anchored axes
             # not anchored, so the rendered map is being offset by values larger
             # than the tile size.  this occurs when the edges of the map are inside
             # the screen.  a situation like is shows a background under the map.
+            self.anchored_view = True
 
             if left > mw - vw:
                 left = mw - vw
@@ -212,8 +219,9 @@ class BufferedRenderer(object):
     def redraw_tiles(self, surface):
         """ redraw the visible portion of the buffer -- it is slow.
         """
-        logger.warn('pyscroll buffer redraw')
-        if self._clear_color:
+        # TODO/BUG: Redraw animated tiles correctly.  They are getting reset here
+        logger.warning('pyscroll buffer redraw')
+        if self._clear_color is not None:
             surface.fill(self._clear_color)
 
         self._tile_queue = self.data.get_tile_images_by_rect(self._tile_view)
@@ -238,12 +246,12 @@ class BufferedRenderer(object):
 
         # TODO: could maybe optimize to remove just the edges
         if not self.anchored_view:
-            surface.fill(0, self._previous_blit)
+            surface.fill(self._clear_color, self._previous_blit)
 
         offset = -self._x_offset + rect.left, -self._y_offset + rect.top
 
         with surface_clipping_context(surface, rect):
-            self.previous_blit = surface.blit(self._buffer, offset)
+            self._previous_blit = surface.blit(self._buffer, offset)
             if surfaces:
                 surfaces_offset = -offset[0], -offset[1]
                 self._draw_surfaces(surface, surfaces_offset, surfaces)
@@ -303,7 +311,7 @@ class BufferedRenderer(object):
 
         def append(rect):
             self._tile_queue = chain(self._tile_queue, self.data.get_tile_images_by_rect(rect))
-            if self._clear_color:
+            if self._clear_color is not None:
                 fill(((rect[0] - v.left) * tw,
                       (rect[1] - v.top) * th,
                       rect[2] * tw, rect[3] * th))
@@ -412,7 +420,7 @@ class BufferedRenderer(object):
                 self._zoom_buffer = Surface(view_size, flags=pygame.SRCALPHA)
             self._buffer = Surface(buffer_size, flags=pygame.SRCALPHA)
             self.data.convert_surfaces(self._buffer, True)
-        elif self._clear_color:
+        elif self._clear_color is not self._rgb_clear_color:
             if requires_zoom_buffer:
                 self._zoom_buffer = Surface(view_size, flags=pygame.RLEACCEL)
                 self._zoom_buffer.set_colorkey(self._clear_color)
@@ -438,6 +446,7 @@ class BufferedRenderer(object):
 
         self.map_rect = Rect(0, 0, mw * tw, mh * th)
         self.view_rect.size = view_size
+        self._previous_blit = Rect(self.view_rect)
         self._tile_view = Rect(0, 0, buffer_tile_width, buffer_tile_height)
         self._redraw_cutoff = 1  # TODO: optimize this value
         self._create_buffers(view_size, buffer_pixel_size)
