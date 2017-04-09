@@ -245,8 +245,10 @@ class BufferedRenderer(object):
             self._process_animation_queue()
 
         # TODO: could maybe optimize to remove just the edges
+        # if not self.anchored_view:
+        #     surface.fill(self._clear_color, self._previous_blit)
         if not self.anchored_view:
-            surface.fill(self._clear_color, self._previous_blit)
+            surface.fill(self._clear_color)
 
         offset = -self._x_offset + rect.left, -self._y_offset + rect.top
 
