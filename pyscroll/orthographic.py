@@ -4,16 +4,13 @@ import logging
 import math
 import time
 from functools import partial
-from heapq import heappop, heappush
 from itertools import chain, groupby, product
 from operator import gt, itemgetter
-from collections import defaultdict
 
 import pygame
 from pygame import Rect, Surface
 
 from pyscroll import quadtree, surface_clipping_context
-from pyscroll.animation import AnimationFrame, AnimationToken
 
 logger = logging.getLogger('orthographic')
 
@@ -64,19 +61,13 @@ class BufferedRenderer(object):
         self._half_height = None
         self._tile_queue = None       # tiles queued to be draw onto buffer
         self._animation_queue = None  # heap queue of animation token;  schedules tile changes
-        self._last_time = None        # used for scheduling animations
         self._layer_quadtree = None   # used to draw tiles that overlap optional surfaces
         self._zoom_buffer = None      # used to speed up zoom operations
         self._zoom_level = 1.0        # negative numbers make map smaller, positive: bigger
 
-        # used to speed up animated tile redraws by keeping track of animated tiles
-        # so they can be updated individually
-        self._animation_tiles = defaultdict(set)
-
         # this represents the viewable pixels, aka 'camera'
         self.view_rect = Rect(0, 0, 0, 0)
 
-        self.reload_animations()
         self.set_size(size)
 
     def scroll(self, vector):
@@ -241,8 +232,9 @@ class BufferedRenderer(object):
         :param rect: area to draw to
         :param surfaces: optional sequence of surfaces to interlace between tiles
         """
-        if self._animation_queue:
-            self._process_animation_queue()
+        self._tile_queue = self.data.process_animation_queue(self._tile_view)
+        if self._tile_queue:
+            self._flush_tile_queue(self._buffer)
 
         # TODO: could maybe optimize to remove just the edges
         # if not self.anchored_view:
@@ -295,7 +287,7 @@ class BufferedRenderer(object):
                 for r in hit(dirty_rect.move(ox, oy)):
                     x, y, tw, th = r
                     for l in [i for i in tile_layers if gt(i, layer)]:
-                        tile = get_tile((x // tw + left, y // th + top, l))
+                        tile = get_tile(x // tw + left, y // th + top, l)
                         if tile:
                             surface_blit(tile, (x - ox, y - oy))
 
@@ -329,76 +321,6 @@ class BufferedRenderer(object):
 
         elif dy < 0:  # top side
             append((v.left, v.top, v.width, -dy))
-
-    def _update_time(self):
-        self._last_time = time.time() * 1000
-
-    def reload_animations(self):
-        """ Reload animation information
-        """
-        self._update_time()
-        self._animation_queue = list()
-
-        for gid, frame_data in self.data.get_animations():
-            frames = list()
-            for frame_gid, frame_duration in frame_data:
-                image = self.data.get_tile_image_by_gid(frame_gid)
-                frames.append(AnimationFrame(image, frame_duration))
-
-            ani = AnimationToken(gid, frames)
-            ani.next += self._last_time
-            heappush(self._animation_queue, ani)
-
-    def _process_animation_queue(self):
-        self._update_time()
-        self._tile_queue = list()
-        tile_layers = tuple(self.data.visible_tile_layers)
-
-        # test if the next scheduled tile change is ready
-        while self._animation_queue[0].next <= self._last_time:
-            token = heappop(self._animation_queue)
-
-            # advance the animation frame index, looping by default
-            if token.index == len(token.frames) - 1:
-                token.index = 0
-            else:
-                token.index += 1
-
-            next_frame = token.frames[token.index]
-            token.next = next_frame.duration + self._last_time
-            heappush(self._animation_queue, token)
-
-            # go through the animated tile map:
-            #   * queue tiles that need to be changed
-            #   * remove map entries that do not collide with screen
-
-            needs_clear = False
-            for x, y, l in self._animation_tiles[token.gid]:
-
-                # if this tile is on the buffer (checked by using the tile view)
-                if self._tile_view.collidepoint(x, y):
-
-                    # redraw the entire column of tiles
-                    for layer in tile_layers:
-                        if layer == l:
-                            self._tile_queue.append((x, y, layer, next_frame.image, token.gid))
-                        else:
-                            image = self.data.get_tile_image((x, y, layer))
-                            if image:
-                                self._tile_queue.append((x, y, layer, image, None))
-                else:
-                    needs_clear = True
-
-            # this will delete the set of tile locations that are checked for
-            # animated tiles.  when the tile queue is flushed, any tiles in the
-            # queue will be added again.  i choose to remove the set, rather
-            # than removing the item in the set to reclaim memory over time...
-            # though i could implement it by removing entries.  idk  -lt
-            if needs_clear:
-                del self._animation_tiles[token.gid]
-
-        if self._tile_queue:
-            self._flush_tile_queue(self._buffer)
 
     @staticmethod
     def _calculate_zoom_buffer_size(size, value):
@@ -477,6 +399,5 @@ class BufferedRenderer(object):
         tth = self._tile_view.top * th
         surface_blit = surface.blit
 
-        for x, y, l, tile, gid in self._tile_queue:
-            self._animation_tiles[gid].add((x, y, l))
-            surface_blit(tile, (x * tw - ltw, y * th - tth))
+        for x, y, l, image in self._tile_queue:
+            surface_blit(image, (x * tw - ltw, y * th - tth))
