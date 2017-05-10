@@ -12,11 +12,11 @@ class AnimationToken(object):
         """
 
         :type frames: list
-        :type positions: sequence
+        :type positions: set
         :type initial_time: int 
         """
         frames = tuple(AnimationFrame(*i) for i in frames)
-        self.positions = set(positions)
+        self.positions = positions
         self.frames = frames
         self.next = frames[0].duration + initial_time
         self.index = 0
