@@ -251,7 +251,7 @@ class TiledMapData(PyscrollDataAdapter):
                 image = self.tmx.get_tile_image_by_gid(frame_gid)
                 frames.append(AnimationFrame(image, frame_duration))
 
-            positions = tuple(self.tmx.get_tile_locations_by_gid(gid))
+            positions = set(self.tmx.get_tile_locations_by_gid(gid))
             ani = AnimationToken(positions, frames, self._last_time)
             heappush(self._animation_queue, ani)
 
