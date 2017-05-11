@@ -47,11 +47,16 @@ class PyscrollDataAdapter(object):
         :rtype: list
         """
 
-        # if there are no animations, just return
-        if not self._animation_queue:
+        # verify that there are tile substitutions ready
+        self._update_time()
+        try:
+            if self._animation_queue[0].next > self._last_time:
+                return
+
+        # raised with the animation queue is empty (no animations at all)
+        except IndexError:
             return
 
-        self._update_time()
         new_tiles = list()
         new_tiles_append = new_tiles.append
         tile_layers = tuple(self.visible_tile_layers)
@@ -65,11 +70,10 @@ class PyscrollDataAdapter(object):
             next_frame = token.advance(self._last_time)
             heappush(self._animation_queue, token)
 
-            # go through the animated tile map:
-            #   * queue tiles that need to be changed
-            #   * remove positions that do not collide with screen
+            # following line for when all gid positions are known
+            # for position in self._tracked_tiles & token.positions:
 
-            for position in self._tracked_tiles & token.positions:
+            for position in token.positions.copy():
                 x, y, l = position
 
                 # if this tile is on the buffer (checked by using the tile view)
@@ -93,7 +97,10 @@ class PyscrollDataAdapter(object):
 
                 # not on screen, but was previously.  clear it.
                 else:
-                    self._tracked_tiles.remove(position)
+                    token.positions.remove(position)
+
+        # test that off-buffer animations are not being tracked
+        # print(sum(len(i.positions) for i in self._animation_map.values()))
 
         return new_tiles
 
@@ -127,10 +134,11 @@ class PyscrollDataAdapter(object):
 
         :rtype: pygame.Surface
         """
-        # since the tile has been queried, assume it wants to be checked
-        # for animations sometime in the future
-        if self._animation_queue:
-            self._tracked_tiles.add((x, y, l))
+        # disabled for now, re-enable when support for generic maps is restored
+        # # since the tile has been queried, assume it wants to be checked
+        # # for animations sometime in the future
+        # if self._animation_queue:
+        #     self._tracked_tiles.add((x, y, l))
 
         try:
             # animated, so return the correct frame
@@ -244,15 +252,27 @@ class TiledMapData(PyscrollDataAdapter):
         """
         self._update_time()
         self._animation_queue = list()
+        self._tracked_gids = set()
+        self._animation_map = dict()
 
         for gid, frame_data in self.get_animations():
+            self._tracked_gids.add(gid)
+
             frames = list()
             for frame_gid, frame_duration in frame_data:
                 image = self.tmx.get_tile_image_by_gid(frame_gid)
                 frames.append(AnimationFrame(image, frame_duration))
 
-            positions = set(self.tmx.get_tile_locations_by_gid(gid))
+            # the following line is slow when loading maps, but avoids overhead when rendering
+            # positions = set(self.tmx.get_tile_locations_by_gid(gid))
+
+            # ideally, populations would be populated with all the known
+            # locations of an animation, but searching for their locations
+            # is slow, so it will be updated as the map is drawn.
+
+            positions = set()
             ani = AnimationToken(positions, frames, self._last_time)
+            self._animation_map[gid] = ani
             heappush(self._animation_queue, ani)
 
     def convert_surfaces(self, parent, alpha=False):
@@ -295,7 +315,7 @@ class TiledMapData(PyscrollDataAdapter):
         
         :return: [int, int, ...]
         """
-        return (int(i) for i in self.tmx.visible_tile_layers)
+        return self.tmx.visible_tile_layers
 
     @property
     def visible_object_layers(self):
@@ -328,8 +348,9 @@ class TiledMapData(PyscrollDataAdapter):
         x1, y1, x2, y2 = rect_to_bb(rect)
         images = self.tmx.images
         layers = self.tmx.layers
-        tt_add = self._tracked_tiles.add
         at = self._animated_tile
+        tracked_gids = self._tracked_gids
+        anim_map = self._animation_map
         track = bool(self._animation_queue)
 
         for l in self.tmx.visible_tile_layers:
@@ -337,8 +358,8 @@ class TiledMapData(PyscrollDataAdapter):
                 for x, gid in [i for i in rev(row, x1, x2) if i[1]]:
                     # since the tile has been queried, assume it wants to be checked
                     # for animations sometime in the future
-                    if track:
-                        tt_add((x, y, l))
+                    if track and gid in tracked_gids:
+                        anim_map[gid].positions.add((x, y, l))
 
                     try:
                         # animated, so return the correct frame
