@@ -31,12 +31,12 @@ class BufferedRenderer(object):
                  time_source=time.time, scaling_function=pygame.transform.scale):
 
         # default options
-        self.data = data                           # reference to data source
-        self.clamp_camera = clamp_camera           # if true, cannot scroll past map edge
-        self.anchored_view = True                  # if true, map will be fixed to upper left corner
-        self.map_rect = None                       # pygame rect of entire map
-        self.time_source = time_source             # determines how tile animations are processed
-        self.scaling_function = scaling_function   # what function to use when scaling the zoom buffer
+        self.data = data  # reference to data source
+        self.clamp_camera = clamp_camera  # if true, cannot scroll past map edge
+        self.anchored_view = True  # if true, map will be fixed to upper left corner
+        self.map_rect = None  # pygame rect of entire map
+        self.time_source = time_source  # determines how tile animations are processed
+        self.scaling_function = scaling_function  # what function to use when scaling the zoom buffer
 
         # internal private defaults
         if colorkey and alpha:
@@ -50,20 +50,20 @@ class BufferedRenderer(object):
             self._clear_color = self._rgb_clear_color
 
         # private attributes
-        self._previous_blit = None    # rect of the previous map blit when map edges are visible
-        self._size = None             # size that the camera/viewport is on screen, kinda
-        self._redraw_cutoff = None    # size of dirty tile edge that will trigger full redraw
-        self._x_offset = None         # offsets are used to scroll map in sub-tile increments
+        self._previous_blit = None  # rect of the previous map blit when map edges are visible
+        self._size = None  # size that the camera/viewport is on screen, kinda
+        self._redraw_cutoff = None  # size of dirty tile edge that will trigger full redraw
+        self._x_offset = None  # offsets are used to scroll map in sub-tile increments
         self._y_offset = None
-        self._buffer = None           # complete rendering of tilemap
-        self._tile_view = None        # this rect represents each tile on the buffer
-        self._half_width = None       # 'half x' attributes are used to reduce division ops.
+        self._buffer = None  # complete rendering of tilemap
+        self._tile_view = None  # this rect represents each tile on the buffer
+        self._half_width = None  # 'half x' attributes are used to reduce division ops.
         self._half_height = None
-        self._tile_queue = None       # tiles queued to be draw onto buffer
+        self._tile_queue = None  # tiles queued to be draw onto buffer
         self._animation_queue = None  # heap queue of animation token;  schedules tile changes
-        self._layer_quadtree = None   # used to draw tiles that overlap optional surfaces
-        self._zoom_buffer = None      # used to speed up zoom operations
-        self._zoom_level = 1.0        # negative numbers make map smaller, positive: bigger
+        self._layer_quadtree = None  # used to draw tiles that overlap optional surfaces
+        self._zoom_buffer = None  # used to speed up zoom operations
+        self._zoom_level = 1.0  # negative numbers make map smaller, positive: bigger
 
         # this represents the viewable pixels, aka 'camera'
         self.view_rect = Rect(0, 0, 0, 0)
@@ -285,11 +285,17 @@ class BufferedRenderer(object):
             # of sprite surfaces causes excessive over tile overdrawing
             for dirty_rect in dirty:
                 for r in hit(dirty_rect.move(ox, oy)):
-                    x, y, tw, th = r
+                    x, y, tw, th = r  # screen tile coords
+                    ty = y + th - oy
+
+                    dt = dirty_rect.top
+                    db = dirty_rect.bottom
+
                     for l in [i for i in tile_layers if gt(i, layer)]:
-                        tile = get_tile(x // tw + left, y // th + top, l)
-                        if tile:
-                            surface_blit(tile, (x - ox, y - oy))
+                        if ty > dt + 152:
+                            tile = get_tile(x // tw + left, y // th + top, l)
+                            if tile:
+                                surface_blit(tile, (x - ox, y - oy))
 
     def _queue_edge_tiles(self, dx, dy):
         """ Queue edge tiles and clear edge areas on buffer if needed
@@ -310,13 +316,13 @@ class BufferedRenderer(object):
                       (rect[1] - v.top) * th,
                       rect[2] * tw, rect[3] * th))
 
-        if dx > 0:    # right side
+        if dx > 0:  # right side
             append((v.right - 1, v.top, dx, v.height))
 
         elif dx < 0:  # left side
             append((v.left, v.top, -dx, v.height))
 
-        if dy > 0:    # bottom side
+        if dy > 0:  # bottom side
             append((v.left, v.bottom - 1, v.width, dy))
 
         elif dy < 0:  # top side
