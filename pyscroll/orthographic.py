@@ -29,7 +29,7 @@ class BufferedRenderer(object):
 
     def __init__(self, data, size, clamp_camera=True, colorkey=None, alpha=False,
                  time_source=time.time, scaling_function=pygame.transform.scale,
-                 tall_sprites=0):
+                 tall_sprites=0, **kwargs):
 
         # default options
         self.data = data                           # reference to data source
