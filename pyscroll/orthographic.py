@@ -47,6 +47,8 @@ class BufferedRenderer(object):
         # drawn over sprites which are taller than the tile height.  The value that
         # is how far apart the sprites have to be before drawing the tile over.
         # Reasonable values are about 10% of the tile height
+        # This feature only works for the first layer over the tall sprite, all
+        # other layers will be drawn over the tall sprite.
 
         # internal private defaults
         if colorkey and alpha:
@@ -300,12 +302,12 @@ class BufferedRenderer(object):
             for dirty_rect in dirty:
                 for r in hit(dirty_rect.move(ox, oy)):
                     x, y, tw, th = r
-
-                    if self.tall_sprites:
-                        if y - oy + th <= dirty_rect.bottom - self.tall_sprites:
-                            continue
-
                     for l in [i for i in tile_layers if gt(i, layer)]:
+
+                        if self.tall_sprites and l == layer + 1:
+                            if y - oy + th <= dirty_rect.bottom - self.tall_sprites:
+                                continue
+
                         tile = get_tile(x // tw + left, y // th + top, l)
                         if tile:
                             surface_blit(tile, (x - ox, y - oy))
