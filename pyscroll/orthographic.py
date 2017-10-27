@@ -28,7 +28,8 @@ class BufferedRenderer(object):
     _rgb_clear_color = 0, 0, 0
 
     def __init__(self, data, size, clamp_camera=True, colorkey=None, alpha=False,
-                 time_source=time.time, scaling_function=pygame.transform.scale):
+                 time_source=time.time, scaling_function=pygame.transform.scale,
+                 tall_sprites=0):
 
         # default options
         self.data = data                           # reference to data source
@@ -37,6 +38,15 @@ class BufferedRenderer(object):
         self.map_rect = None                       # pygame rect of entire map
         self.time_source = time_source             # determines how tile animations are processed
         self.scaling_function = scaling_function   # what function to use when scaling the zoom buffer
+        self.tall_sprites = tall_sprites           # correctly render tall sprites
+
+        # Tall Sprites
+        # this value, if greater than 0, is the number of pixels from the bottom of
+        # tall sprites which is compared against the bottom of a tile on the same
+        # lays of the sprite.  In other words, if set, it prevents tiles from being
+        # drawn over sprites which are taller than the tile height.  The value that
+        # is how far apart the sprites have to be before drawing the tile over.
+        # Reasonable values are about 10% of the tile height
 
         # internal private defaults
         if colorkey and alpha:
@@ -267,9 +277,13 @@ class BufferedRenderer(object):
         dirty_append = dirty.append
 
         # TODO: check to avoid sorting overhead
-        layer_getter = itemgetter(2)
-        surfaces.sort(key=layer_getter)
+        # sort layers, then the y value
+        def sprite_sort(i):
+            return i[2], i[1][1] + i[0].get_height()
 
+        surfaces.sort(key=sprite_sort)
+
+        layer_getter = itemgetter(2)
         for layer, group in groupby(surfaces, layer_getter):
             del dirty[:]
 
@@ -286,6 +300,11 @@ class BufferedRenderer(object):
             for dirty_rect in dirty:
                 for r in hit(dirty_rect.move(ox, oy)):
                     x, y, tw, th = r
+
+                    if self.tall_sprites:
+                        if y - oy + th <= dirty_rect.bottom - self.tall_sprites:
+                            continue
+
                     for l in [i for i in tile_layers if gt(i, layer)]:
                         tile = get_tile(x // tw + left, y // th + top, l)
                         if tile:
