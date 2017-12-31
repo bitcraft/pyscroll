@@ -237,6 +237,71 @@ class BufferedRenderer(object):
         return (-self.view_rect.centerx + self._half_width,
                 -self.view_rect.centery + self._half_height)
 
+    def translate_point(self, point):
+        """ Translate world coordinates and return screen coordinates.  Respects zoom level
+
+        Will be returned as tuple.
+
+        NOTE: may not align with pixels when map is zoomed
+
+        :rtype: tuple
+        """
+        mx, my = self.get_center_offset()
+        z = self._zoom_level
+        return int((point[0] + mx) * z), int((point[1] + my) * z)
+
+    def translate_rect(self, rect):
+        """ Translate rect position and size to screen coordinates.  Respects zoom level.
+
+        NOTE: may not align with pixels when map is zoomed
+
+        :rtype: Rect
+        """
+        mx, my = self.get_center_offset()
+        z = self._zoom_level
+        x, y, w, h = rect
+        return Rect(int((x + mx) * z), int((y + my) * z), int(w * z), int(h * z))
+
+    def translate_points(self, *points):
+        """ Translate coordinates and return screen coordinates
+
+        Will be returned in order passed as tuples.
+
+        NOTE: may not align with pixels when map is zoomed
+
+        :return: list
+        """
+        retval = list()
+        append = retval.append
+        sx, sy = self.get_center_offset()
+        z = self._zoom_level
+        for c in points:
+            append((int((c[0] + sx) * z), int((c[1] + sy) * z)))
+        return retval
+
+    def translate_rects(self, rects):
+        """ Translate rect position and size to screen coordinates.  Respects zoom level.
+
+        Will be returned in order passed as Rects.
+
+        NOTE: may not align with pixels when map is zoomed
+
+        :return: list
+        """
+        retval = list()
+        append = retval.append
+        sx, sy = self.get_center_offset()
+        z = self._zoom_level
+        if z == 1.0:
+            for r in rects:
+                x, y, w, h = r
+                append(Rect(x + sx, y + sy, w, h))
+        else:
+            for r in rects:
+                x, y, w, h = r
+                append(Rect(int((x + sx) * z), int((y + sy) * z), round(w * z), int(h * z)))
+        return retval
+
     def _render_map(self, surface, rect, surfaces):
         """ Render the map and optional surfaces to destination surface
 

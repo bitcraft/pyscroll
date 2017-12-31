@@ -23,7 +23,7 @@ class PyscrollGroup(pygame.sprite.LayeredUpdates):
 
     @property
     def view(self):
-        """ Return a Rect representing visibile portion of map
+        """ Return a Rect representing visible portion of map
 
         This rect can be modified, but will not change the renderer
 
@@ -35,6 +35,7 @@ class PyscrollGroup(pygame.sprite.LayeredUpdates):
         """ Draw all sprites and map onto the surface
 
         :param surface: pygame surface to draw to
+        :type surface: pygame.surface.Surface
         """
         ox, oy = self._map_layer.get_center_offset()
 
