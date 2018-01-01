@@ -76,6 +76,7 @@ class BufferedRenderer(object):
         self._layer_quadtree = None   # used to draw tiles that overlap optional surfaces
         self._zoom_buffer = None      # used to speed up zoom operations
         self._zoom_level = 1.0        # negative numbers make map smaller, positive: bigger
+        self._real_ratio = 1.0        # the actual zoom ratio
 
         # this represents the viewable pixels, aka 'camera'
         self.view_rect = Rect(0, 0, 0, 0)
@@ -207,6 +208,8 @@ class BufferedRenderer(object):
         buffer_size = self._calculate_zoom_buffer_size(self._size, value)
         self._zoom_level = value
         self._initialize_buffers(buffer_size)
+        self._real_ratio = sum(self._size) / sum(buffer_size)
+        print(self.zoom, self._real_ratio)
 
     def set_size(self, size):
         """ Set the size of the map in pixels
@@ -242,23 +245,19 @@ class BufferedRenderer(object):
 
         Will be returned as tuple.
 
-        NOTE: may not align with pixels when map is zoomed
-
         :rtype: tuple
         """
         mx, my = self.get_center_offset()
-        z = self._zoom_level
+        z = self._real_ratio
         return int((point[0] + mx) * z), int((point[1] + my) * z)
 
     def translate_rect(self, rect):
         """ Translate rect position and size to screen coordinates.  Respects zoom level.
 
-        NOTE: may not align with pixels when map is zoomed
-
         :rtype: Rect
         """
         mx, my = self.get_center_offset()
-        z = self._zoom_level
+        z = self._real_ratio
         x, y, w, h = rect
         return Rect(int((x + mx) * z), int((y + my) * z), int(w * z), int(h * z))
 
@@ -267,14 +266,12 @@ class BufferedRenderer(object):
 
         Will be returned in order passed as tuples.
 
-        NOTE: may not align with pixels when map is zoomed
-
         :return: list
         """
         retval = list()
         append = retval.append
         sx, sy = self.get_center_offset()
-        z = self._zoom_level
+        z = self._real_ratio
         for c in points:
             append((int((c[0] + sx) * z), int((c[1] + sy) * z)))
         return retval
@@ -284,14 +281,12 @@ class BufferedRenderer(object):
 
         Will be returned in order passed as Rects.
 
-        NOTE: may not align with pixels when map is zoomed
-
         :return: list
         """
         retval = list()
         append = retval.append
         sx, sy = self.get_center_offset()
-        z = self._zoom_level
+        z = self._real_ratio
         if z == 1.0:
             for r in rects:
                 x, y, w, h = r

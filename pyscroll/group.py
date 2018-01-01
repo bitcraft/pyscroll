@@ -53,4 +53,8 @@ class PyscrollGroup(pygame.sprite.LayeredUpdates):
             spritedict[spr] = new_rect
 
         self.lostsprites = []
-        return self._map_layer.draw(surface, surface.get_rect(), new_surfaces)
+        self._map_layer.draw(surface, surface.get_rect(), new_surfaces)
+
+        for spr in self.sprites():
+            r = self._map_layer.translate_rect(spr.rect)
+            pygame.draw.rect(surface, (20, 20, 20), r, 1)
