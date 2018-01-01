@@ -299,7 +299,7 @@ class BufferedRenderer(object):
         else:
             for r in rects:
                 x, y, w, h = r
-                append(Rect(int((x + sx) * z), int((y + sy) * z), round(w * z), int(h * z)))
+                append(Rect(int((x + sx) * z), int((y + sy) * z), int(w * z), int(h * z)))
         return retval
 
     def _render_map(self, surface, rect, surfaces):
