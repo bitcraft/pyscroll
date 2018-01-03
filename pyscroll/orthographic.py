@@ -34,11 +34,10 @@ class BufferedRenderer(object):
         # default options
         self.data = data                           # reference to data source
         self.clamp_camera = clamp_camera           # if true, cannot scroll past map edge
-        self.anchored_view = True                  # if true, map will be fixed to upper left corner
-        self.map_rect = None                       # pygame rect of entire map
         self.time_source = time_source             # determines how tile animations are processed
         self.scaling_function = scaling_function   # what function to use when scaling the zoom buffer
         self.tall_sprites = tall_sprites           # correctly render tall sprites
+        self.map_rect = None                       # pygame rect of entire map
 
         # Tall Sprites
         # this value, if greater than 0, is the number of pixels from the bottom of
@@ -52,7 +51,7 @@ class BufferedRenderer(object):
 
         # internal private defaults
         if colorkey and alpha:
-            print('cannot select both colorkey and alpha.  choose one.')
+            logger.error('cannot select both colorkey and alpha.  choose one.')
             raise ValueError
         elif colorkey:
             self._clear_color = colorkey
@@ -62,8 +61,9 @@ class BufferedRenderer(object):
             self._clear_color = self._rgb_clear_color
 
         # private attributes
+        self._anchored_view = True    # if true, map is fixed to upper left corner
         self._previous_blit = None    # rect of the previous map blit when map edges are visible
-        self._size = None             # size that the camera/viewport is on screen, kinda
+        self._size = None             # actual pixel size of the view, as it occupies the screen
         self._redraw_cutoff = None    # size of dirty tile edge that will trigger full redraw
         self._x_offset = None         # offsets are used to scroll map in sub-tile increments
         self._y_offset = None
@@ -76,10 +76,9 @@ class BufferedRenderer(object):
         self._layer_quadtree = None   # used to draw tiles that overlap optional surfaces
         self._zoom_buffer = None      # used to speed up zoom operations
         self._zoom_level = 1.0        # negative numbers make map smaller, positive: bigger
-        self._real_ratio = 1.0        # the actual zoom ratio
-
-        # this represents the viewable pixels, aka 'camera'
-        self.view_rect = Rect(0, 0, 0, 0)
+        self._real_ratio_x = 1.0      # zooming slightly changes aspect ratio; this compensates
+        self._real_ratio_y = 1.0      # zooming slightly changes aspect ratio; this compensates
+        self.view_rect = Rect(0, 0, 0, 0)  # this represents the viewable map pixels
 
         self.set_size(size)
 
@@ -98,7 +97,7 @@ class BufferedRenderer(object):
 
         :param coords: (number, number)
         """
-        x, y = [round(i, 0) for i in coords]
+        x, y = round(coords[0]), round(coords[1])
         self.view_rect.center = x, y
 
         mw, mh = self.data.map_size
@@ -110,7 +109,7 @@ class BufferedRenderer(object):
 
         # prevent camera from exposing edges of the map
         if self.clamp_camera:
-            self.anchored_view = True
+            self._anchored_view = True
             self.view_rect.clamp_ip(self.map_rect)
             x, y = self.view_rect.center
 
@@ -123,27 +122,27 @@ class BufferedRenderer(object):
             # not anchored, so the rendered map is being offset by values larger
             # than the tile size.  this occurs when the edges of the map are inside
             # the screen.  a situation like is shows a background under the map.
-            self.anchored_view = True
+            self._anchored_view = True
 
             if left > mw - vw:
                 left = mw - vw
                 self._x_offset = x - self._half_width - (mw - vw) * tw
-                self.anchored_view = False
+                self._anchored_view = False
 
             elif left < 0:
                 left = 0
                 self._x_offset = x - self._half_width
-                self.anchored_view = False
+                self._anchored_view = False
 
             if top > mh - vh:
                 top = mh - vh
                 self._y_offset = y - self._half_height - (mh - vh) * th
-                self.anchored_view = False
+                self._anchored_view = False
 
             elif top < 0:
                 top = 0
                 self._y_offset = y - self._half_height
-                self.anchored_view = False
+                self._anchored_view = False
 
         # adjust the view if the view has changed without a redraw
         dx = int(left - self._tile_view.left)
@@ -205,11 +204,13 @@ class BufferedRenderer(object):
 
     @zoom.setter
     def zoom(self, value):
-        buffer_size = self._calculate_zoom_buffer_size(self._size, value)
+        zoom_buffer_size = self._calculate_zoom_buffer_size(self._size, value)
         self._zoom_level = value
-        self._initialize_buffers(buffer_size)
-        self._real_ratio = sum(self._size) / sum(buffer_size)
-        print(self.zoom, self._real_ratio)
+        self._initialize_buffers(zoom_buffer_size)
+
+        zoom_buffer_size = self._zoom_buffer.get_size()
+        self._real_ratio_x = float(self._size[0]) / zoom_buffer_size[0]
+        self._real_ratio_y = float(self._size[1]) / zoom_buffer_size[1]
 
     def set_size(self, size):
         """ Set the size of the map in pixels
@@ -248,8 +249,10 @@ class BufferedRenderer(object):
         :rtype: tuple
         """
         mx, my = self.get_center_offset()
-        z = self._real_ratio
-        return int((point[0] + mx) * z), int((point[1] + my) * z)
+        if self._zoom_level == 1.0:
+            return point[0] + mx, point[1] + my
+        else:
+            return int(round((point[0] + mx)) * self._real_ratio_x), int(round((point[1] + my) * self._real_ratio_y))
 
     def translate_rect(self, rect):
         """ Translate rect position and size to screen coordinates.  Respects zoom level.
@@ -257,11 +260,15 @@ class BufferedRenderer(object):
         :rtype: Rect
         """
         mx, my = self.get_center_offset()
-        z = self._real_ratio
+        rx = self._real_ratio_x
+        ry = self._real_ratio_y
         x, y, w, h = rect
-        return Rect(int((x + mx) * z), int((y + my) * z), int(w * z), int(h * z))
+        if self._zoom_level == 1.0:
+            return Rect(x + mx, y + my, w, h)
+        else:
+            return Rect(round((x + mx) * rx), round((y + my) * ry), round(w * rx), round(h * ry))
 
-    def translate_points(self, *points):
+    def translate_points(self, points):
         """ Translate coordinates and return screen coordinates
 
         Will be returned in order passed as tuples.
@@ -271,9 +278,14 @@ class BufferedRenderer(object):
         retval = list()
         append = retval.append
         sx, sy = self.get_center_offset()
-        z = self._real_ratio
-        for c in points:
-            append((int((c[0] + sx) * z), int((c[1] + sy) * z)))
+        if self._zoom_level == 1.0:
+            for c in points:
+                append((c[0] + sx, c[1] + sy))
+        else:
+            rx = self._real_ratio_x
+            ry = self._real_ratio_y
+            for c in points:
+                append((int(round((c[0] + sx) * rx)), int(round((c[1] + sy) * ry))))
         return retval
 
     def translate_rects(self, rects):
@@ -286,15 +298,16 @@ class BufferedRenderer(object):
         retval = list()
         append = retval.append
         sx, sy = self.get_center_offset()
-        z = self._real_ratio
-        if z == 1.0:
+        if self._zoom_level == 1.0:
             for r in rects:
                 x, y, w, h = r
                 append(Rect(x + sx, y + sy, w, h))
         else:
+            rx = self._real_ratio_x
+            ry = self._real_ratio_y
             for r in rects:
                 x, y, w, h = r
-                append(Rect(int((x + sx) * z), int((y + sy) * z), int(w * z), int(h * z)))
+                append(Rect(round((x + sx) * rx), round((y + sy) * ry), round(w * rx), round(h * ry)))
         return retval
 
     def _render_map(self, surface, rect, surfaces):
@@ -311,7 +324,7 @@ class BufferedRenderer(object):
         # TODO: could maybe optimize to remove just the edges
         # if not self.anchored_view:
         #     surface.fill(self._clear_color, self._previous_blit)
-        if not self.anchored_view:
+        if not self._anchored_view:
             surface.fill(self._clear_color)
 
         offset = -self._x_offset + rect.left, -self._y_offset + rect.top
@@ -406,10 +419,10 @@ class BufferedRenderer(object):
     @staticmethod
     def _calculate_zoom_buffer_size(size, value):
         if value <= 0:
-            print('zoom level cannot be zero or less')
+            logger.error('zoom level cannot be zero or less')
             raise ValueError
         value = 1.0 / value
-        return [int(round(i * value)) for i in size]
+        return int(size[0] * value), int(size[1] * value)
 
     def _create_buffers(self, view_size, buffer_size):
         """ Create the buffers, taking in account pixel alpha or colorkey
