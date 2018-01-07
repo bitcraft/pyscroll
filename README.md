@@ -10,7 +10,7 @@ Introduction
 ============
 
 pyscroll is a generic module for making a fast scrolling image with PyGame.  It
-uses a lot of magic to get reasonable framerates out of PyGame.  It only exists
+uses a lot of magic to get great framerates out of PyGame.  It only exists
 to draw a map.  It doesn't load images or data, so you can use your own custom
 data structures, tile storage, ect.
 
@@ -42,13 +42,15 @@ Its useful to make minimaps or create simple chunky graphics.
 Features
 ========
 
-- Zoom it like a camera
-- Fast and small footprint
+- Fast framerate
+- Speed is not affected by map size
+- Sprites or plain surfaces can be drawn in layers
 - Animated tiles
-- Layered drawing for tiles
-- Drawing and scrolling shapes
-- Pygame Group included
+- Zoom in and out
+- Includes optional drop-in replacement for pygame LayeredGroup
 - Pixel alpha and colorkey tilesets are supported
+- Drawing and scrolling shapes
+- Fast and small footprint
 
 
 Installation
@@ -85,10 +87,11 @@ welcome to make additions or improvements.
 https://github.com/bitcraft/pyscroll/wiki
 
 
-Example Use with PyTMX
+Example Use with pytmx
 ======================
 
-pyscroll and pytmx can load your maps from Tiled and use you PyGame Sprites.
+pyscroll and pytmx can load your maps from Tiled and use your PyGame Sprites.
+The following is a very basic way to load a map onto the screen.
 
 ```python
 import pyscroll
@@ -135,9 +138,9 @@ class to interact with pyscroll or adapt your data handler.  Try to make it
 follow the same API as the TiledMapData adapter and you should be fine.
 
 There is a good possibility that tile animations will not work for custom
-map types (only works with pytmx).  I will investigate this in the future.
+map types (only tested with pytmx).  I will investigate this in the future.
 
-The following do not require pytmx, you can use your own data format.
+The following does not require pytmx, you can use your own data format.
 
 #### Give pyscroll surface to layer into the map
 
@@ -147,13 +150,13 @@ their layer position.
 ```python
 map_layer = pyscroll.BufferedRenderer(map_data, map_size)
 
-# just an example for clarity.  here's a made up game engine
+# just an example for clarity.  here's a made up game engine:
 
-def draw():
+def game_engine_draw():
    surfaces = list()
    for game_object in my_game_engine:
 
-      # pyscroll uses normal pygame surfaces
+      # pyscroll uses normal pygame surfaces.
       surface = game_object.get_surface()
 
       # pyscroll will draw surfaces in screen coordinates, so translate them
@@ -174,13 +177,25 @@ FAQ
 ===
 
 ## Why are tiles repeating while scrolling?
-Pyscroll by default will not handle maps that are not completely filled with tiles.  This is in consideration of drawing speed.  To clarify, you can have several layers, some layers without tiles, and that is fine; the problem is when there are empty spaces in all the layers, leaving gaps in the entire map.  There are two ways to fix this issue with the 1st solution being the best performance wise.
+Pyscroll by default will not handle maps that are not completely filled with
+tiles.  This is in consideration of drawing speed.  To clarify, you can have
+several layers, some layers without tiles, and that is fine; the problem is
+when there are empty spaces in all the layers, leaving gaps in the entire map.
+There are two ways to fix this issue with the 1st solution being the best
+performance wise.
 
 ##### 1. In Tiled (or your data), fill in the empty spots with a tile
-For best performance, you must have a tile in each part of the map.  You can create a simple background layer, and fill with single color tiles where there are gaps.  Pyscroll is very fast even with several layers, so there is virtually no penalty.
+For best performance, you must have a tile in each part of the map.  You can
+create a simple background layer, and fill with single color tiles where there
+are gaps.  Pyscroll is very fast even with several layers, so there is
+virtually no penalty.
 
 ##### 2. Pass "alpha=True" to the BufferedRenderer constructor.
-All internal buffers will now support 'per-pixel alpha' and the areas without tiles will be fully transparent.  You *may* still have graphical oddities depending on if you clear the screen or not, so you may have to experiment here.  Since per-pixel alpha buffers are used, overall performance will be reduced.
+All internal buffers will now support 'per-pixel alpha' and the areas without
+tiles will be fully transparent.  You *may* still have graphical oddities
+depending on if you clear the screen or not, so you may have to experiment
+here.  Since per-pixel alpha buffers are used, overall performance will be
+reduced.
 
 
 ## Why are there obvious/ugly 'streaks' when scrolling?
@@ -188,18 +203,34 @@ Streaks are caused by missing tiles.  See the above answer for solutions.
 
 
 ## Can I blit anything 'under' the scrolling map layer?
-Yes!  There are two ways to handle this situation...both are experimental, but should work.  These options will cause the renderer to do more housekeeping, actively clearing empty spaces in the buffer, so overall performance will be reduced.
+Yes!  There are two ways to handle this situation...both are experimental,
+but should work.  These options will cause the renderer to do more
+housekeeping, actively clearing empty spaces in the buffer, so overall
+performance will be reduced.
 
 ##### 1. Pass "alpha=True" to the constructor.
-When drawing the screen, first blit what you want to be under the map (like a background, or parallax layer), then draw the pyscroll renderer or group.  Since per-pixel alpha buffers are used, overall performance will be reduced.
+When drawing the screen, first blit what you want to be under the map (like
+a background, or parallax layer), then draw the pyscroll renderer or group.
+Since per-pixel alpha buffers are used, overall performance will be reduced.
 
 ##### 2. Set a colorkey.
-Pass "colorkey=theColorYouWant" to the BufferedRenderer constructor.  In theory, you can now blit the map layer over other surfaces with transparency, but beware that it will produce some nasty side effects:
+Pass "colorkey=theColorYouWant" to the BufferedRenderer constructor.  In
+theory, you can now blit the map layer over other surfaces with transparency,
+but beware that it will produce some nasty side effects:
+
 1. Overall, performance will be reduced, as empty ares are being filled with the colorkey color.
 2. If mixing 'per-pixel alpha' tilesets, the edges of your tiles may be discolored and look wrong.
 
 ## Does the map layer support transparency?
-Yes...and no.  By default, pyscroll handles all transparency types very well for the tiles and you should not have issues with that.  However, if you are trying to blit/draw the map *over* existing graphics and "see through" transparent areas, then you will have to use the "alpha", or "colorkey" methods described above.
+Yes...and no.  By default, pyscroll handles all transparency types very well
+for the tiles and you should not have issues with that.  However, if you are
+trying to blit/draw the map *over* existing graphics and "see through"
+transparent areas, then you will have to use the "alpha", or "colorkey"
+methods described above.
 
 ## Does pyscroll support parallax layers?
-Yes/no.  Because there is no direct support in the primary editor, Tiled, I have not implemented an API for it.  However, you can build you own parallax effects by passing "alpha=True" to the BufferedRenderer constructor.  Then it is just a matter of scrolling at different speeds.  Be warned, that rendering alpha layers is much slower.
+Yes/no.  Because there is no direct support in the primary editor, Tiled, I
+have not implemented an API for it.  However, you can build you own parallax
+effects by passing "alpha=True" to the BufferedRenderer constructor.  Then it
+is just a matter of scrolling at different speeds.  Be warned, that rendering
+alpha layers is much slower.

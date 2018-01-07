@@ -104,9 +104,6 @@ class BufferedRenderer(object):
         tw, th = self.data.tile_size
         vw, vh = self._tile_view.size
 
-        # TODO: remove check from here; cache it
-        # small_map = (self._tile_view.width >= mw) or (self._tile_view.height >= mh)
-
         # prevent camera from exposing edges of the map
         if self.clamp_camera:
             self._anchored_view = True
@@ -116,17 +113,20 @@ class BufferedRenderer(object):
         # calc the new position in tiles and pixel offset
         left, self._x_offset = divmod(x - self._half_width, tw)
         top, self._y_offset = divmod(y - self._half_height, th)
+        right = left + vw
+        bottom = top + vh
 
-        # test if camera will expose edges of the map
         if not self.clamp_camera:
             # not anchored, so the rendered map is being offset by values larger
             # than the tile size.  this occurs when the edges of the map are inside
             # the screen.  a situation like is shows a background under the map.
             self._anchored_view = True
+            dx = int(left - self._tile_view.left)
+            dy = int(top - self._tile_view.top)
 
-            if left > mw - vw:
+            if right > mw:
                 left = mw - vw
-                self._x_offset = x - self._half_width - (mw - vw) * tw
+                self._x_offset += dx * tw
                 self._anchored_view = False
 
             elif left < 0:
@@ -134,9 +134,9 @@ class BufferedRenderer(object):
                 self._x_offset = x - self._half_width
                 self._anchored_view = False
 
-            if top > mh - vh:
+            if bottom > mh:
                 top = mh - vh
-                self._y_offset = y - self._half_height - (mh - vh) * th
+                self._y_offset += dy * th
                 self._anchored_view = False
 
             elif top < 0:
@@ -318,8 +318,7 @@ class BufferedRenderer(object):
         :param surfaces: optional sequence of surfaces to interlace between tiles
         """
         self._tile_queue = self.data.process_animation_queue(self._tile_view)
-        if self._tile_queue:
-            self._flush_tile_queue(self._buffer)
+        self._tile_queue and self._flush_tile_queue(self._buffer)
 
         # TODO: could maybe optimize to remove just the edges
         # if not self.anchored_view:
@@ -382,8 +381,7 @@ class BufferedRenderer(object):
                                 continue
 
                         tile = get_tile(x // tw + left, y // th + top, l)
-                        if tile:
-                            surface_blit(tile, (x - ox, y - oy))
+                        tile and surface_blit(tile, (x - ox, y - oy))
 
     def _queue_edge_tiles(self, dx, dy):
         """ Queue edge tiles and clear edge areas on buffer if needed
@@ -456,6 +454,9 @@ class BufferedRenderer(object):
         :param view_size: (int, int): size of the draw area
         :return: None
         """
+        def make_rect(x, y):
+            return Rect((x * tw, y * th), (tw, th))
+
         tw, th = self.data.tile_size
         mw, mh = self.data.map_size
         buffer_tile_width = int(math.ceil(view_size[0] / tw) + 1)
@@ -472,9 +473,6 @@ class BufferedRenderer(object):
         self._half_height = view_size[1] // 2
         self._x_offset = 0
         self._y_offset = 0
-
-        def make_rect(x, y):
-            return Rect((x * tw, y * th), (tw, th))
 
         rects = [make_rect(*i) for i in product(range(buffer_tile_width),
                                                 range(buffer_tile_height))]
