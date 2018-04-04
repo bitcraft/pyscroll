@@ -8,7 +8,11 @@ import time
 from itertools import product
 from heapq import heappop, heappush
 
-import pytmx
+# optional pytmx support
+try:
+    import pytmx
+except ImportError:
+    pass
 
 from pyscroll import rect_to_bb
 from pyscroll.animation import AnimationFrame, AnimationToken
