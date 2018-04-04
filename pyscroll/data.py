@@ -118,15 +118,16 @@ class PyscrollDataAdapter(object):
         self._last_time = time.time() * 1000
 
     def prepare_tiles(self, tiles):
-        """ Somewhat experimental: The renderer will advise data layer of its queue
+        """ Somewhat experimental: The renderer will advise data layer of its view
 
         For some data providers, it would be useful to know what tiles will be drawn
-        before they are ready to draw.
+        before they are ready to draw.  This exposes the tile view to the data.
 
-        The Renderer will call this when it has filled it's queue and return a
-        reference to it, so that the data layer can be prepared.
+        * A draw will happen immediately after this returns.
+        * Do not hold on to this reference or change it.
 
-        :param tiles: reference to the tile queue
+        :param tiles: reference to the tile view
+        :type tiles: pygame.Rect
         :return:
         """
         pass
