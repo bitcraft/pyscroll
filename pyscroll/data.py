@@ -117,6 +117,20 @@ class PyscrollDataAdapter(object):
         """
         self._last_time = time.time() * 1000
 
+    def prepare_tiles(self, tiles):
+        """ Somewhat experimental: The renderer will advise data layer of its queue
+
+        For some data providers, it would be useful to know what tiles will be drawn
+        before they are ready to draw.
+
+        The Renderer will call this when it has filled it's queue and return a
+        reference to it, so that the data layer can be prepared.
+
+        :param tiles: reference to the tile queue
+        :return:
+        """
+        pass
+
     def reload_animations(self):
         """ Reload animation information
         

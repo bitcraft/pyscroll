@@ -153,6 +153,7 @@ class BufferedRenderer(object):
             self._buffer.scroll(-dx * tw, -dy * th)
             self._tile_view.move_ip(dx, dy)
             self._queue_edge_tiles(dx, dy)
+            self.data.prepare_tiles(self._tile_queue)
             self._flush_tile_queue(self._buffer)
 
         elif view_change > self._redraw_cutoff:
@@ -232,6 +233,7 @@ class BufferedRenderer(object):
             surface.fill(self._clear_color)
 
         self._tile_queue = self.data.get_tile_images_by_rect(self._tile_view)
+        self.data.prepare_tiles(self._tile_queue)
         self._flush_tile_queue(surface)
 
     def get_center_offset(self):
@@ -318,6 +320,7 @@ class BufferedRenderer(object):
         :param surfaces: optional sequence of surfaces to interlace between tiles
         """
         self._tile_queue = self.data.process_animation_queue(self._tile_view)
+        self.data.prepare_tiles(self._tile_queue)
         self._tile_queue and self._flush_tile_queue(self._buffer)
 
         # TODO: could maybe optimize to remove just the edges

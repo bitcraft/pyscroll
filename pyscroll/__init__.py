@@ -2,7 +2,7 @@ from contextlib import contextmanager
 
 from pygame import Rect
 
-__version__ = 2, 17, 6
+__version__ = 2, 17, 7
 __author__ = 'bitcraft'
 __author_email__ = 'leif.theden@gmail.com'
 __description__ = 'Pygame Scrolling - Python 2.7 & 3.3+'
