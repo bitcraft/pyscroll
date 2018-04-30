@@ -124,24 +124,24 @@ class BufferedRenderer(object):
             dx = int(left - self._tile_view.left)
             dy = int(top - self._tile_view.top)
 
-            if right > mw:
-                left = mw - vw
-                self._x_offset += dx * tw
-                self._anchored_view = False
-
-            elif left < 0:
+            if mw < vw or left < 0:
                 left = 0
                 self._x_offset = x - self._half_width
                 self._anchored_view = False
 
-            if bottom > mh:
-                top = mh - vh
-                self._y_offset += dy * th
+            elif right > mw:
+                left = mw - vw
+                self._x_offset += dx * tw
                 self._anchored_view = False
 
-            elif top < 0:
+            if mh < vh or top < 0:
                 top = 0
                 self._y_offset = y - self._half_height
+                self._anchored_view = False
+
+            elif bottom > mh:
+                top = mh - vh
+                self._y_offset += dy * th
                 self._anchored_view = False
 
         # adjust the view if the view has changed without a redraw
