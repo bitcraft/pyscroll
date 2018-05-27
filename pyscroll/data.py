@@ -245,6 +245,8 @@ class PyscrollDataAdapter(object):
           And ID is a reference to a tile image.
           This will be something accessible using _get_tile_image_by_id
 
+          Duration should be in milliseconds
+
         :return: sequence
         """
         raise NotImplementedError
