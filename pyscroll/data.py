@@ -134,11 +134,34 @@ class PyscrollDataAdapter(object):
 
     def reload_animations(self):
         """ Reload animation information
-        
-        This relies on the data source having references to tiles by
-        an ID.  So far, this is not implemented outside of Tiled Maps.
+
+        PyscrollDataAdapter.get_animations must be implemented
+
         """
-        raise NotImplementedError
+        self._update_time()
+        self._animation_queue = list()
+        self._tracked_gids = set()
+        self._animation_map = dict()
+
+        for gid, frame_data in self.get_animations():
+            self._tracked_gids.add(gid)
+
+            frames = list()
+            for frame_gid, frame_duration in frame_data:
+                image = self._get_tile_image_by_id(frame_gid)
+                frames.append(AnimationFrame(image, frame_duration))
+
+            # the following line is slow when loading maps, but avoids overhead when rendering
+            # positions = set(self.tmx.get_tile_locations_by_gid(gid))
+
+            # ideally, positions would be populated with all the known
+            # locations of an animation, but searching for their locations
+            # is slow. so it will be updated as the map is drawn.
+
+            positions = set()
+            ani = AnimationToken(positions, frames, self._last_time)
+            self._animation_map[gid] = ani
+            heappush(self._animation_queue, ani)
 
     def get_tile_image(self, x, y, l):
         """ Get a tile image, respecting current animations
@@ -188,6 +211,16 @@ class PyscrollDataAdapter(object):
         """
         raise NotImplementedError
 
+    def _get_tile_image_by_id(self, id):
+        """ Return Image by a custom ID
+
+        Used for animations.  Not required for static maps.
+
+        :param id:
+        :return:
+        """
+        raise NotImplementedError
+
     def convert_surfaces(self, parent, alpha=False):
         """ Convert all images in the data to match the parent
 
@@ -204,13 +237,13 @@ class PyscrollDataAdapter(object):
         This method is subject to change in the future.
 
         Must yield tuples that in the following format:
-          ( Position, Frames )
+          ( ID, Frames )
 
           Where Frames is:
-          [ (Position, Duration), ... ]
+          [ (ID, Duration), ... ]
     
-          And Position is:
-          ( x, y, l )
+          And ID is a reference to a tile image.
+          This will be something accessible using _get_tile_image_by_id
 
         :return: sequence
         """
@@ -265,34 +298,6 @@ class TiledMapData(PyscrollDataAdapter):
 
             if frames:
                 yield gid, frames
-
-    def reload_animations(self):
-        """ Reload animation information
-        """
-        self._update_time()
-        self._animation_queue = list()
-        self._tracked_gids = set()
-        self._animation_map = dict()
-
-        for gid, frame_data in self.get_animations():
-            self._tracked_gids.add(gid)
-
-            frames = list()
-            for frame_gid, frame_duration in frame_data:
-                image = self.tmx.get_tile_image_by_gid(frame_gid)
-                frames.append(AnimationFrame(image, frame_duration))
-
-            # the following line is slow when loading maps, but avoids overhead when rendering
-            # positions = set(self.tmx.get_tile_locations_by_gid(gid))
-
-            # ideally, populations would be populated with all the known
-            # locations of an animation, but searching for their locations
-            # is slow, so it will be updated as the map is drawn.
-
-            positions = set()
-            ani = AnimationToken(positions, frames, self._last_time)
-            self._animation_map[gid] = ani
-            heappush(self._animation_queue, ani)
 
     def convert_surfaces(self, parent, alpha=False):
         """ Convert all images in the data to match the parent
@@ -352,6 +357,16 @@ class TiledMapData(PyscrollDataAdapter):
             return self.tmx.get_tile_image(x, y, l)
         except ValueError:
             return None
+
+    def _get_tile_image_by_id(self, id):
+        """ Return Image by a custom ID
+
+        Used for animations.  Not required for static maps.
+
+        :param id:
+        :return:
+        """
+        return self.tmx.images[id]
 
     def get_tile_images_by_rect(self, rect):
         """ Speed up data access
