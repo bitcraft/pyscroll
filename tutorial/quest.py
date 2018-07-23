@@ -119,7 +119,7 @@ class QuestGame(object):
         map_data = pyscroll.data.TiledMapData(tmx_data)
 
         # create new renderer (camera)
-        self.map_layer = pyscroll.BufferedRenderer(map_data, screen.get_size(), clamp_camera=True, tall_sprites=1)
+        self.map_layer = pyscroll.BufferedRenderer(map_data, screen.get_size(), clamp_camera=False, tall_sprites=1)
         self.map_layer.zoom = 2
 
         # pyscroll supports layered rendering.  our map has 3 'under' layers
@@ -217,8 +217,9 @@ class QuestGame(object):
 
         try:
             while self.running:
-                dt = clock.tick(120) / 1000.
+                dt = clock.tick() / 1000.
                 times.append(clock.get_fps())
+                # print(sum(times)/len(times))
 
                 self.handle_input()
                 self.update(dt)

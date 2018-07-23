@@ -103,9 +103,6 @@ class PyscrollDataAdapter(object):
                 else:
                     token.positions.remove(position)
 
-        # test that off-buffer animations are not being tracked
-        # print(sum(len(i.positions) for i in self._animation_map.values()))
-
         return new_tiles
 
     def _update_time(self):

@@ -1,49 +1,26 @@
 pyscroll
 ========
 
-For Python 2.7 & 3.3+ and Pygame 1.9
+For Python 2.7 & 3.3+ and pygame 1.9
 
-A simple & fast module for animated scrolling maps for your new or existing game.
+A simple and fast module for animated scrolling maps for your new or existing game.
 
 
 Introduction
 ============
 
-pyscroll is a generic module for making a fast scrolling image with PyGame.  It
-uses a lot of magic to get great framerates out of PyGame.  It only exists
-to draw a map.  It doesn't load images or data, so you can use your own custom
+pyscroll is a generic module for making a fast scrolling image with pygame.  It
+uses a lot of magic to get great framerates out of pygame.  It only exists
+to draw a map.  It doesn't load images or data so you can use your own custom
 data structures, tile storage, ect.
 
 pyscroll is compatible with pytmx (https://github.com/bitcraft/pytmx), so you
-can use your Tiled maps.  It also has out-of-the-box support for PyGame Sprites.
-
-The included class, BufferedRenderer, gives great framerates, supports layered
-rendering and can draw itself.  It supports fast layered tile rendering with
-alpha channel support.  It also includes animated tile rendering and zooming!
-
-
-Use It Like a Camera
-====================
-
-In order to further simplify using scrolling maps, pyscroll includes a pygame
-Sprite Group that will render all sprites on the map and will correctly
-draw them over or under tiles.  Sprites can use their Rect in world coordinates,
-and the Group will work like a camera, translating world coordinates to screen
-coordinates.
-
-Zooming is a new feature and should operate quickly on most computers.  Be aware
-that it is cheap to operate a zoomed view, but expensive to do the actual zooming.
-This means that its easy to zoom the map once, but don't expect it to work quickly
-if you want to do an animated zoom into something.
-
-Its useful to make minimaps or create simple chunky graphics.
+can use your Tiled maps.  It also has out-of-the-box support for pygame sprites.
 
 
 Features
 ========
 
-- Fast framerate
-- Speed is not affected by map size
 - Sprites or plain surfaces can be drawn in layers
 - Animated tiles
 - Zoom in and out
@@ -51,6 +28,24 @@ Features
 - Pixel alpha and colorkey tilesets are supported
 - Drawing and scrolling shapes
 - Fast and small footprint
+- Speed is not affected by map size
+
+ 
+Use It Like a Camera
+====================
+
+In order to further simplify using scrolling maps, pyscroll includes a pygame
+sprite group that will render all sprites on the map and will correctly
+draw them over or under tiles.  Sprites can use their rect in world coordinates,
+and the group will work like a camera, translating world coordinates to screen
+coordinates while rendering sprites and map layers.
+
+Zooming is a new feature and should operate quickly on most computers.  Be aware
+that it is cheap to operate a zoomed view, but expensive to do the actual zooming.
+This means that its easy to zoom the map once, but don't expect it to work quickly
+if you want to do an animated zoom into something.
+
+Its useful to make minimaps or create simple chunky graphics.
 
 
 Installation
@@ -74,10 +69,10 @@ the PyscrollGroup for efficient rendering.  You are free to use any other pygame
 techniques and functions.
 
 Open quest.py in the tutorial folder for a gentle introduction to pyscroll and
-the PyscrollGroup for PyGame.  There are plenty of comments to get you started.
+the PyscrollGroup for pygame.  There are plenty of comments to get you started.
 
 The Quest demo shows how you can use a pyscroll group for drawing, how to load
-maps with PyTMX, and how pyscroll can quickly render layers.  Moving under some
+maps with pytmx, and how pyscroll can quickly render layers.  Moving under some
 tiles will cause the Hero to be covered.
 
 The repo wiki has more in-depth explanations of the tutorial code, including
@@ -90,7 +85,7 @@ https://github.com/bitcraft/pyscroll/wiki
 Example Use with pytmx
 ======================
 
-pyscroll and pytmx can load your maps from Tiled and use your PyGame Sprites.
+pyscroll and pytmx can load your maps from Tiled and use your pygame sprites.
 The following is a very basic way to load a map onto the screen.
 
 ```python
@@ -107,7 +102,7 @@ map_data = pyscroll.TiledMapData(tmx_data)
 screen_size = (400, 400)
 map_layer = pyscroll.BufferedRenderer(map_data, screen_size)
 
-# make the PyGame SpriteGroup with a scrolling map
+# make the pygame SpriteGroup with a scrolling map
 group = pyscroll.PyscrollGroup(map_layer=map_layer)
 
 # Add sprites to the group
@@ -136,11 +131,6 @@ Adapting Existing Games / Map Data
 pyscroll can be used with existing map data, but you will have to create a
 class to interact with pyscroll or adapt your data handler.  Try to make it
 follow the same API as the TiledMapData adapter and you should be fine.
-
-There is a good possibility that tile animations will not work for custom
-map types (only tested with pytmx).  I will investigate this in the future.
-
-The following does not require pytmx, you can use your own data format.
 
 #### Give pyscroll surface to layer into the map
 
@@ -182,7 +172,7 @@ tiles.  This is in consideration of drawing speed.  To clarify, you can have
 several layers, some layers without tiles, and that is fine; the problem is
 when there are empty spaces in all the layers, leaving gaps in the entire map.
 There are two ways to fix this issue with the 1st solution being the best
-performance wise.
+performance wise:
 
 ##### 1. In Tiled (or your data), fill in the empty spots with a tile
 For best performance, you must have a tile in each part of the map.  You can
@@ -195,7 +185,7 @@ All internal buffers will now support 'per-pixel alpha' and the areas without
 tiles will be fully transparent.  You *may* still have graphical oddities
 depending on if you clear the screen or not, so you may have to experiment
 here.  Since per-pixel alpha buffers are used, overall performance will be
-reduced.
+reduced by about 33%
 
 
 ## Why are there obvious/ugly 'streaks' when scrolling?
@@ -225,8 +215,8 @@ but beware that it will produce some nasty side effects:
 Yes...and no.  By default, pyscroll handles all transparency types very well
 for the tiles and you should not have issues with that.  However, if you are
 trying to blit/draw the map *over* existing graphics and "see through"
-transparent areas, then you will have to use the "alpha", or "colorkey"
-methods described above.
+transparent areas under the map, then you will have to use the "alpha", or
+"colorkey" methods described above.
 
 ## Does pyscroll support parallax layers?
 Yes/no.  Because there is no direct support in the primary editor, Tiled, I

@@ -42,7 +42,7 @@ class BufferedRenderer(object):
         # Tall Sprites
         # this value, if greater than 0, is the number of pixels from the bottom of
         # tall sprites which is compared against the bottom of a tile on the same
-        # lays of the sprite.  In other words, if set, it prevents tiles from being
+        # layer of the sprite.  In other words, if set, it prevents tiles from being
         # drawn over sprites which are taller than the tile height.  The value that
         # is how far apart the sprites have to be before drawing the tile over.
         # Reasonable values are about 10% of the tile height
@@ -58,7 +58,7 @@ class BufferedRenderer(object):
         elif alpha:
             self._clear_color = self._alpha_clear_color
         else:
-            self._clear_color = self._rgb_clear_color
+            self._clear_color = None
 
         # private attributes
         self._anchored_view = True    # if true, map is fixed to upper left corner
@@ -79,6 +79,9 @@ class BufferedRenderer(object):
         self._real_ratio_x = 1.0      # zooming slightly changes aspect ratio; this compensates
         self._real_ratio_y = 1.0      # zooming slightly changes aspect ratio; this compensates
         self.view_rect = Rect(0, 0, 0, 0)  # this represents the viewable map pixels
+
+        if hasattr(Surface, "blits"):
+            self._flush_tile_queue = self._flush_tile_queue_blits
 
         self.set_size(size)
 
@@ -324,7 +327,10 @@ class BufferedRenderer(object):
         # if not self.anchored_view:
         #     surface.fill(self._clear_color, self._previous_blit)
         if not self._anchored_view:
-            surface.fill(self._clear_color)
+            if self._clear_color is None:
+                surface.fill(self._rgb_clear_color)
+            else:
+                surface.fill(self._clear_color)
 
         offset = -self._x_offset + rect.left, -self._y_offset + rect.top
 
@@ -431,7 +437,11 @@ class BufferedRenderer(object):
         requires_zoom_buffer = not view_size == buffer_size
         self._zoom_buffer = None
 
-        if self._clear_color == self._alpha_clear_color:
+        if self._clear_color is None:
+            if requires_zoom_buffer:
+                self._zoom_buffer = Surface(view_size)
+            self._buffer = Surface(buffer_size)
+        elif self._clear_color == self._alpha_clear_color:
             if requires_zoom_buffer:
                 self._zoom_buffer = Surface(view_size, flags=pygame.SRCALPHA)
             self._buffer = Surface(buffer_size, flags=pygame.SRCALPHA)
@@ -443,10 +453,6 @@ class BufferedRenderer(object):
             self._buffer = Surface(buffer_size, flags=pygame.RLEACCEL)
             self._buffer.set_colorkey(self._clear_color)
             self._buffer.fill(self._clear_color)
-        else:
-            if requires_zoom_buffer:
-                self._zoom_buffer = Surface(view_size)
-            self._buffer = Surface(buffer_size)
 
     def _initialize_buffers(self, view_size):
         """ Create the buffers to cache tile drawing
@@ -492,5 +498,20 @@ class BufferedRenderer(object):
         surface_blit = surface.blit
 
         self.data.prepare_tiles(self._tile_view)
+
         for x, y, l, image in self._tile_queue:
             surface_blit(image, (x * tw - ltw, y * th - tth))
+
+    def _flush_tile_queue_blits(self, surface):
+        """ Blit the queued tiles and block until the tile queue is empty
+
+        for pygame 1.9.4 +
+        """
+        tw, th = self.data.tile_size
+        ltw = self._tile_view.left * tw
+        tth = self._tile_view.top * th
+
+        self.data.prepare_tiles(self._tile_view)
+
+        blit_list = [(image, (x * tw - ltw, y * th - tth)) for x, y, l, image in self._tile_queue]
+        surface.blits(blit_list)
