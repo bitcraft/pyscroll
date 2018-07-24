@@ -3,7 +3,6 @@ from __future__ import division, print_function
 import logging
 import math
 import time
-from functools import partial
 from itertools import chain, groupby, product
 from operator import gt, itemgetter
 
@@ -21,10 +20,10 @@ class BufferedRenderer(object):
     The buffered renderer must be used with a data class to get tile, shape,
     and animation information.  See the data class api in pyscroll.data, or
     use the built-in pytmx support for loading maps created with Tiled.
-    
+
     NOTE: colorkey and alpha transparency is quite slow
     """
-    _alpha_clear_color = 0, 0, 0, 0
+    _rgba_clear_color = 0, 0, 0, 0
     _rgb_clear_color = 0, 0, 0
 
     def __init__(self, data, size, clamp_camera=True, colorkey=None, alpha=False,
@@ -56,7 +55,7 @@ class BufferedRenderer(object):
         elif colorkey:
             self._clear_color = colorkey
         elif alpha:
-            self._clear_color = self._alpha_clear_color
+            self._clear_color = self._rgba_clear_color
         else:
             self._clear_color = None
 
@@ -231,9 +230,7 @@ class BufferedRenderer(object):
         """
         # TODO/BUG: Redraw animated tiles correctly.  They are getting reset here
         logger.warning('pyscroll buffer redraw')
-        if self._clear_color is not None:
-            surface.fill(self._clear_color)
-
+        self._clear_surface(self._buffer)
         self._tile_queue = self.data.get_tile_images_by_rect(self._tile_view)
         self._flush_tile_queue(surface)
 
@@ -323,14 +320,11 @@ class BufferedRenderer(object):
         self._tile_queue = self.data.process_animation_queue(self._tile_view)
         self._tile_queue and self._flush_tile_queue(self._buffer)
 
-        # TODO: could maybe optimize to remove just the edges
+        # TODO: could maybe optimize to remove just the edges, ideally by drawing lines
         # if not self.anchored_view:
         #     surface.fill(self._clear_color, self._previous_blit)
         if not self._anchored_view:
-            if self._clear_color is None:
-                surface.fill(self._rgb_clear_color)
-            else:
-                surface.fill(self._clear_color)
+            self._clear_surface(surface, self._previous_blit)
 
         offset = -self._x_offset + rect.left, -self._y_offset + rect.top
 
@@ -339,6 +333,14 @@ class BufferedRenderer(object):
             if surfaces:
                 surfaces_offset = -offset[0], -offset[1]
                 self._draw_surfaces(surface, surfaces_offset, surfaces)
+
+    def _clear_surface(self, surface, rect=None):
+        """ Clear the buffer, taking in account colorkey or alpha
+
+        :return:
+        """
+        clear_color = self._rgb_clear_color if self._clear_color is None else self._clear_color
+        surface.fill(clear_color, rect)
 
     def _draw_surfaces(self, surface, offset, surfaces):
         """ Draw surfaces onto buffer, then redraw tiles that cover them
@@ -397,16 +399,14 @@ class BufferedRenderer(object):
         :return: None
         """
         v = self._tile_view
-        fill = partial(self._buffer.fill, self._clear_color)
         tw, th = self.data.tile_size
         self._tile_queue = iter([])
 
         def append(rect):
             self._tile_queue = chain(self._tile_queue, self.data.get_tile_images_by_rect(rect))
-            if self._clear_color is not None:
-                fill(((rect[0] - v.left) * tw,
-                      (rect[1] - v.top) * th,
-                      rect[2] * tw, rect[3] * th))
+            # TODO: optimize so fill is only used when map is smaller than buffer
+            self._clear_surface(self._buffer, ((rect[0] - v.left) * tw, (rect[1] - v.top) * th,
+                                               rect[2] * tw, rect[3] * th))
 
         if dx > 0:    # right side
             append((v.right - 1, v.top, dx, v.height))
@@ -441,7 +441,7 @@ class BufferedRenderer(object):
             if requires_zoom_buffer:
                 self._zoom_buffer = Surface(view_size)
             self._buffer = Surface(buffer_size)
-        elif self._clear_color == self._alpha_clear_color:
+        elif self._clear_color == self._rgba_clear_color:
             if requires_zoom_buffer:
                 self._zoom_buffer = Surface(view_size, flags=pygame.SRCALPHA)
             self._buffer = Surface(buffer_size, flags=pygame.SRCALPHA)
