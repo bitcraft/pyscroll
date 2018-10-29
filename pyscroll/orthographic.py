@@ -324,7 +324,7 @@ class BufferedRenderer(object):
         # if not self.anchored_view:
         #     surface.fill(self._clear_color, self._previous_blit)
         if not self._anchored_view:
-            self._clear_surface(surface, self._previous_blit)
+            self._clear_surface(surface, surface.get_rect())
 
         offset = -self._x_offset + rect.left, -self._y_offset + rect.top
 
