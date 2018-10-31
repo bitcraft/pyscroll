@@ -183,12 +183,14 @@ class BufferedRenderer(object):
         :param surface: pygame surface to draw to
         :param rect: area to draw to
         :param surfaces: optional sequence of surfaces to interlace between tiles
+        :return rect: area that was drawn over
         """
         if self._zoom_level == 1.0:
             self._render_map(surface, rect, surfaces)
         else:
             self._render_map(self._zoom_buffer, self._zoom_buffer.get_rect(), surfaces)
             self.scaling_function(self._zoom_buffer, rect.size, surface)
+        return self._previous_blit.copy()
 
     @property
     def zoom(self):
