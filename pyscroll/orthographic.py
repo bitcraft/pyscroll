@@ -462,6 +462,7 @@ class BufferedRenderer(object):
         :param view_size: (int, int): size of the draw area
         :return: None
         """
+
         def make_rect(x, y):
             return Rect((x * tw, y * th), (tw, th))
 

@@ -4,7 +4,6 @@ from __future__ import print_function
 import logging
 from pyscroll.orthographic import BufferedRenderer
 
-
 logger = logging.getLogger('isometric')
 
 
@@ -28,6 +27,7 @@ class IsometricBufferedRenderer(BufferedRenderer):
     - coalescing of surfaces is not supported
     - drawing may have depth sorting issues
     """
+
     def _draw_surfaces(self, surface, rect, surfaces):
         if surfaces is not None:
             [(surface.blit(i[0], i[1]), i[2]) for i in surfaces]

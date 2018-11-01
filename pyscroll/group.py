@@ -54,4 +54,3 @@ class PyscrollGroup(pygame.sprite.LayeredUpdates):
 
         self.lostsprites = []
         return self._map_layer.draw(surface, surface.get_rect(), new_surfaces)
-
