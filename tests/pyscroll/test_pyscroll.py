@@ -1,4 +1,4 @@
-import mock
+from unittest import mock
 import unittest
 import pygame
 from pyscroll.orthographic import BufferedRenderer
@@ -13,7 +13,7 @@ class DummyDataAdapter(PyscrollDataAdapter):
     def get_animations(self):
         return list()
 
-    def get_tile_image(self, position):
+    def get_tile_image(self, *position):
         return position[0] * position[1]
 
 
@@ -21,6 +21,7 @@ class DummyBufferer:
     _tile_view = pygame.Rect(2, 2, 2, 2)
     _clear_color = None
     _buffer = mock.Mock()
+    _clear_surface = mock.Mock()
     data = DummyDataAdapter()
 
 
