@@ -100,7 +100,8 @@ class QuestGame(object):
 
     filename = get_map(MAP_FILENAME)
 
-    def __init__(self):
+    def __init__(self, screen: pygame.Surface) -> None:
+        self.screen = screen
 
         # true while running
         self.running = False
@@ -140,13 +141,13 @@ class QuestGame(object):
         # add our hero to the group
         self.group.add(self.hero)
 
-    def draw(self, surface):
+    def draw(self) -> None:
 
         # center the map/screen on our Hero
         self.group.center(self.hero.rect.center)
 
         # draw the map and all sprites
-        self.group.draw(surface)
+        self.group.draw(self.screen)
 
     def handle_input(self):
         """Handle pygame input events"""
@@ -173,7 +174,7 @@ class QuestGame(object):
 
             # this will be handled if the window is resized
             elif event.type == VIDEORESIZE:
-                init_screen(event.w, event.h)
+                self.screen = init_screen(event.w, event.h)
                 self.map_layer.set_size((event.w, event.h))
 
             event = poll()
@@ -223,22 +224,27 @@ class QuestGame(object):
 
                 self.handle_input()
                 self.update(dt)
-                self.draw(screen)
+                self.draw()
                 pygame.display.flip()
 
         except KeyboardInterrupt:
             self.running = False
 
 
-if __name__ == "__main__":
+def main() -> None:
     pygame.init()
     pygame.font.init()
     screen = init_screen(800, 600)
     pygame.display.set_caption("Quest - An epic journey.")
 
     try:
-        game = QuestGame()
+        game = QuestGame(screen)
         game.run()
-    except:
+    except KeyboardInterrupt:
+        pass
+    finally:
         pygame.quit()
-        raise
+
+
+if __name__ == "__main__":
+    main()
