@@ -8,7 +8,7 @@ https://github.com/bitcraft/pytmx
 
 pip install pytmx
 """
-import os.path
+from pathlib import Path
 
 import pygame
 from pygame.locals import *
@@ -19,10 +19,9 @@ import pyscroll.data
 from pyscroll.group import PyscrollGroup
 
 # define configuration variables here
-RESOURCES_DIR = "data"
-
+CURRENT_DIR = Path(__file__).parent
+RESOURCES_DIR = CURRENT_DIR / "data"
 HERO_MOVE_SPEED = 200  # pixels per second
-MAP_FILENAME = "grasslands.tmx"
 
 
 # simple wrapper to keep the screen resizeable
@@ -31,14 +30,9 @@ def init_screen(width, height):
     return screen
 
 
-# make loading maps a little easier
-def get_map(filename):
-    return os.path.join(RESOURCES_DIR, filename)
-
-
 # make loading images a little easier
 def load_image(filename):
-    return pygame.image.load(os.path.join(RESOURCES_DIR, filename))
+    return pygame.image.load(str(RESOURCES_DIR / filename))
 
 
 class Hero(pygame.sprite.Sprite):
@@ -98,7 +92,7 @@ class QuestGame(object):
     Finally, it uses a pyscroll group to render the map and Hero.
     """
 
-    filename = get_map(MAP_FILENAME)
+    map_path = RESOURCES_DIR / "grasslands.tmx"
 
     def __init__(self, screen: pygame.Surface) -> None:
         self.screen = screen
@@ -107,7 +101,7 @@ class QuestGame(object):
         self.running = False
 
         # load data from pytmx
-        tmx_data = load_pygame(self.filename)
+        tmx_data = load_pygame(self.map_path)
 
         # setup level geometry with simple pygame rects, loaded from pytmx
         self.walls = list()
