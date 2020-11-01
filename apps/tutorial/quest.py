@@ -19,10 +19,10 @@ import pyscroll.data
 from pyscroll.group import PyscrollGroup
 
 # define configuration variables here
-RESOURCES_DIR = 'data'
+RESOURCES_DIR = "data"
 
 HERO_MOVE_SPEED = 200  # pixels per second
-MAP_FILENAME = 'grasslands.tmx'
+MAP_FILENAME = "grasslands.tmx"
 
 
 # simple wrapper to keep the screen resizeable
@@ -42,7 +42,7 @@ def load_image(filename):
 
 
 class Hero(pygame.sprite.Sprite):
-    """ Our Hero
+    """Our Hero
 
     The Hero has three collision rects, one for the whole sprite "rect" and
     "old_rect", and another to check collisions with walls, called "feet".
@@ -61,12 +61,12 @@ class Hero(pygame.sprite.Sprite):
 
     def __init__(self):
         pygame.sprite.Sprite.__init__(self)
-        self.image = load_image('hero.png').convert_alpha()
+        self.image = load_image("hero.png").convert_alpha()
         self.velocity = [0, 0]
         self._position = [0, 0]
         self._old_position = self.position
         self.rect = self.image.get_rect()
-        self.feet = pygame.Rect(0, 0, self.rect.width * .5, 8)
+        self.feet = pygame.Rect(0, 0, self.rect.width * 0.5, 8)
 
     @property
     def position(self):
@@ -84,20 +84,20 @@ class Hero(pygame.sprite.Sprite):
         self.feet.midbottom = self.rect.midbottom
 
     def move_back(self, dt):
-        """ If called after an update, the sprite can move back
-        """
+        """If called after an update, the sprite can move back"""
         self._position = self._old_position
         self.rect.topleft = self._position
         self.feet.midbottom = self.rect.midbottom
 
 
 class QuestGame(object):
-    """ This class is a basic game.
+    """This class is a basic game.
 
     This class will load data, create a pyscroll group, a hero object.
     It also reads input and moves the Hero around the map.
     Finally, it uses a pyscroll group to render the map and Hero.
     """
+
     filename = get_map(MAP_FILENAME)
 
     def __init__(self):
@@ -111,15 +111,17 @@ class QuestGame(object):
         # setup level geometry with simple pygame rects, loaded from pytmx
         self.walls = list()
         for object in tmx_data.objects:
-            self.walls.append(pygame.Rect(
-                object.x, object.y,
-                object.width, object.height))
+            self.walls.append(
+                pygame.Rect(object.x, object.y, object.width, object.height)
+            )
 
         # create new data source for pyscroll
         map_data = pyscroll.data.TiledMapData(tmx_data)
 
         # create new renderer (camera)
-        self.map_layer = pyscroll.BufferedRenderer(map_data, screen.get_size(), clamp_camera=False, tall_sprites=1)
+        self.map_layer = pyscroll.BufferedRenderer(
+            map_data, screen.get_size(), clamp_camera=False, tall_sprites=1
+        )
         self.map_layer.zoom = 2
 
         # pyscroll supports layered rendering.  our map has 3 'under' layers
@@ -147,8 +149,7 @@ class QuestGame(object):
         self.group.draw(surface)
 
     def handle_input(self):
-        """ Handle pygame input events
-        """
+        """Handle pygame input events"""
         poll = pygame.event.poll
 
         event = poll()
@@ -163,10 +164,10 @@ class QuestGame(object):
                     break
 
                 elif event.key == K_EQUALS:
-                    self.map_layer.zoom += .25
+                    self.map_layer.zoom += 0.25
 
                 elif event.key == K_MINUS:
-                    value = self.map_layer.zoom - .25
+                    value = self.map_layer.zoom - 0.25
                     if value > 0:
                         self.map_layer.zoom = value
 
@@ -195,8 +196,7 @@ class QuestGame(object):
             self.hero.velocity[0] = 0
 
     def update(self, dt):
-        """ Tasks that occur over time should be handled here
-        """
+        """Tasks that occur over time should be handled here"""
         self.group.update(dt)
 
         # check if the sprite's feet are colliding with wall
@@ -207,17 +207,17 @@ class QuestGame(object):
                 sprite.move_back(dt)
 
     def run(self):
-        """ Run the game loop
-        """
+        """Run the game loop"""
         clock = pygame.time.Clock()
         self.running = True
 
         from collections import deque
+
         times = deque(maxlen=30)
 
         try:
             while self.running:
-                dt = clock.tick() / 1000.
+                dt = clock.tick() / 1000.0
                 times.append(clock.get_fps())
                 # print(sum(times)/len(times))
 
@@ -234,7 +234,7 @@ if __name__ == "__main__":
     pygame.init()
     pygame.font.init()
     screen = init_screen(800, 600)
-    pygame.display.set_caption('Quest - An epic journey.')
+    pygame.display.set_caption("Quest - An epic journey.")
 
     try:
         game = QuestGame()
