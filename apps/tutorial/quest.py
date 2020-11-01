@@ -8,7 +8,10 @@ https://github.com/bitcraft/pytmx
 
 pip install pytmx
 """
+from __future__ import annotations
+
 from pathlib import Path
+from typing import List
 
 import pygame
 from pygame.locals import *
@@ -25,13 +28,13 @@ HERO_MOVE_SPEED = 200  # pixels per second
 
 
 # simple wrapper to keep the screen resizeable
-def init_screen(width, height):
+def init_screen(width: int, height: int) -> pygame.Surface:
     screen = pygame.display.set_mode((width, height), pygame.RESIZABLE)
     return screen
 
 
 # make loading images a little easier
-def load_image(filename):
+def load_image(filename: str) -> pygame.Surface:
     return pygame.image.load(str(RESOURCES_DIR / filename))
 
 
@@ -53,38 +56,38 @@ class Hero(pygame.sprite.Sprite):
     collides with level walls.
     """
 
-    def __init__(self):
-        pygame.sprite.Sprite.__init__(self)
+    def __init__(self) -> None:
+        super().__init__()
         self.image = load_image("hero.png").convert_alpha()
         self.velocity = [0, 0]
-        self._position = [0, 0]
+        self._position = [0.0, 0.0]
         self._old_position = self.position
         self.rect = self.image.get_rect()
         self.feet = pygame.Rect(0, 0, self.rect.width * 0.5, 8)
 
     @property
-    def position(self):
+    def position(self) -> List[float]:
         return list(self._position)
 
     @position.setter
-    def position(self, value):
+    def position(self, value: List[float]) -> None:
         self._position = list(value)
 
-    def update(self, dt):
+    def update(self, dt: float) -> None:
         self._old_position = self._position[:]
         self._position[0] += self.velocity[0] * dt
         self._position[1] += self.velocity[1] * dt
         self.rect.topleft = self._position
         self.feet.midbottom = self.rect.midbottom
 
-    def move_back(self, dt):
+    def move_back(self, dt: float) -> None:
         """If called after an update, the sprite can move back"""
         self._position = self._old_position
         self.rect.topleft = self._position
         self.feet.midbottom = self.rect.midbottom
 
 
-class QuestGame(object):
+class QuestGame:
     """This class is a basic game.
 
     This class will load data, create a pyscroll group, a hero object.
@@ -143,7 +146,7 @@ class QuestGame(object):
         # draw the map and all sprites
         self.group.draw(self.screen)
 
-    def handle_input(self):
+    def handle_input(self) -> None:
         """Handle pygame input events"""
         poll = pygame.event.poll
 
