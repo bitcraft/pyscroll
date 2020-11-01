@@ -14,7 +14,8 @@ from pathlib import Path
 from typing import List
 
 import pygame
-from pygame.locals import *
+from pygame.locals import K_UP, K_DOWN, K_LEFT, K_RIGHT, K_MINUS, K_EQUALS, K_ESCAPE
+from pygame.locals import KEYDOWN, VIDEORESIZE, QUIT
 from pytmx.util_pygame import load_pygame
 
 import pyscroll
@@ -107,11 +108,9 @@ class QuestGame:
         tmx_data = load_pygame(self.map_path)
 
         # setup level geometry with simple pygame rects, loaded from pytmx
-        self.walls = list()
-        for object in tmx_data.objects:
-            self.walls.append(
-                pygame.Rect(object.x, object.y, object.width, object.height)
-            )
+        self.walls = []
+        for obj in tmx_data.objects:
+            self.walls.append(pygame.Rect(obj.x, obj.y, obj.width, obj.height))
 
         # create new data source for pyscroll
         map_data = pyscroll.data.TiledMapData(tmx_data)
@@ -217,7 +216,6 @@ class QuestGame:
             while self.running:
                 dt = clock.tick() / 1000.0
                 times.append(clock.get_fps())
-                # print(sum(times)/len(times))
 
                 self.handle_input()
                 self.update(dt)
