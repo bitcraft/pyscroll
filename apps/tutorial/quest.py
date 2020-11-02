@@ -8,10 +8,14 @@ https://github.com/bitcraft/pytmx
 
 pip install pytmx
 """
-import os.path
+from __future__ import annotations
+
+from pathlib import Path
+from typing import List
 
 import pygame
-from pygame.locals import *
+from pygame.locals import K_UP, K_DOWN, K_LEFT, K_RIGHT, K_MINUS, K_EQUALS, K_ESCAPE
+from pygame.locals import KEYDOWN, VIDEORESIZE, QUIT
 from pytmx.util_pygame import load_pygame
 
 import pyscroll
@@ -19,30 +23,24 @@ import pyscroll.data
 from pyscroll.group import PyscrollGroup
 
 # define configuration variables here
-RESOURCES_DIR = 'data'
-
+CURRENT_DIR = Path(__file__).parent
+RESOURCES_DIR = CURRENT_DIR / "data"
 HERO_MOVE_SPEED = 200  # pixels per second
-MAP_FILENAME = 'grasslands.tmx'
 
 
 # simple wrapper to keep the screen resizeable
-def init_screen(width, height):
+def init_screen(width: int, height: int) -> pygame.Surface:
     screen = pygame.display.set_mode((width, height), pygame.RESIZABLE)
     return screen
 
 
-# make loading maps a little easier
-def get_map(filename):
-    return os.path.join(RESOURCES_DIR, filename)
-
-
 # make loading images a little easier
-def load_image(filename):
-    return pygame.image.load(os.path.join(RESOURCES_DIR, filename))
+def load_image(filename: str) -> pygame.Surface:
+    return pygame.image.load(str(RESOURCES_DIR / filename))
 
 
 class Hero(pygame.sprite.Sprite):
-    """ Our Hero
+    """Our Hero
 
     The Hero has three collision rects, one for the whole sprite "rect" and
     "old_rect", and another to check collisions with walls, called "feet".
@@ -59,67 +57,68 @@ class Hero(pygame.sprite.Sprite):
     collides with level walls.
     """
 
-    def __init__(self):
-        pygame.sprite.Sprite.__init__(self)
-        self.image = load_image('hero.png').convert_alpha()
+    def __init__(self) -> None:
+        super().__init__()
+        self.image = load_image("hero.png").convert_alpha()
         self.velocity = [0, 0]
-        self._position = [0, 0]
+        self._position = [0.0, 0.0]
         self._old_position = self.position
         self.rect = self.image.get_rect()
-        self.feet = pygame.Rect(0, 0, self.rect.width * .5, 8)
+        self.feet = pygame.Rect(0, 0, self.rect.width * 0.5, 8)
 
     @property
-    def position(self):
+    def position(self) -> List[float]:
         return list(self._position)
 
     @position.setter
-    def position(self, value):
+    def position(self, value: List[float]) -> None:
         self._position = list(value)
 
-    def update(self, dt):
+    def update(self, dt: float) -> None:
         self._old_position = self._position[:]
         self._position[0] += self.velocity[0] * dt
         self._position[1] += self.velocity[1] * dt
         self.rect.topleft = self._position
         self.feet.midbottom = self.rect.midbottom
 
-    def move_back(self, dt):
-        """ If called after an update, the sprite can move back
-        """
+    def move_back(self, dt: float) -> None:
+        """If called after an update, the sprite can move back"""
         self._position = self._old_position
         self.rect.topleft = self._position
         self.feet.midbottom = self.rect.midbottom
 
 
-class QuestGame(object):
-    """ This class is a basic game.
+class QuestGame:
+    """This class is a basic game.
 
     This class will load data, create a pyscroll group, a hero object.
     It also reads input and moves the Hero around the map.
     Finally, it uses a pyscroll group to render the map and Hero.
     """
-    filename = get_map(MAP_FILENAME)
 
-    def __init__(self):
+    map_path = RESOURCES_DIR / "grasslands.tmx"
+
+    def __init__(self, screen: pygame.Surface) -> None:
+        self.screen = screen
 
         # true while running
         self.running = False
 
         # load data from pytmx
-        tmx_data = load_pygame(self.filename)
+        tmx_data = load_pygame(self.map_path)
 
         # setup level geometry with simple pygame rects, loaded from pytmx
-        self.walls = list()
-        for object in tmx_data.objects:
-            self.walls.append(pygame.Rect(
-                object.x, object.y,
-                object.width, object.height))
+        self.walls = []
+        for obj in tmx_data.objects:
+            self.walls.append(pygame.Rect(obj.x, obj.y, obj.width, obj.height))
 
         # create new data source for pyscroll
         map_data = pyscroll.data.TiledMapData(tmx_data)
 
         # create new renderer (camera)
-        self.map_layer = pyscroll.BufferedRenderer(map_data, screen.get_size(), clamp_camera=False, tall_sprites=1)
+        self.map_layer = pyscroll.BufferedRenderer(
+            map_data, screen.get_size(), clamp_camera=False, tall_sprites=1
+        )
         self.map_layer.zoom = 2
 
         # pyscroll supports layered rendering.  our map has 3 'under' layers
@@ -138,17 +137,16 @@ class QuestGame(object):
         # add our hero to the group
         self.group.add(self.hero)
 
-    def draw(self, surface):
+    def draw(self) -> None:
 
         # center the map/screen on our Hero
         self.group.center(self.hero.rect.center)
 
         # draw the map and all sprites
-        self.group.draw(surface)
+        self.group.draw(self.screen)
 
-    def handle_input(self):
-        """ Handle pygame input events
-        """
+    def handle_input(self) -> None:
+        """Handle pygame input events"""
         poll = pygame.event.poll
 
         event = poll()
@@ -163,16 +161,16 @@ class QuestGame(object):
                     break
 
                 elif event.key == K_EQUALS:
-                    self.map_layer.zoom += .25
+                    self.map_layer.zoom += 0.25
 
                 elif event.key == K_MINUS:
-                    value = self.map_layer.zoom - .25
+                    value = self.map_layer.zoom - 0.25
                     if value > 0:
                         self.map_layer.zoom = value
 
             # this will be handled if the window is resized
             elif event.type == VIDEORESIZE:
-                init_screen(event.w, event.h)
+                self.screen = init_screen(event.w, event.h)
                 self.map_layer.set_size((event.w, event.h))
 
             event = poll()
@@ -195,8 +193,7 @@ class QuestGame(object):
             self.hero.velocity[0] = 0
 
     def update(self, dt):
-        """ Tasks that occur over time should be handled here
-        """
+        """Tasks that occur over time should be handled here"""
         self.group.update(dt)
 
         # check if the sprite's feet are colliding with wall
@@ -207,38 +204,42 @@ class QuestGame(object):
                 sprite.move_back(dt)
 
     def run(self):
-        """ Run the game loop
-        """
+        """Run the game loop"""
         clock = pygame.time.Clock()
         self.running = True
 
         from collections import deque
+
         times = deque(maxlen=30)
 
         try:
             while self.running:
-                dt = clock.tick() / 1000.
+                dt = clock.tick() / 1000.0
                 times.append(clock.get_fps())
-                # print(sum(times)/len(times))
 
                 self.handle_input()
                 self.update(dt)
-                self.draw(screen)
+                self.draw()
                 pygame.display.flip()
 
         except KeyboardInterrupt:
             self.running = False
 
 
-if __name__ == "__main__":
+def main() -> None:
     pygame.init()
     pygame.font.init()
     screen = init_screen(800, 600)
-    pygame.display.set_caption('Quest - An epic journey.')
+    pygame.display.set_caption("Quest - An epic journey.")
 
     try:
-        game = QuestGame()
+        game = QuestGame(screen)
         game.run()
-    except:
+    except KeyboardInterrupt:
+        pass
+    finally:
         pygame.quit()
-        raise
+
+
+if __name__ == "__main__":
+    main()
