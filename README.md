@@ -1,7 +1,7 @@
 pyscroll
 ========
 
-For Python 2.7 & 3.3+ and pygame 1.9
+For Python 3.5+ and pygame 2.0+
 
 A simple and fast module for animated scrolling maps for your new or existing game.
 
@@ -11,7 +11,7 @@ Introduction
 
 pyscroll is a generic module for making a fast scrolling image with pygame.  It
 uses a lot of magic to get great framerates out of pygame.  It only exists
-to draw a map.  It doesn't load images or data so you can use your own custom
+to draw a map.  It doesn't load images or data, so you can use your own custom
 data structures, tile storage, ect.
 
 pyscroll is compatible with pytmx (https://github.com/bitcraft/pytmx), so you
@@ -45,7 +45,7 @@ that it is cheap to operate a zoomed view, but expensive to do the actual zoomin
 This means that its easy to zoom the map once, but don't expect it to work quickly
 if you want to do an animated zoom into something.
 
-Its useful to make minimaps or create simple chunky graphics.
+It's useful to make minimaps or create simple chunky graphics.
 
 
 Installation
@@ -219,8 +219,6 @@ transparent areas under the map, then you will have to use the "alpha", or
 "colorkey" methods described above.
 
 ## Does pyscroll support parallax layers?
-Yes/no.  Because there is no direct support in the primary editor, Tiled, I
-have not implemented an API for it.  However, you can build you own parallax
-effects by passing "alpha=True" to the BufferedRenderer constructor.  Then it
-is just a matter of scrolling at different speeds.  Be warned, that rendering
-alpha layers is much slower.
+Not directly.  However, you can build you own parallax effects by passing
+"alpha=True" to the BufferedRenderer constructor and using one renderer for
+each layer. Then it is just a matter of scrolling at different speeds.

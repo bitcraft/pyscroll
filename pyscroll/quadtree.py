@@ -7,7 +7,7 @@ import itertools
 from pygame import Rect
 
 
-class FastQuadTree(object):
+class FastQuadTree:
     """An implementation of a quad-tree.
 
     This faster version of the quadtree class is tuned for pygame's rect
@@ -19,7 +19,7 @@ class FastQuadTree(object):
     Items being stored in the tree must be a pygame.Rect or have have a
     .rect (pygame.Rect) attribute that is a pygame.Rect
 
-    original code from http://pygame.org/wiki/QuadTree
+    original code from https://pygame.org/wiki/QuadTree
     """
 
     __slots__ = ['items', 'cx', 'cy', 'nw', 'sw', 'ne', 'se']
@@ -77,27 +77,20 @@ class FastQuadTree(object):
             if in_nw and in_ne and in_se and in_sw:
                 self.items.append(item)
             else:
-                if in_nw: nw_items.append(item)
-                if in_ne: ne_items.append(item)
-                if in_se: se_items.append(item)
-                if in_sw: sw_items.append(item)
+                in_nw and nw_items.append(item)
+                in_ne and ne_items.append(item)
+                in_se and se_items.append(item)
+                in_sw and sw_items.append(item)
 
         # Create the sub-quadrants, recursively.
         if nw_items:
-            self.nw = FastQuadTree(nw_items, depth,
-                                   (boundary.left, boundary.top, cx, cy))
-
+            self.nw = FastQuadTree(nw_items, depth, (boundary.left, boundary.top, cx, cy))
         if ne_items:
-            self.ne = FastQuadTree(ne_items, depth,
-                                   (cx, boundary.top, boundary.right, cy))
-
+            self.ne = FastQuadTree(ne_items, depth, (cx, boundary.top, boundary.right, cy))
         if se_items:
-            self.se = FastQuadTree(se_items, depth,
-                                   (cx, cy, boundary.right, boundary.bottom))
-
+            self.se = FastQuadTree(se_items, depth, (cx, cy, boundary.right, boundary.bottom))
         if sw_items:
-            self.sw = FastQuadTree(sw_items, depth,
-                                   (boundary.left, cy, cx, boundary.bottom))
+            self.sw = FastQuadTree(sw_items, depth, (boundary.left, cy, cx, boundary.bottom))
 
     def __iter__(self):
         return itertools.chain(self.items, self.nw, self.ne, self.se, self.sw)

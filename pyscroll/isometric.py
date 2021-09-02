@@ -1,10 +1,7 @@
-from __future__ import division
-from __future__ import print_function
-
 import logging
 from pyscroll.orthographic import BufferedRenderer
 
-logger = logging.getLogger('isometric')
+log = logging.getLogger(__file__)
 
 
 def vector3_to_iso(vector3):

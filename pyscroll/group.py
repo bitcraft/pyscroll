@@ -1,7 +1,5 @@
 import pygame
 
-__all__ = ('PyscrollGroup',)
-
 
 class PyscrollGroup(pygame.sprite.LayeredUpdates):
     """ Layered Group with ability to center sprites and scrolling map
@@ -47,7 +45,7 @@ class PyscrollGroup(pygame.sprite.LayeredUpdates):
 
         for spr in self.sprites():
             new_rect = spr.rect.move(ox, oy)
-            if new_rect.colliderect(new_rect):
+            if new_rect.colliderect(draw_area):
                 try:
                     new_surfaces_append((spr.image, new_rect, gl(spr), spr.blendmode))
                 except AttributeError:  # generally should only fail when no blendmode available

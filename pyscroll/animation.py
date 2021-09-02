@@ -5,7 +5,7 @@ __all__ = ('AnimationFrame', 'AnimationToken')
 AnimationFrame = namedtuple("AnimationFrame", "image duration")
 
 
-class AnimationToken(object):
+class AnimationToken:
     __slots__ = ['next', 'positions', 'frames', 'index']
 
     def __init__(self, positions, frames, initial_time=0):

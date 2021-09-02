@@ -14,13 +14,13 @@ try:
 except ImportError:
     pass
 
-from pyscroll import rect_to_bb
+from pyscroll.common import rect_to_bb
 from pyscroll.animation import AnimationFrame, AnimationToken
 
 __all__ = ('PyscrollDataAdapter', 'TiledMapData')
 
 
-class PyscrollDataAdapter(object):
+class PyscrollDataAdapter:
     """ Use this as a template for data adapters
     
     Contains logic for handling animated tiles.  Animated tiles
@@ -279,8 +279,6 @@ class PyscrollDataAdapter(object):
 
 class TiledMapData(PyscrollDataAdapter):
     """ For data loaded from pytmx
-
-    Use of this class requires a recent version of pytmx.
     """
 
     def __init__(self, tmx):

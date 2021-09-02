@@ -117,7 +117,7 @@ class QuestGame:
 
         # create new renderer (camera)
         self.map_layer = pyscroll.BufferedRenderer(
-            map_data, screen.get_size(), clamp_camera=False, tall_sprites=1
+            map_data, screen.get_size(), clamp_camera=False, tall_sprites=2
         )
         self.map_layer.zoom = 2
 
@@ -216,7 +216,8 @@ class QuestGame:
             while self.running:
                 dt = clock.tick() / 1000.0
                 times.append(clock.get_fps())
-
+                # print(sum(times) / len(times))
+                # 430 fps
                 self.handle_input()
                 self.update(dt)
                 self.draw()
