@@ -19,7 +19,6 @@ class BufferedRenderer:
     and animation information.  See the data class api in pyscroll.data, or
     use the built-in pytmx support for loading maps created with Tiled.
 
-    NOTE: colorkey and alpha transparency is quite slow
     """
     _rgba_clear_color = 0, 0, 0, 0
     _rgb_clear_color = 0, 0, 0
