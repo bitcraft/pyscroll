@@ -334,8 +334,6 @@ class BufferedRenderer:
         self._tile_queue and self._flush_tile_queue(self._buffer)
 
         # TODO: could maybe optimize to remove just the edges, ideally by drawing lines
-        # if not self.anchored_view:
-        #     surface.fill(self._clear_color, self._previous_blit)
         if not self._anchored_view:
             self._clear_surface(surface, self._previous_blit)
 
