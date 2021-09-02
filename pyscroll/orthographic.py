@@ -377,11 +377,22 @@ class BufferedRenderer:
         blit_list = list()
         damage = set()
 
-        # get tiles that are covered or partially covered by a sprite
+        # get areas of screen that sprites overlap
         for i in surfaces:
+            # get tiles that are covered or partially covered by a sprite
             rect = Rect(i[1])
             rect.move_ip(ox, oy)
             damage.update(hit(rect))
+
+            # add surface to draw list
+            s, r, l = i[:3]
+            try:
+                blend = i[3]
+            except IndexError:
+                blend = None
+            x, y, w, h = r
+            blit_op = l, y + h + self.tall_sprites, x, y, s, blend
+            blit_list.append(blit_op)
 
         # from bottom to top, clear screen and add tiles into the draw list
         # TODO: combine tiles into larger areas before clearing
@@ -398,17 +409,6 @@ class BufferedRenderer:
                 if tile:
                     blit_op = l, b, sx, sy, tile, None
                     blit_list.append(blit_op)
-
-        # add sprites to draw list
-        for i in surfaces:
-            s, r, l = i[:3]
-            try:
-                blend = i[3]
-            except IndexError:
-                blend = None
-            x, y, w, h = r
-            blit_op = l, y + h + self.tall_sprites, x, y, s, blend
-            blit_list.append(blit_op)
 
         # finally sort and do the thing
         blit_list.sort()
