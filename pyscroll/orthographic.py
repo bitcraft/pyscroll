@@ -6,8 +6,8 @@ from itertools import chain, product
 import pygame
 from pygame import Rect, Surface
 
-from pyscroll import quadtree
-from pyscroll.common import surface_clipping_context
+from .common import surface_clipping_context, RectLike
+from .quadtree import FastQuadTree
 
 log = logging.getLogger(__file__)
 
@@ -151,7 +151,7 @@ class BufferedRenderer:
             self._tile_view.move_ip(dx, dy)
             self.redraw_tiles(self._buffer)
 
-    def draw(self, surface: Surface, rect: Rect, surfaces: list[Surface]=None):
+    def draw(self, surface: Surface, rect: RectLike, surfaces: list[Surface]=None):
         """
         Draw the map onto a surface
 
@@ -259,7 +259,7 @@ class BufferedRenderer:
             return (int(round((point[0] + mx)) * self._real_ratio_x),
                    int(round((point[1] + my) * self._real_ratio_y)))
 
-    def translate_rect(self, rect: Rect) -> Rect:
+    def translate_rect(self, rect: RectLike) -> Rect:
         """
         Translate rect position and size to screen coordinates.  Respects zoom level.
 
@@ -320,7 +320,7 @@ class BufferedRenderer:
                 append(Rect(round((x + sx) * rx), round((y + sy) * ry), round(w * rx), round(h * ry)))
         return retval
 
-    def _render_map(self, surface: Surface, rect: Rect, surfaces: list[Surface]):
+    def _render_map(self, surface: Surface, rect: RectLike, surfaces: list[Surface]):
         """
         Render the map and optional surfaces to destination surface
 
@@ -345,7 +345,7 @@ class BufferedRenderer:
                 surfaces_offset = -offset[0], -offset[1]
                 self._draw_surfaces(surface, surfaces_offset, surfaces)
 
-    def _clear_surface(self, surface: Surface, area: Rect=None):
+    def _clear_surface(self, surface: Surface, area: RectLike=None):
         """
         Clear the buffer
 
@@ -357,7 +357,7 @@ class BufferedRenderer:
         clear_color = self._rgb_clear_color if self._clear_color is None else self._clear_color
         surface.fill(clear_color, area)
 
-    def _draw_surfaces(self, surface: Surface, offset, surfaces: list[tuple]):
+    def _draw_surfaces(self, surface: Surface, offset, surfaces):
         """ Draw surfaces onto buffer while correcting overlapping tile layers
 
         Parameters:
@@ -519,7 +519,7 @@ class BufferedRenderer:
 
         # TODO: figure out what depth -actually- does
         # values <= 8 tend to reduce performance
-        self._layer_quadtree = quadtree.FastQuadTree(rects, 4)
+        self._layer_quadtree = FastQuadTree(rects, 4)
 
         self.redraw_tiles(self._buffer)
 
