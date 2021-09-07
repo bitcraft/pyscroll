@@ -5,7 +5,7 @@ from setuptools import setup
 
 setup(
     name="pyscroll",
-    version="2.20",
+    version="2.21",
     description="Fast scrolling maps library for pygame",
     author="bitcraft",
     author_email="leif.theden@gmail.com",

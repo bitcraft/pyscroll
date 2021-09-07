@@ -373,6 +373,7 @@ class BufferedRenderer:
         tile_layers = tuple(self.data.visible_tile_layers)
         blit_list = list()
         damage = set()
+        order = 0  # used to sort items that are overlapping exactly
 
         # get areas of screen that sprites overlap
         for i in surfaces:
@@ -388,8 +389,9 @@ class BufferedRenderer:
             except IndexError:
                 blend = None
             x, y, w, h = r
-            blit_op = l, y + h + self.tall_sprites, x, y, s, blend
+            blit_op = l, y + h + self.tall_sprites, x, y, order, s, blend
             blit_list.append(blit_op)
+            order += 1
 
         # from bottom to top, clear screen and add tiles into the draw list
         # TODO: combine tiles into larger areas before clearing
@@ -404,13 +406,14 @@ class BufferedRenderer:
             for l in tile_layers:
                 tile = get_tile(tx, ty, l)
                 if tile:
-                    blit_op = l, b, sx, sy, tile, None
+                    blit_op = l, b, sx, sy, order, tile, None
                     blit_list.append(blit_op)
+                    order += 1
 
         # finally sort and do the thing
         blit_list.sort()
         draw_list2 = list()
-        for l, b, x, y, s, blend in blit_list:
+        for l, b, x, y, order, s, blend in blit_list:
             if blend is not None:
                 blit_op = s, (x, y), None, blend
             else:
