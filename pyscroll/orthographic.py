@@ -369,21 +369,23 @@ class BufferedRenderer:
         left, top = self._tile_view.topleft
         hit = self._layer_quadtree.hit
         get_tile = self.data.get_tile_image
-        clear = self._clear_surface
-        tile_layers = tuple(self.data.visible_tile_layers)
+        tile_layers = tuple(sorted(self.data.visible_tile_layers))
+        top_layer = tile_layers[-1]
         blit_list = list()
-        damage = set()
-        order = 0  # used to sort items that are overlapping exactly
+        sprite_damage = set()
+        order = 0
 
-        # get areas of screen that sprites overlap
+        # get tile that sprites overlap
         for i in surfaces:
-            # get tiles that are covered or partially covered by a sprite
-            rect = Rect(i[1])
-            rect.move_ip(ox, oy)
-            damage.update(hit(rect))
+            s, r, l = i[:3]
+
+            # sprite must not be over the top layer for damage to matter
+            if l <= top_layer:
+                rect = Rect(i[1])
+                rect.move_ip(ox, oy)
+                sprite_damage.update(((l, r) for r in hit(rect)))
 
             # add surface to draw list
-            s, r, l = i[:3]
             try:
                 blend = i[3]
             except IndexError:
@@ -393,22 +395,34 @@ class BufferedRenderer:
             blit_list.append(blit_op)
             order += 1
 
-        # from bottom to top, clear screen and add tiles into the draw list
-        # TODO: combine tiles into larger areas before clearing
-        for rect in damage:
+        # TODO: consider using a heightmap to avoid checking tiles in each cell
+        # from bottom to top, clear screen and add tiles into the draw list.
+        # while getting tiles for the damage, compare the damaged layer to the highest tile.
+        # if the highest tile is greater or equal to the damaged layer, then add the
+        # entire column of tiles to the blit_list.  if not, then discard the column
+        # and do not update the screen when the damage was done.
+        column = list()
+        is_over = False
+        for dl, rect in sprite_damage:
             x, y, w, h = rect
             sx = x - ox
             sy = y - oy
             tx = x // w + left
             ty = y // h + top
             b = sy + h
-            clear(surface, (sx, sy, w, h))
+            # TODO: heightmap
             for l in tile_layers:
                 tile = get_tile(tx, ty, l)
                 if tile:
+                    if dl <= l:
+                        is_over = True
                     blit_op = l, b, sx, sy, order, tile, None
-                    blit_list.append(blit_op)
+                    column.append(blit_op)
                     order += 1
+            if is_over:
+                blit_list.extend(column)
+            column.clear()
+            is_over = False
 
         # finally sort and do the thing
         blit_list.sort()
