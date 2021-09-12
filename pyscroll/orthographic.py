@@ -1,7 +1,9 @@
+from __future__ import annotations
 import logging
 import math
 import time
 from itertools import chain, product
+from typing import List, Tuple
 
 import pygame
 from pygame import Rect, Surface
@@ -150,7 +152,7 @@ class BufferedRenderer:
             self._tile_view.move_ip(dx, dy)
             self.redraw_tiles(self._buffer)
 
-    def draw(self, surface: Surface, rect: RectLike, surfaces: list[Surface]=None):
+    def draw(self, surface: Surface, rect: RectLike, surfaces: List[Surface]=None):
         """
         Draw the map onto a surface
 
@@ -235,7 +237,7 @@ class BufferedRenderer:
         self._tile_queue = self.data.get_tile_images_by_rect(self._tile_view)
         self._flush_tile_queue(surface)
 
-    def get_center_offset(self) -> tuple[int, int]:
+    def get_center_offset(self) -> Tuple[int, int]:
         """
         Return x, y pair that will change world coords to screen coords
 
@@ -243,7 +245,7 @@ class BufferedRenderer:
         return (-self.view_rect.centerx + self._half_width,
                 -self.view_rect.centery + self._half_height)
 
-    def translate_point(self, point) -> tuple[int, int]:
+    def translate_point(self, point) -> Tuple[int, int]:
         """
         Translate world coordinates and return screen coordinates.  Respects zoom level
 
@@ -275,7 +277,7 @@ class BufferedRenderer:
         else:
             return Rect(round((x + mx) * rx), round((y + my) * ry), round(w * rx), round(h * ry))
 
-    def translate_points(self, points) -> list[tuple[int, int]]:
+    def translate_points(self, points) -> List[Tuple[int, int]]:
         """
         Translate coordinates and return screen coordinates
 
@@ -296,7 +298,7 @@ class BufferedRenderer:
                 append((int(round((c[0] + sx) * rx)), int(round((c[1] + sy) * ry))))
         return retval
 
-    def translate_rects(self, rects: list[Rect]) -> list[Rect]:
+    def translate_rects(self, rects: List[Rect]) -> List[Rect]:
         """
         Translate rect position and size to screen coordinates.  Respects zoom level.
 
@@ -319,7 +321,7 @@ class BufferedRenderer:
                 append(Rect(round((x + sx) * rx), round((y + sy) * ry), round(w * rx), round(h * ry)))
         return retval
 
-    def _render_map(self, surface: Surface, rect: RectLike, surfaces: list[Surface]):
+    def _render_map(self, surface: Surface, rect: RectLike, surfaces: List[Surface]):
         """
         Render the map and optional surfaces to destination surface
 

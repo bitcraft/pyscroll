@@ -1,5 +1,6 @@
+from __future__ import annotations
 from contextlib import contextmanager
-from typing import Any, Union
+from typing import Any, List, Tuple, Union
 from pygame import Rect, Surface
 
 RectLike = Union[Rect, tuple[Any, Any, Any, Any]]
@@ -13,7 +14,7 @@ def surface_clipping_context(surface: Surface, clip: RectLike) -> None:
     surface.set_clip(original)
 
 
-def rect_difference(a: RectLike, b: RectLike) -> list[Rect]:
+def rect_difference(a: RectLike, b: RectLike) -> List[Rect]:
     """
     Compute difference of two rects.  Returns up to 4.
 
@@ -21,6 +22,6 @@ def rect_difference(a: RectLike, b: RectLike) -> list[Rect]:
     raise NotImplementedError
 
 
-def rect_to_bb(rect: RectLike) -> tuple[int, int, int, int]:
+def rect_to_bb(rect: RectLike) -> Tuple[int, int, int, int]:
     x, y, w, h = rect
     return x, y, x + w - 1, y + h - 1
