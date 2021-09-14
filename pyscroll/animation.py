@@ -2,18 +2,22 @@ from collections import namedtuple
 
 __all__ = ('AnimationFrame', 'AnimationToken')
 
+from typing import Union
+
 AnimationFrame = namedtuple("AnimationFrame", "image duration")
+
+TimeLike = Union[float, int]
 
 
 class AnimationToken:
     __slots__ = ['next', 'positions', 'frames', 'index']
 
-    def __init__(self, positions, frames, initial_time=0):
+    def __init__(self, positions, frames, initial_time: int = 0):
         """
+        Constructor
 
-        :type frames: list
         :type positions: set
-        :type initial_time: int 
+        :type frames: list
         """
         frames = tuple(AnimationFrame(*i) for i in frames)
         self.positions = positions
@@ -21,18 +25,16 @@ class AnimationToken:
         self.next = frames[0].duration + initial_time
         self.index = 0
 
-    def advance(self, last_time):
-        """ Advance the frame, and set timer for next frame
-        
+    def advance(self, last_time: TimeLike):
+        """
+        Advance the frame, and set timer for next frame
+
         Timer value is calculated by adding last_time and the
         duration of the next frame
-        
+
         The next frame is returned
-        
+
         This API may change in the future
-        
-        :param last_time: 
-        :return: Animation Frame
         """
         # advance the animation frame index, looping by default
         if self.index == len(self.frames) - 1:

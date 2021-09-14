@@ -1,8 +1,11 @@
+from typing import List
+
 import pygame
 
 
 class PyscrollGroup(pygame.sprite.LayeredUpdates):
-    """ Layered Group with ability to center sprites and scrolling map
+    """
+    Layered Group with ability to center sprites and scrolling map
     """
 
     def __init__(self, *args, **kwargs):
@@ -10,7 +13,8 @@ class PyscrollGroup(pygame.sprite.LayeredUpdates):
         self._map_layer = kwargs.get('map_layer')
 
     def center(self, value):
-        """ Center the group/map on a pixel
+        """
+        Center the group/map on a pixel
 
         The basemap and all sprites will be realigned to draw correctly.
         Centering the map will not change the rect of the sprites.
@@ -20,20 +24,17 @@ class PyscrollGroup(pygame.sprite.LayeredUpdates):
         self._map_layer.center(value)
 
     @property
-    def view(self):
-        """ Return a Rect representing visible portion of map
+    def view(self) -> pygame.Rect:
+        """
+        Return a Rect representing visible portion of map
 
-        This rect can be modified, but will not change the renderer
-
-        :return: pygame.Rect
         """
         return self._map_layer.view_rect.copy()
 
-    def draw(self, surface):
-        """ Draw all sprites and map onto the surface
+    def draw(self, surface: pygame.Surface) -> List[pygame.Rect]:
+        """
+        Draw all sprites and map onto the surface
 
-        :param surface: pygame surface to draw to
-        :type surface: pygame.surface.Surface
         """
         ox, oy = self._map_layer.get_center_offset()
         draw_area = surface.get_rect()

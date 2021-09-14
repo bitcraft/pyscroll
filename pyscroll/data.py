@@ -8,21 +8,26 @@ import time
 from itertools import product
 from heapq import heappop, heappush
 
-# optional pytmx support
+from typing import Tuple
+
+from pygame import Surface
+
 try:
+    # optional pytmx support
     import pytmx
 except ImportError:
     pass
 
-from pyscroll.common import rect_to_bb
+from pyscroll.common import rect_to_bb, RectLike
 from pyscroll.animation import AnimationFrame, AnimationToken
 
 __all__ = ('PyscrollDataAdapter', 'TiledMapData')
 
 
 class PyscrollDataAdapter:
-    """ Use this as a template for data adapters
-    
+    """
+    Use this as a template for data adapters
+
     Contains logic for handling animated tiles.  Animated tiles
     are a WIP feature, and while in theory will work with any data
     source, it is only tested using Tiled maps, loaded with pytmx.
@@ -42,13 +47,11 @@ class PyscrollDataAdapter:
         self._animated_tile = dict()     # mapping of tile substitutions when animated
         self._tracked_tiles = set()      # track the tiles on screen with animations
 
-    def process_animation_queue(self, tile_view):
-        """ Given the time and the tile view, process tile changes and return them
-        
+    def process_animation_queue(self, tile_view: RectLike) -> Tuple[int, int, int, Surface]:
+        """
+        Given the time and the tile view, process tile changes and return them
+
         :param tile_view: rect representing tiles on the screen
-        :type tile_view: pygame.Rect
-        
-        :rtype: list
         """
 
         # verify that there are tile substitutions ready
@@ -106,16 +109,17 @@ class PyscrollDataAdapter:
         return new_tiles
 
     def _update_time(self):
-        """ Update the internal clock.
-        
+        """
+        Update the internal clock.
+
         This may change in future versions.
-        
-        :return: 
+
         """
         self._last_time = time.time() * 1000
 
     def prepare_tiles(self, tiles):
-        """ Somewhat experimental: The renderer will advise data layer of its view
+        """
+        Somewhat experimental: The renderer will advise data layer of its view
 
         For some data providers, it would be useful to know what tiles will be drawn
         before they are ready to draw.  This exposes the tile view to the data.
@@ -125,12 +129,12 @@ class PyscrollDataAdapter:
 
         :param tiles: reference to the tile view
         :type tiles: pygame.Rect
-        :return:
         """
         pass
 
     def reload_animations(self):
-        """ Reload animation information
+        """
+        Reload animation information
 
         PyscrollDataAdapter.get_animations must be implemented
 
@@ -160,18 +164,13 @@ class PyscrollDataAdapter:
             self._animation_map[gid] = ani
             heappush(self._animation_queue, ani)
 
-    def get_tile_image(self, x, y, l):
-        """ Get a tile image, respecting current animations
+    def get_tile_image(self, x: int, y: int, l: int) -> Surface:
+        """
+        Get a tile image, respecting current animations
 
         :param x: x coordinate
         :param y: y coordinate
         :param l: layer
-
-        :type x: int
-        :type y: int
-        :type l: int
-
-        :rtype: pygame.Surface
         """
         # disabled for now, re-enable when support for generic maps is restored
         # # since the tile has been queried, assume it wants to be checked
@@ -188,48 +187,43 @@ class PyscrollDataAdapter:
             # not animated, so return surface from data, if any
             return self._get_tile_image(x, y, l)
 
-    def _get_tile_image(self, x, y, l):
-        """ Return tile at the coordinates, or None is empty
-       
+    def _get_tile_image(self, x: int, y: int, l: int) -> Surface:
+        """
+        Return tile at the coordinates, or None is empty
+
         This is used to query the data source directly, without
         checking for animations or any other tile transformations.
-        
+
         You must override this to support other data sources
-        
-        :param x: 
-        :param y: 
-        :param l: 
-        
-        :type x: int
-        :type y: int
-        :type l: int
-        
-        :return: 
+
+        :param x:
+        :param y:
+        :param l:
         """
         raise NotImplementedError
 
     def _get_tile_image_by_id(self, id):
-        """ Return Image by a custom ID
+        """
+        Return Image by a custom ID
 
         Used for animations.  Not required for static maps.
 
         :param id:
-        :return:
         """
         raise NotImplementedError
 
     def convert_surfaces(self, parent, alpha=False):
-        """ Convert all images in the data to match the parent
+        """
+        Convert all images in the data to match the parent
 
-        :param alpha: if True, then do not discard alpha channel 
+        :param alpha: if True, then do not discard alpha channel
         :param parent: pygame.Surface
-        
-        :return: None
         """
         raise NotImplementedError
 
     def get_animations(self):
-        """ Get tile animation data
+        """
+        Get tile animation data
 
         This method is subject to change in the future.
 
@@ -238,7 +232,7 @@ class PyscrollDataAdapter:
 
           Where Frames is:
           [ (ID, Duration), ... ]
-    
+
           And ID is a reference to a tile image.
           This will be something accessible using _get_tile_image_by_id
 
@@ -248,8 +242,9 @@ class PyscrollDataAdapter:
         """
         raise NotImplementedError
 
-    def get_tile_images_by_rect(self, rect):
-        """ Given a 2d area, return generator of tile images inside
+    def get_tile_images_by_rect(self, rect: RectLike):
+        """
+        Given a 2d area, return generator of tile images inside
 
         Given the coordinates, yield the following tuple for each tile:
           X, Y, Layer Number, pygame Surface
@@ -278,9 +273,10 @@ class PyscrollDataAdapter:
 
 
 class TiledMapData(PyscrollDataAdapter):
-    """ For data loaded from pytmx
     """
+    For data loaded from pytmx
 
+    """
     def __init__(self, tmx):
         super(TiledMapData, self).__init__()
         self.tmx = tmx
@@ -296,12 +292,12 @@ class TiledMapData(PyscrollDataAdapter):
             if frames:
                 yield gid, frames
 
-    def convert_surfaces(self, parent, alpha=False):
-        """ Convert all images in the data to match the parent
+    def convert_surfaces(self, parent: Surface, alpha: bool = False) -> None:
+        """
+        Convert all images in the data to match the parent
 
         :param parent: pygame.Surface
         :param alpha: preserve alpha channel or not
-        :return: None
         """
         images = list()
         for i in self.tmx.images:
@@ -316,31 +312,35 @@ class TiledMapData(PyscrollDataAdapter):
 
     @property
     def tile_size(self):
-        """ This is the pixel size of tiles to be rendered
-        
+        """
+        This is the pixel size of tiles to be rendered
+
         :return: (int, int)
         """
         return self.tmx.tilewidth, self.tmx.tileheight
 
     @property
     def map_size(self):
-        """ This is the size of the map in tiles
-        
+        """
+        This is the size of the map in tiles
+
         :return: (int, int)
         """
         return self.tmx.width, self.tmx.height
 
     @property
     def visible_tile_layers(self):
-        """ This must return layer numbers, not objects
-        
+        """
+        This must return layer numbers, not objects
+
         :return: [int, int, ...]
         """
         return self.tmx.visible_tile_layers
 
     @property
     def visible_object_layers(self):
-        """ This must return layer objects
+        """
+        This must return layer objects
 
         This is not required for custom data formats.
 
@@ -349,24 +349,25 @@ class TiledMapData(PyscrollDataAdapter):
         return (layer for layer in self.tmx.visible_layers
                 if isinstance(layer, pytmx.TiledObjectGroup))
 
-    def _get_tile_image(self, x, y, l):
+    def _get_tile_image(self, x: int, y: int, l: int):
         try:
             return self.tmx.get_tile_image(x, y, l)
         except ValueError:
             return None
 
-    def _get_tile_image_by_id(self, id):
-        """ Return Image by a custom ID
+    def _get_tile_image_by_id(self, id) -> Surface:
+        """
+        Return Image by a custom ID
 
         Used for animations.  Not required for static maps.
 
         :param id:
-        :return:
         """
         return self.tmx.images[id]
 
-    def get_tile_images_by_rect(self, rect):
-        """ Speed up data access
+    def get_tile_images_by_rect(self, rect: RectLike):
+        """
+        Speed up data access
 
         More efficient because data is accessed and cached locally
         """
