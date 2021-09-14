@@ -1,9 +1,10 @@
 from __future__ import annotations
+
 from contextlib import contextmanager
 from typing import Any, List, Tuple, Union
 from pygame import Rect, Surface
 
-RectLike = Union[Rect, tuple[Any, Any, Any, Any]]
+RectLike = Union[Rect, Tuple[Any, Any, Any, Any]]
 
 
 @contextmanager

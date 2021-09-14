@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import logging
 import math
 import time
@@ -15,7 +16,8 @@ log = logging.getLogger(__file__)
 
 
 class BufferedRenderer:
-    """ Renderer that support scrolling, zooming, layers, and animated tiles
+    """
+    Renderer that support scrolling, zooming, layers, and animated tiles
 
     The buffered renderer must be used with a data class to get tile, shape,
     and animation information.  See the data class api in pyscroll.data, or
@@ -71,7 +73,8 @@ class BufferedRenderer:
         self.set_size(size)
 
     def scroll(self, vector):
-        """ Scroll the background in pixels
+        """
+        Scroll the background in pixels
 
         Parameters:
             vector: x, y
@@ -81,7 +84,8 @@ class BufferedRenderer:
                      vector[1] + self.view_rect.centery))
 
     def center(self, coords):
-        """ Center the map on a pixel
+        """
+        Center the map on a pixel
 
         Float numbers will be rounded.
 
@@ -257,8 +261,10 @@ class BufferedRenderer:
         if self._zoom_level == 1.0:
             return point[0] + mx, point[1] + my
         else:
-            return (int(round((point[0] + mx)) * self._real_ratio_x),
-                   int(round((point[1] + my) * self._real_ratio_y)))
+            return (
+                int(round((point[0] + mx)) * self._real_ratio_x),
+                int(round((point[1] + my) * self._real_ratio_y))
+            )
 
     def translate_rect(self, rect: RectLike) -> Rect:
         """
@@ -346,7 +352,7 @@ class BufferedRenderer:
                 surfaces_offset = -offset[0], -offset[1]
                 self._draw_surfaces(surface, surfaces_offset, surfaces)
 
-    def _clear_surface(self, surface: Surface, area: RectLike=None):
+    def _clear_surface(self, surface: Surface, area: RectLike = None):
         """
         Clear the buffer
 
@@ -407,15 +413,15 @@ class BufferedRenderer:
         is_over = False
         for dl, rect in sprite_damage:
             x, y, w, h = rect
-            sx = x - ox
-            sy = y - oy
             tx = x // w + left
             ty = y // h + top
-            b = sy + h
             # TODO: heightmap
             for l in tile_layers:
                 tile = get_tile(tx, ty, l)
                 if tile:
+                    sx = x - ox
+                    sy = y - oy
+                    b = sy + h
                     if dl <= l:
                         is_over = True
                     blit_op = l, b, sx, sy, order, tile, None
@@ -438,7 +444,8 @@ class BufferedRenderer:
         surface.blits(draw_list2)
 
     def _queue_edge_tiles(self, dx: int, dy: int):
-        """ Queue edge tiles and clear edge areas on buffer if needed
+        """
+        Queue edge tiles and clear edge areas on buffer if needed
 
         Parameters:
             dx: Edge along X axis to enqueue
