@@ -152,7 +152,7 @@ class BufferedRenderer:
             self._flush_tile_queue(self._buffer)
 
         elif view_change > self._redraw_cutoff:
-            log.info('scrolling too quickly.  redraw forced')
+            log.debug('scrolling too quickly.  redraw forced')
             self._tile_view.move_ip(dx, dy)
             self.redraw_tiles(self._buffer)
 
@@ -236,7 +236,7 @@ class BufferedRenderer:
 
         """
         # TODO/BUG: Redraw animated tiles correctly.  They are getting reset here
-        log.warning('pyscroll buffer redraw')
+        log.debug('pyscroll buffer redraw')
         self._clear_surface(self._buffer)
         self._tile_queue = self.data.get_tile_images_by_rect(self._tile_view)
         self._flush_tile_queue(surface)
