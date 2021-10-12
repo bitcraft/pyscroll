@@ -441,7 +441,7 @@ class BufferedRenderer:
             else:
                 blit_op = s, (x, y)
             draw_list2.append(blit_op)
-        surface.blits(draw_list2)
+        surface.blits(draw_list2, doreturn=False)
 
     def _queue_edge_tiles(self, dx: int, dy: int):
         """
@@ -563,4 +563,4 @@ class BufferedRenderer:
         self.data.prepare_tiles(self._tile_view)
 
         blit_list = [(image, (x * tw - ltw, y * th - tth)) for x, y, l, image in self._tile_queue]
-        surface.blits(blit_list)
+        surface.blits(blit_list, doreturn=False)
