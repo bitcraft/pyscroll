@@ -4,7 +4,7 @@ Two classes for quadtree collision detection.
 A quadtree is used with pyscroll to detect overlapping tiles.
 """
 import itertools
-from typing import Tuple, Set
+from typing import Tuple, Set, Sequence
 
 from pygame import Rect
 
@@ -17,7 +17,7 @@ class FastQuadTree:
 
     This faster version of the quadtree class is tuned for pygame's rect
     objects, or objects with a rect attribute.  The return value will always
-    be a set of a tupes that represent the items passed.  In other words,
+    be a set of a tuples that represent the items passed.  In other words,
     you will not get back the objects that were passed, just a tuple that
     describes it.
 
@@ -27,31 +27,20 @@ class FastQuadTree:
     original code from https://pygame.org/wiki/QuadTree
     """
 
-    __slots__ = ['items', 'cx', 'cy', 'nw', 'sw', 'ne', 'se']
+    __slots__ = ["items", "cx", "cy", "nw", "sw", "ne", "se"]
 
-    def __init__(self, items, depth: int=4, boundary=None):
+    def __init__(self, items: Sequence, depth: int=4, boundary=None):
         """Creates a quad-tree.
 
-        @param items:
-            A sequence of items to store in the quad-tree. Note that these
-            items must be a pygame.Rect or have a .rect attribute.
+        Parameters:
+            items: Sequence of items to check
+            depth: The maximum recursion depth
+            boundary: The bounding rectangle of all of the items in the quad-tree
 
-        @param depth:
-            The maximum recursion depth.
-
-        @param boundary:
-            The bounding rectangle of all of the items in the quad-tree.
         """
 
         # The sub-quadrants are empty to start with.
         self.nw = self.ne = self.se = self.sw = None
-
-        # If we've reached the maximum depth then insert all items into this
-        # quadrant.
-        depth -= 1
-        if depth == 0 or not items:
-            self.items = items
-            return
 
         # Find this quadrant's centre.
         if boundary:
@@ -62,6 +51,13 @@ class FastQuadTree:
 
         cx = self.cx = boundary.centerx
         cy = self.cy = boundary.centery
+
+        # If we've reached the maximum depth then insert all items into this
+        # quadrant.
+        depth -= 1
+        if depth == 0 or not items:
+            self.items = items
+            return
 
         self.items = []
         nw_items = []
@@ -115,13 +111,20 @@ class FastQuadTree:
         hits = {tuple(self.items[i]) for i in rect.collidelistall(self.items)}
 
         # Recursively check the lower quadrants.
-        if self.nw and rect.left <= self.cx and rect.top <= self.cy:
-            hits |= self.nw.hit(rect)
-        if self.sw and rect.left <= self.cx and rect.bottom >= self.cy:
-            hits |= self.sw.hit(rect)
-        if self.ne and rect.right >= self.cx and rect.top <= self.cy:
-            hits |= self.ne.hit(rect)
-        if self.se and rect.right >= self.cx and rect.bottom >= self.cy:
-            hits |= self.se.hit(rect)
+        left = rect.left <= self.cx
+        right = rect.right >= self.cx
+        top = rect.top <= self.cy
+        bottom = rect.bottom >= self.cy
+
+        if left:
+            if top and self.nw:
+                hits |= self.nw.hit(rect)
+            if bottom and self.sw:
+                hits |= self.sw.hit(rect)
+        if right:
+            if top and self.ne:
+                hits |= self.ne.hit(rect)
+            if bottom and self.se:
+                hits |= self.se.hit(rect)
 
         return hits

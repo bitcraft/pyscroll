@@ -4,7 +4,7 @@ from .data import PyscrollDataAdapter, TiledMapData
 from .group import PyscrollGroup
 
 
-__version__ = 2, 24
-__author__ = 'bitcraft'
-__author_email__ = 'leif.theden@gmail.com'
-__description__ = 'Pygame Scrolling - Python 3.5+'
+__version__ = 2, 25
+__author__ = "bitcraft"
+__author_email__ = "leif.theden@gmail.com"
+__description__ = "Pygame Scrolling"

@@ -354,7 +354,7 @@ class BufferedRenderer:
 
     def _clear_surface(self, surface: Surface, area: RectLike = None):
         """
-        Clear the buffer
+        Clear the surface using the right clear color.  Used for the buffer.
 
         Parameters:
             surface: surface to clear
@@ -365,7 +365,8 @@ class BufferedRenderer:
         surface.fill(clear_color, area)
 
     def _draw_surfaces(self, surface: Surface, offset, surfaces):
-        """ Draw surfaces onto buffer while correcting overlapping tile layers
+        """
+        Draw surfaces onto surface while correcting overlapping tile layers
 
         Parameters:
             surface: destination

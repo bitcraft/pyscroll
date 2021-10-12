@@ -8,8 +8,9 @@ import time
 from itertools import product
 from heapq import heappop, heappush
 
-from typing import Tuple
+from typing import List, Tuple
 
+import pygame
 from pygame import Surface
 
 try:
@@ -31,8 +32,8 @@ class PyscrollDataAdapter:
     Contains logic for handling animated tiles.  Animated tiles
     are a WIP feature, and while in theory will work with any data
     source, it is only tested using Tiled maps, loaded with pytmx.
-    """
 
+    """
     # the following can be class/instance attributes
     # or properties.  they are listed here as class
     # instances, but use as properties is fine, too.
@@ -47,24 +48,29 @@ class PyscrollDataAdapter:
         self._animated_tile = dict()     # mapping of tile substitutions when animated
         self._tracked_tiles = set()      # track the tiles on screen with animations
 
-    def process_animation_queue(self, tile_view: RectLike) -> Tuple[int, int, int, Surface]:
+    def process_animation_queue(
+            self,
+            tile_view: RectLike,
+    ) -> List[Tuple[int, int, int, Surface]]:
         """
         Given the time and the tile view, process tile changes and return them
 
-        :param tile_view: rect representing tiles on the screen
+        Parameters:
+            tile_view: Rect representing tiles on the screen
+
         """
+        new_tiles = list()
 
         # verify that there are tile substitutions ready
         self._update_time()
         try:
             if self._animation_queue[0].next > self._last_time:
-                return
+                return new_tiles
 
         # raised with the animation queue is empty (no animations at all)
         except IndexError:
-            return
+            return new_tiles
 
-        new_tiles = list()
         new_tiles_append = new_tiles.append
         tile_layers = tuple(self.visible_tile_layers)
         get_tile_image = self.get_tile_image
@@ -117,7 +123,7 @@ class PyscrollDataAdapter:
         """
         self._last_time = time.time() * 1000
 
-    def prepare_tiles(self, tiles):
+    def prepare_tiles(self, tiles: RectLike):
         """
         Somewhat experimental: The renderer will advise data layer of its view
 
@@ -127,8 +133,9 @@ class PyscrollDataAdapter:
         * A draw will happen immediately after this returns.
         * Do not hold on to this reference or change it.
 
-        :param tiles: reference to the tile view
-        :type tiles: pygame.Rect
+        Parameters:
+            tiles: Reference to the tile view
+
         """
         pass
 
@@ -168,9 +175,11 @@ class PyscrollDataAdapter:
         """
         Get a tile image, respecting current animations
 
-        :param x: x coordinate
-        :param y: y coordinate
-        :param l: layer
+        Parameters:
+            x: x coordinate
+            y: y coordinate
+            l: layer
+
         """
         # disabled for now, re-enable when support for generic maps is restored
         # # since the tile has been queried, assume it wants to be checked
@@ -196,9 +205,11 @@ class PyscrollDataAdapter:
 
         You must override this to support other data sources
 
-        :param x:
-        :param y:
-        :param l:
+        Parameters:
+            x: x coordinate
+            y: y coordinate
+            l: layer
+
         """
         raise NotImplementedError
 
@@ -208,16 +219,20 @@ class PyscrollDataAdapter:
 
         Used for animations.  Not required for static maps.
 
-        :param id:
+        Parameters:
+            id:
+
         """
         raise NotImplementedError
 
-    def convert_surfaces(self, parent, alpha=False):
+    def convert_surfaces(self, parent: pygame.Surface, alpha: bool = False):
         """
         Convert all images in the data to match the parent
 
-        :param alpha: if True, then do not discard alpha channel
-        :param parent: pygame.Surface
+        Parameters:
+            alpha: if True, then do not discard alpha channel
+            parent: Surface used to convert the others
+
         """
         raise NotImplementedError
 
@@ -238,7 +253,6 @@ class PyscrollDataAdapter:
 
           Duration should be in milliseconds
 
-        :return: sequence
         """
         raise NotImplementedError
 
@@ -260,8 +274,9 @@ class PyscrollDataAdapter:
 
         Not like python 'Range': should include the end index!
 
-        :param rect: a rect-like object that defines tiles to draw
-        :return: generator
+        Parameters:
+            rect: Rect-like object that defines tiles to draw
+
         """
         x1, y1, x2, y2 = rect_to_bb(rect)
         for layer in self.visible_tile_layers:
@@ -293,12 +308,6 @@ class TiledMapData(PyscrollDataAdapter):
                 yield gid, frames
 
     def convert_surfaces(self, parent: Surface, alpha: bool = False) -> None:
-        """
-        Convert all images in the data to match the parent
-
-        :param parent: pygame.Surface
-        :param alpha: preserve alpha channel or not
-        """
         images = list()
         for i in self.tmx.images:
             try:
@@ -312,40 +321,18 @@ class TiledMapData(PyscrollDataAdapter):
 
     @property
     def tile_size(self):
-        """
-        This is the pixel size of tiles to be rendered
-
-        :return: (int, int)
-        """
         return self.tmx.tilewidth, self.tmx.tileheight
 
     @property
     def map_size(self):
-        """
-        This is the size of the map in tiles
-
-        :return: (int, int)
-        """
         return self.tmx.width, self.tmx.height
 
     @property
     def visible_tile_layers(self):
-        """
-        This must return layer numbers, not objects
-
-        :return: [int, int, ...]
-        """
         return self.tmx.visible_tile_layers
 
     @property
     def visible_object_layers(self):
-        """
-        This must return layer objects
-
-        This is not required for custom data formats.
-
-        :return: Sequence of pytmx object layers/groups
-        """
         return (layer for layer in self.tmx.visible_layers
                 if isinstance(layer, pytmx.TiledObjectGroup))
 
@@ -356,22 +343,9 @@ class TiledMapData(PyscrollDataAdapter):
             return None
 
     def _get_tile_image_by_id(self, id) -> Surface:
-        """
-        Return Image by a custom ID
-
-        Used for animations.  Not required for static maps.
-
-        :param id:
-        """
         return self.tmx.images[id]
 
     def get_tile_images_by_rect(self, rect: RectLike):
-        """
-        Speed up data access
-
-        More efficient because data is accessed and cached locally
-        """
-
         def rev(seq, start, stop):
             if start < 0:
                 start = 0

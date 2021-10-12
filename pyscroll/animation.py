@@ -2,7 +2,7 @@ from collections import namedtuple
 
 __all__ = ('AnimationFrame', 'AnimationToken')
 
-from typing import Union
+from typing import Sequence, Union
 
 AnimationFrame = namedtuple("AnimationFrame", "image duration")
 
@@ -12,12 +12,15 @@ TimeLike = Union[float, int]
 class AnimationToken:
     __slots__ = ['next', 'positions', 'frames', 'index']
 
-    def __init__(self, positions, frames, initial_time: int = 0):
+    def __init__(self, positions, frames: Sequence, initial_time: int = 0):
         """
         Constructor
 
-        :type positions: set
-        :type frames: list
+        Parameters:
+            positions: Set of positions where the tile is on the map
+            frames: Sequence of frames that compromise the animation
+            initial_time: Used to compensate time between starting and changing animations
+
         """
         frames = tuple(AnimationFrame(*i) for i in frames)
         self.positions = positions
@@ -34,7 +37,11 @@ class AnimationToken:
 
         The next frame is returned
 
-        This API may change in the future
+        * This API may change in the future
+
+        Parameters:
+            last_time: Duration of the last frame
+
         """
         # advance the animation frame index, looping by default
         if self.index == len(self.frames) - 1:
