@@ -29,6 +29,7 @@ Features
 - Drawing and scrolling shapes
 - Fast and small footprint
 - Speed is not affected by map size
+- Support for pytmx loaded maps from Tiled Map Editor
 
  
 Use It Like a Camera
@@ -40,7 +41,7 @@ draw them over or under tiles.  Sprites can use their rect in world coordinates,
 and the group will work like a camera, translating world coordinates to screen
 coordinates while rendering sprites and map layers.
 
-Zooming is a new feature and should operate quickly on most computers.  Be aware
+Zooming is a feature and should operate quickly on most computers.  Be aware
 that it is cheap to operate a zoomed view, but expensive to do the actual zooming.
 This means that its easy to zoom the map once, but don't expect it to work quickly
 if you want to do an animated zoom into something.
@@ -56,7 +57,7 @@ Install from pip
     pip install pyscroll
 
 
-You can also manually install it
+You can also manually install it from source
 
     python setup.py install
 
@@ -89,8 +90,20 @@ pyscroll and pytmx can load your maps from Tiled and use your pygame sprites.
 The following is a very basic way to load a map onto the screen.
 
 ```python
-import pyscroll
 from pytmx.util_pygame import load_pygame
+import pygame
+import pyscroll
+
+
+class Sprite(pygame.sprite.Sprite):
+    """
+    Simple Sprite class for on-screen things
+    
+    """
+    def __init__(self, surface):
+        self.image = surface
+        self.rect = surface.get_rect()
+
 
 # Load TMX data
 tmx_data = load_pygame("desert.tmx")
@@ -105,23 +118,18 @@ map_layer = pyscroll.BufferedRenderer(map_data, screen_size)
 # make the pygame SpriteGroup with a scrolling map
 group = pyscroll.PyscrollGroup(map_layer=map_layer)
 
-# Add sprites to the group
+# Add sprite(s) to the group
+surface = pygame.image.load("my_surface.png").convert_alpha()
+sprite = Sprite(surface)
 group.add(sprite)
 
-# Center the layer and sprites on a sprite
+# Center the camera on the sprite
 group.center(sprite.rect.center)
 
-# Draw the layer
-# If the map covers the entire screen, do not clear the screen:
-# Clearing the screen is not needed since the map will clear it when drawn
-# This map covers the screen, so no clearing!
+# Draw map and sprites using the group
+# Notice I did not `screen.fill` here!  Clearing the screen is not
+# needed since the map will clear it when drawn
 group.draw(screen)
-
-# adjust the zoom (out)
-map_layer.zoom = .5
-
-# adjust the zoom (in)
-map_layer.zoom = 2.0
 ```
 
 
@@ -190,7 +198,6 @@ reduced by about 33%
 
 ## Why are there obvious/ugly 'streaks' when scrolling?
 Streaks are caused by missing tiles.  See the above answer for solutions.
-
 
 ## Can I blit anything 'under' the scrolling map layer?
 Yes!  There are two ways to handle this situation...both are experimental,
