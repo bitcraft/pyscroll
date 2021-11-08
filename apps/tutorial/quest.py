@@ -131,8 +131,6 @@ class QuestGame:
 
         # put the hero in the center of the map
         self.hero.position = self.map_layer.map_rect.center
-        self.hero._position[0] += 200
-        self.hero._position[1] += 400
 
         # add our hero to the group
         self.group.add(self.hero)
@@ -208,15 +206,9 @@ class QuestGame:
         clock = pygame.time.Clock()
         self.running = True
 
-        from collections import deque
-
-        times = deque(maxlen=300)
-
         try:
             while self.running:
                 dt = clock.tick() / 1000.0
-                times.append(clock.get_fps())
-                # print(sum(times) / len(times))
                 self.handle_input()
                 self.update(dt)
                 self.draw()
