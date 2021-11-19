@@ -1,25 +1,38 @@
-from typing import List
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, List
 
 import pygame
+
+if TYPE_CHECKING:
+    from .orthographic import BufferedRenderer
 
 
 class PyscrollGroup(pygame.sprite.LayeredUpdates):
     """
-    Layered Group with ability to center sprites and scrolling map
-    """
+    Layered Group with ability to center sprites and scrolling map.
 
-    def __init__(self, *args, **kwargs):
+    Args:
+        map_layer: Pyscroll Renderer
+
+    """
+    def __init__(
+        self,
+        map_layer: BufferedRenderer,
+        *args,
+        **kwargs
+    ):
         pygame.sprite.LayeredUpdates.__init__(self, *args, **kwargs)
-        self._map_layer = kwargs.get('map_layer')
+        self._map_layer = map_layer
 
     def center(self, value):
         """
-        Center the group/map on a pixel
+        Center the group/map on a pixel.
 
         The basemap and all sprites will be realigned to draw correctly.
         Centering the map will not change the rect of the sprites.
 
-        Parameters:
+        Args:
             value: x, y coordinates to center the camera on
 
         """
@@ -28,16 +41,19 @@ class PyscrollGroup(pygame.sprite.LayeredUpdates):
     @property
     def view(self) -> pygame.Rect:
         """
-        Return a Rect representing visible portion of map
+        Return a Rect representing visible portion of map.
 
         """
         return self._map_layer.view_rect.copy()
 
-    def draw(self, surface: pygame.surface.Surface) -> List[pygame.rect.Rect]:
+    def draw(
+        self,
+        surface: pygame.surface.Surface
+    ) -> List[pygame.rect.Rect]:
         """
-        Draw map and all sprites onto the surface
+        Draw map and all sprites onto the surface.
 
-        Parameters:
+        Args:
             surface: Surface to draw to
 
         """
@@ -54,7 +70,8 @@ class PyscrollGroup(pygame.sprite.LayeredUpdates):
             if new_rect.colliderect(draw_area):
                 try:
                     new_surfaces_append((spr.image, new_rect, gl(spr), spr.blendmode))
-                except AttributeError:  # generally should only fail when no blendmode available
+                except AttributeError:
+                    # should only fail when no blendmode available
                     new_surfaces_append((spr.image, new_rect, gl(spr)))
                 spritedict[spr] = new_rect
 

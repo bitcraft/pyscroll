@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 # encoding: utf-8
-# python setup.py sdist upload -r pypi
+# pip install wheel
+# python3 setup.py sdist bdist_wheel
+# python3 -m twine upload --repository pypi dist/*
 from setuptools import setup
 
 setup(
     name="pyscroll",
-    version="2.26",
+    version="2.28",
     description="Fast scrolling maps library for pygame",
     author="bitcraft",
     author_email="leif.theden@gmail.com",
@@ -24,6 +26,7 @@ setup(
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
         "Topic :: Games/Entertainment",
         "Topic :: Multimedia :: Graphics",
         "Topic :: Software Development :: Libraries :: pygame",

@@ -4,10 +4,11 @@ This file contains a few classes for accessing data
 If you are developing your own map format, please use this
 as a template.  Just fill in values that work for your game.
 """
-import time
-from itertools import product
-from heapq import heappop, heappush
+from __future__ import annotations
 
+import time
+from heapq import heappop, heappush
+from itertools import product
 from typing import List, Tuple
 
 import pygame
@@ -19,8 +20,8 @@ try:
 except ImportError:
     pass
 
-from pyscroll.common import rect_to_bb, RectLike
-from pyscroll.animation import AnimationFrame, AnimationToken
+from .common import rect_to_bb, RectLike
+from .animation import AnimationFrame, AnimationToken
 
 __all__ = ('PyscrollDataAdapter', 'TiledMapData')
 
@@ -48,6 +49,9 @@ class PyscrollDataAdapter:
         self._animated_tile = dict()     # mapping of tile substitutions when animated
         self._tracked_tiles = set()      # track the tiles on screen with animations
 
+    def reload_data(self):
+        raise NotImplementedError
+
     def process_animation_queue(
             self,
             tile_view: RectLike,
@@ -55,7 +59,7 @@ class PyscrollDataAdapter:
         """
         Given the time and the tile view, process tile changes and return them
 
-        Parameters:
+        Args:
             tile_view: Rect representing tiles on the screen
 
         """
@@ -133,7 +137,7 @@ class PyscrollDataAdapter:
         * A draw will happen immediately after this returns.
         * Do not hold on to this reference or change it.
 
-        Parameters:
+        Args:
             tiles: Reference to the tile view
 
         """
@@ -141,7 +145,7 @@ class PyscrollDataAdapter:
 
     def reload_animations(self):
         """
-        Reload animation information
+        Reload animation information.
 
         PyscrollDataAdapter.get_animations must be implemented
 
@@ -173,9 +177,9 @@ class PyscrollDataAdapter:
 
     def get_tile_image(self, x: int, y: int, l: int) -> Surface:
         """
-        Get a tile image, respecting current animations
+        Get a tile image, respecting current animations.
 
-        Parameters:
+        Args:
             x: x coordinate
             y: y coordinate
             l: layer
@@ -198,14 +202,14 @@ class PyscrollDataAdapter:
 
     def _get_tile_image(self, x: int, y: int, l: int) -> Surface:
         """
-        Return tile at the coordinates, or None is empty
+        Return tile at the coordinates, or None is empty.
 
         This is used to query the data source directly, without
         checking for animations or any other tile transformations.
 
         You must override this to support other data sources
 
-        Parameters:
+        Args:
             x: x coordinate
             y: y coordinate
             l: layer
@@ -215,11 +219,11 @@ class PyscrollDataAdapter:
 
     def _get_tile_image_by_id(self, id):
         """
-        Return Image by a custom ID
+        Return Image by a custom ID.
 
         Used for animations.  Not required for static maps.
 
-        Parameters:
+        Args:
             id:
 
         """
@@ -227,9 +231,9 @@ class PyscrollDataAdapter:
 
     def convert_surfaces(self, parent: pygame.Surface, alpha: bool = False):
         """
-        Convert all images in the data to match the parent
+        Convert all images in the data to match the parent.
 
-        Parameters:
+        Args:
             alpha: if True, then do not discard alpha channel
             parent: Surface used to convert the others
 
@@ -238,7 +242,7 @@ class PyscrollDataAdapter:
 
     def get_animations(self):
         """
-        Get tile animation data
+        Get tile animation data.
 
         This method is subject to change in the future.
 
@@ -258,7 +262,7 @@ class PyscrollDataAdapter:
 
     def get_tile_images_by_rect(self, rect: RectLike):
         """
-        Given a 2d area, return generator of tile images inside
+        Given a 2d area, return generator of tile images inside.
 
         Given the coordinates, yield the following tuple for each tile:
           X, Y, Layer Number, pygame Surface
@@ -274,7 +278,7 @@ class PyscrollDataAdapter:
 
         Not like python 'Range': should include the end index!
 
-        Parameters:
+        Args:
             rect: Rect-like object that defines tiles to draw
 
         """
@@ -289,13 +293,16 @@ class PyscrollDataAdapter:
 
 class TiledMapData(PyscrollDataAdapter):
     """
-    For data loaded from pytmx
+    For data loaded from pytmx.
 
     """
     def __init__(self, tmx):
         super(TiledMapData, self).__init__()
         self.tmx = tmx
         self.reload_animations()
+
+    def reload_data(self):
+        self.tmx = pytmx.load_pygame(self.tmx.filename)
 
     def get_animations(self):
         for gid, d in self.tmx.tile_properties.items():
@@ -307,7 +314,7 @@ class TiledMapData(PyscrollDataAdapter):
             if frames:
                 yield gid, frames
 
-    def convert_surfaces(self, parent: Surface, alpha: bool = False) -> None:
+    def convert_surfaces(self, parent: Surface, alpha: bool = False):
         images = list()
         for i in self.tmx.images:
             try:
@@ -362,16 +369,13 @@ class TiledMapData(PyscrollDataAdapter):
         for l in self.tmx.visible_tile_layers:
             for y, row in rev(layers[l].data, y1, y2):
                 for x, gid in [i for i in rev(row, x1, x2) if i[1]]:
-                    # since the tile has been queried, assume it wants to be checked
-                    # for animations sometime in the future
+                    # since the tile has been queried, assume it wants
+                    # to be checked for animations sometime in the future
                     if track and gid in tracked_gids:
                         anim_map[gid].positions.add((x, y, l))
-
                     try:
                         # animated, so return the correct frame
                         yield x, y, l, at[(x, y, l)]
-
                     except KeyError:
-
                         # not animated, so return surface from data, if any
                         yield x, y, l, images[gid]

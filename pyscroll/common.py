@@ -2,13 +2,14 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 from typing import Any, List, Tuple, Union
+
 from pygame import Rect, Surface
 
 RectLike = Union[Rect, Tuple[Any, Any, Any, Any]]
 
 
 @contextmanager
-def surface_clipping_context(surface: Surface, clip: RectLike) -> None:
+def surface_clipping_context(surface: Surface, clip: RectLike):
     original = surface.get_clip()
     surface.set_clip(clip)
     yield

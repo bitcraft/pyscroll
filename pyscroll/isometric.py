@@ -1,4 +1,5 @@
 import logging
+
 from pyscroll.orthographic import BufferedRenderer
 
 log = logging.getLogger(__file__)

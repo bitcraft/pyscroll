@@ -21,6 +21,7 @@ can use your Tiled maps.  It also has out-of-the-box support for pygame sprites.
 Features
 ========
 
+- Reload the map tiles and data without closing the game
 - Sprites or plain surfaces can be drawn in layers
 - Animated tiles
 - Zoom in and out

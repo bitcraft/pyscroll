@@ -3,12 +3,15 @@ Two classes for quadtree collision detection.
 
 A quadtree is used with pyscroll to detect overlapping tiles.
 """
+from __future__ import annotations
+
 import itertools
-from typing import Tuple, Set, Sequence
+from typing import TYPE_CHECKING, Tuple, Set, Sequence
 
 from pygame import Rect
 
-from pyscroll.common import RectLike
+if TYPE_CHECKING:
+    from .common import RectLike
 
 
 class FastQuadTree:
@@ -32,7 +35,7 @@ class FastQuadTree:
     def __init__(self, items: Sequence, depth: int=4, boundary=None):
         """Creates a quad-tree.
 
-        Parameters:
+        Args:
             items: Sequence of items to check
             depth: The maximum recursion depth
             boundary: The bounding rectangle of all of the items in the quad-tree
@@ -97,16 +100,16 @@ class FastQuadTree:
         return itertools.chain(self.items, self.nw, self.ne, self.se, self.sw)
 
     def hit(self, rect: RectLike) -> Set[Tuple[int, int, int, int]]:
-        """Returns the items that overlap a bounding rectangle.
+        """
+        Returns the items that overlap a bounding rectangle.
 
         Returns the set of all items in the quad-tree that overlap with a
         bounding rectangle.
 
-        @param rect:
-            The bounding rectangle being tested against the quad-tree. This
-            must possess left, top, right and bottom attributes.
-        """
+        Args:
+            rect: The bounding rectangle being tested
 
+        """
         # Find the hits at the current level.
         hits = {tuple(self.items[i]) for i in rect.collidelistall(self.items)}
 
