@@ -1,0 +1,69 @@
+{
+    "maps": [
+        {
+            "fileName": "stitched0.tmx",
+            "height": 320,
+            "width": 320,
+            "x": -320,
+            "y": -320
+        },
+        {
+            "fileName": "stitched1.tmx",
+            "height": 320,
+            "width": 320,
+            "x": 0,
+            "y": -320
+        },
+        {
+            "fileName": "stitched2.tmx",
+            "height": 320,
+            "width": 320,
+            "x": 320,
+            "y": -320
+        },
+        {
+            "fileName": "stitched3.tmx",
+            "height": 320,
+            "width": 320,
+            "x": -320,
+            "y": 0
+        },
+        {
+            "fileName": "stitched4.tmx",
+            "height": 320,
+            "width": 320,
+            "x": 0,
+            "y": 0
+        },
+        {
+            "fileName": "stitched5.tmx",
+            "height": 320,
+            "width": 320,
+            "x": 320,
+            "y": 0
+        },
+        {
+            "fileName": "stitched6.tmx",
+            "height": 320,
+            "width": 320,
+            "x": -320,
+            "y": 320
+        },
+        {
+            "fileName": "stitched7.tmx",
+            "height": 320,
+            "width": 320,
+            "x": 0,
+            "y": 320
+        },
+        {
+            "fileName": "stitched8.tmx",
+            "height": 320,
+            "width": 320,
+            "x": 320,
+            "y": 320
+        }
+    ],
+    "onlyShowAdjacentMaps": false,
+    "type": "world"
+}

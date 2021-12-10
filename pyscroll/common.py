@@ -3,9 +3,11 @@ from __future__ import annotations
 from contextlib import contextmanager
 from typing import Any, List, Tuple, Union
 
-from pygame import Rect, Surface
+from pygame import Rect, Surface, Vector2
 
 RectLike = Union[Rect, Tuple[Any, Any, Any, Any]]
+Vector2D = Union[Tuple[float, float], Tuple[int, int], Vector2]
+Vector2DInt = Tuple[int, int]
 
 
 @contextmanager

@@ -4,20 +4,23 @@ import logging
 import math
 import time
 from itertools import chain, product
-from typing import List, Tuple, TYPE_CHECKING, Callable, Union
+from typing import List, TYPE_CHECKING, Callable
 
 import pygame
 from pygame import Rect, Surface
 
-from .common import surface_clipping_context, RectLike
+from .common import (
+    surface_clipping_context,
+    RectLike,
+    Vector2D,
+    Vector2DInt,
+)
 from .quadtree import FastQuadTree
 
 if TYPE_CHECKING:
     from .data import PyscrollDataAdapter
 
 log = logging.getLogger(__file__)
-Vector2D = Union[Tuple[float, float], Tuple[int, int], pygame.Vector2]
-Vector2DInt = Tuple[int, int]
 
 
 class BufferedRenderer:

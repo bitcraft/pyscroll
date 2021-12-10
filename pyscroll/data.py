@@ -20,10 +20,14 @@ try:
 except ImportError:
     pass
 
-from .common import rect_to_bb, RectLike
+from .common import rect_to_bb, RectLike, Vector2DInt
 from .animation import AnimationFrame, AnimationToken
 
-__all__ = ('PyscrollDataAdapter', 'TiledMapData')
+__all__ = (
+    "PyscrollDataAdapter",
+    "TiledMapData",
+    "MapAggregator",
+)
 
 
 class PyscrollDataAdapter:
@@ -229,17 +233,6 @@ class PyscrollDataAdapter:
         """
         raise NotImplementedError
 
-    def convert_surfaces(self, parent: pygame.Surface, alpha: bool = False):
-        """
-        Convert all images in the data to match the parent.
-
-        Args:
-            alpha: if True, then do not discard alpha channel
-            parent: Surface used to convert the others
-
-        """
-        raise NotImplementedError
-
     def get_animations(self):
         """
         Get tile animation data.
@@ -379,3 +372,107 @@ class TiledMapData(PyscrollDataAdapter):
                     except KeyError:
                         # not animated, so return surface from data, if any
                         yield x, y, l, images[gid]
+
+
+class MapAggregator(PyscrollDataAdapter):
+    """
+    Combine multiple data sources with an offset
+
+    Currently this is just in a test phase.
+
+    Has the following limitations:
+    - Tile sizes must be the same for all maps
+    - No tile animations
+    - Sprites cannot be under layers
+    - Cannot remove maps once added
+
+    """
+    def __init__(self, tile_size):
+        super().__init__()
+        self.tile_size = tile_size
+        self.map_size = 0, 0
+        self.maps = list()
+        self._min_x = 0
+        self._min_y = 0
+
+    def _get_tile_image(self, x: int, y: int, l: int) -> Surface:
+        """
+        Required for sprite collation - not implemented
+
+        """
+        pass
+
+    def _get_tile_image_by_id(self, id):
+        """
+        Required for sprite collation - not implemented
+
+        """
+        pass
+
+    def add_map(self, data: PyscrollDataAdapter, offset: Vector2DInt):
+        """
+        Add map data and position it with an offset
+
+        Args:
+            data: Data Adapater, such as TiledMapData
+            offset: Where the upper-left corner is, in tiles
+
+        """
+        assert data.tile_size == self.tile_size
+        rect = pygame.Rect(offset, data.map_size)
+        ox = self._min_x - offset[0]
+        oy = self._min_y - offset[1]
+        self._min_x = min(self._min_x, offset[0])
+        self._min_y = min(self._min_y, offset[1])
+        mx = 0
+        my = 0
+        # the renderer cannot deal with negative tile coordinates,
+        # so we must move all the offsets if there is a negative so
+        # that all the tile coordinates are >= (0, 0)
+        self.maps.append((data, rect))
+        if ox > 0 or oy > 0:
+            for data, rect in self.maps:
+                rect.move_ip((ox, oy))
+                mx = max(mx, rect.right)
+                my = max(my, rect.bottom)
+        else:
+            rect.move_ip(-self._min_x, -self._min_y)
+            mx = max(mx, rect.right)
+            my = max(my, rect.bottom)
+        self.map_size = mx, my
+
+    def remove_map(self, data: PyscrollDataAdapter):
+        """
+        Remove map - not implemented
+
+        """
+        raise NotImplementedError
+
+    def get_animations(self):
+        """
+        Get animations - not implemented
+
+        """
+        pass
+
+    def reload_data(self):
+        """
+        Reload the tiles - not implemented
+
+        """
+        pass
+
+    @property
+    def visible_tile_layers(self):
+        layers = set()
+        for data, offset in self.maps:
+            layers.update(list(data.visible_tile_layers))
+        return sorted(layers)
+
+    def get_tile_images_by_rect(self, view: RectLike):
+        view = pygame.Rect(view)
+        for data, rect in self.maps:
+            ox, oy = rect.topleft
+            clipped = rect.clip(view).move(-ox, -oy)
+            for x, y, l, image in data.get_tile_images_by_rect(clipped):
+                yield x + ox, y + oy, l, image

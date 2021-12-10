@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 # encoding: utf-8
-# pip install wheel
+# pip install wheel twine
 # python3 setup.py sdist bdist_wheel
 # python3 -m twine upload --repository pypi dist/*
 from setuptools import setup
 
 setup(
     name="pyscroll",
-    version="2.28",
+    version="2.29",
     description="Fast scrolling maps library for pygame",
     author="bitcraft",
     author_email="leif.theden@gmail.com",

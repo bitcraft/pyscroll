@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.5" tiledversion="1.7.2" orientation="orthogonal" renderorder="right-down" width="20" height="20" tilewidth="16" tileheight="16" infinite="0" nextlayerid="3" nextobjectid="1">
+ <tileset firstgid="1" source="16x16-overworld.tsx"/>
+ <layer id="1" name="Tile Layer 1" width="20" height="20">
+  <data encoding="base64" compression="zlib">
+   eJyTZmBgkB7Fo3gUj+JRPIpJxAA4XCox
+  </data>
+ </layer>
+ <layer id="2" name="Tile Layer 2" width="20" height="20">
+  <data encoding="base64" compression="zlib">
+   eJztklEKACAIQ7v/fbpfvxLb3OoraCCC2HxZY7ynWQLVT/xqRjU2s+PbQ81MWNUch435sb7Oz2Fx/bqcvDPiYTmR45myonPq7zheKLM+xbP7ML7uvmo/t7u7PfuVawEzDUjU
+  </data>
+ </layer>
+</map>
