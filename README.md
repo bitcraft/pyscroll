@@ -6,6 +6,9 @@ For Python 3.7+ and pygame 2.0+
 A simple and fast module for animated scrolling maps for your new or existing
 game.
 
+If you find this useful, please consider making a donation to help support it
+https://liberapay.com/ltheden/donate
+
 Discord! https://discord.gg/2taTP4aYR6
 
 
