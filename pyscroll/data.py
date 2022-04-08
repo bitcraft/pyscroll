@@ -368,10 +368,12 @@ class TiledMapData(PyscrollDataAdapter):
                         anim_map[gid].positions.add((x, y, l))
                     try:
                         # animated, so return the correct frame
-                        yield x, y, l, at[(x, y, l)]
+                        tile = at[(x, y, l)]
                     except KeyError:
                         # not animated, so return surface from data, if any
-                        yield x, y, l, images[gid]
+                        tile = images[gid]
+                    if tile:
+                        yield x, y, l, tile
 
 
 class MapAggregator(PyscrollDataAdapter):
