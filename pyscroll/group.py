@@ -59,6 +59,7 @@ class PyscrollGroup(pygame.sprite.LayeredUpdates):
         """
         ox, oy = self._map_layer.get_center_offset()
         draw_area = surface.get_rect()
+        view_rect = self.view
 
         new_surfaces = list()
         spritedict = self.spritedict
@@ -67,7 +68,7 @@ class PyscrollGroup(pygame.sprite.LayeredUpdates):
 
         for spr in self.sprites():
             new_rect = spr.rect.move(ox, oy)
-            if new_rect.colliderect(draw_area):
+            if spr.rect.colliderect(view_rect):
                 try:
                     new_surfaces_append((spr.image, new_rect, gl(spr), spr.blendmode))
                 except AttributeError:
