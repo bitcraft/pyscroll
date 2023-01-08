@@ -113,8 +113,8 @@ tmx_data = load_pygame("desert.tmx")
 
 # Make the scrolling layer
 map_layer = pyscroll.BufferedRenderer(
-    map_data=pyscroll.TiledMapData(tmx_data),
-    screen_size=(400,400),
+    data=pyscroll.TiledMapData(tmx_data),
+    size=(400,400),
 )
 
 # make the pygame SpriteGroup with a scrolling map
