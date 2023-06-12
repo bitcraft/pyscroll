@@ -7,13 +7,12 @@ from setuptools import setup
 
 setup(
     name="pyscroll",
-    version="2.30",
+    version="2.31",
     description="Fast scrolling maps library for pygame",
     author="bitcraft",
     author_email="leif.theden@gmail.com",
     url="https://github.com/bitcraft/pyscroll",
     packages=["pyscroll"],
-    install_requires=["pygame"],
     license="LGPLv3",
     long_description="see readme.md",
     package_data={"pyscroll": ["license.txt", "readme.md"]},
