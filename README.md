@@ -3,6 +3,8 @@ pyscroll
 
 For Python 3.7+ and pygame 2.0+
 
+__pygame-ce is supported__
+
 A simple and fast module for animated scrolling maps for your new or existing
 game.
 
