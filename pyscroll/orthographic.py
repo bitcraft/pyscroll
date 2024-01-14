@@ -4,17 +4,12 @@ import logging
 import math
 import time
 from itertools import chain, product
-from typing import List, TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING, Callable, List
 
 import pygame
 from pygame import Rect, Surface
 
-from .common import (
-    surface_clipping_context,
-    RectLike,
-    Vector2D,
-    Vector2DInt,
-)
+from .common import RectLike, Vector2D, Vector2DInt, surface_clipping_context
 from .quadtree import FastQuadTree
 
 if TYPE_CHECKING:

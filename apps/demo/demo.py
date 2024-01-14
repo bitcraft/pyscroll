@@ -10,14 +10,15 @@ Window is resizable.
 See the "Quest" tutorial for a more simple use with
 pygame sprites and groups.
 """
-from pytmx.util_pygame import load_pygame
-import pygame
-import pyscroll
-import pyscroll.data
 import collections
 import logging
-from pygame.locals import *
 
+import pygame
+from pygame.locals import *
+from pytmx.util_pygame import load_pygame
+
+import pyscroll
+import pyscroll.data
 import pyscroll.orthographic
 
 logger = logging.getLogger(__name__)

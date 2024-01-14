@@ -37,6 +37,7 @@ class IsometricBufferedRenderer(BufferedRenderer):
         :return: None
         """
         import math
+
         from pygame import Rect
 
         tw, th = self.data.tile_size

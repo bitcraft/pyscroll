@@ -20,8 +20,8 @@ try:
 except ImportError:
     pass
 
-from .common import rect_to_bb, RectLike, Vector2DInt
 from .animation import AnimationFrame, AnimationToken
+from .common import RectLike, Vector2DInt, rect_to_bb
 
 __all__ = (
     "PyscrollDataAdapter",
