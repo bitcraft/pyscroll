@@ -1,8 +1,10 @@
-from unittest import mock
 import unittest
+from unittest import mock
+
 import pygame
-from pyscroll.orthographic import BufferedRenderer
+
 from pyscroll.data import PyscrollDataAdapter
+from pyscroll.orthographic import BufferedRenderer
 
 
 class DummyDataAdapter(PyscrollDataAdapter):

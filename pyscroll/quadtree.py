@@ -6,7 +6,7 @@ A quadtree is used with pyscroll to detect overlapping tiles.
 from __future__ import annotations
 
 import itertools
-from typing import TYPE_CHECKING, Tuple, Set, Sequence
+from typing import TYPE_CHECKING, Sequence, Set, Tuple
 
 from pygame import Rect
 

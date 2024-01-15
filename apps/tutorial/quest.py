@@ -14,8 +14,19 @@ from pathlib import Path
 from typing import List
 
 import pygame
-from pygame.locals import K_UP, K_DOWN, K_LEFT, K_RIGHT, K_MINUS, K_EQUALS, K_ESCAPE, K_r
-from pygame.locals import KEYDOWN, VIDEORESIZE, QUIT
+from pygame.locals import (
+    K_DOWN,
+    K_EQUALS,
+    K_ESCAPE,
+    K_LEFT,
+    K_MINUS,
+    K_RIGHT,
+    K_UP,
+    KEYDOWN,
+    QUIT,
+    VIDEORESIZE,
+    K_r,
+)
 from pytmx.util_pygame import load_pygame
 
 import pyscroll
