@@ -1,16 +1,17 @@
 from __future__ import annotations
 
 from collections import namedtuple
-from typing import Sequence, Union
+from collections.abc import Sequence
+from typing import Union
 
 AnimationFrame = namedtuple("AnimationFrame", "image duration")
 TimeLike = Union[float, int]
 
-__all__ = ('AnimationFrame', 'AnimationToken')
+__all__ = ("AnimationFrame", "AnimationToken")
 
 
 class AnimationToken:
-    __slots__ = ['next', 'positions', 'frames', 'index']
+    __slots__ = ["next", "positions", "frames", "index"]
 
     def __init__(self, positions, frames: Sequence, initial_time: int = 0):
         """

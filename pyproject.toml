@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pyscroll"
+version = "2.31"
+description = "Fast scrolling maps library for pygame"
+readme = "README.md"
+license = {file = "LICENSE"}
+authors = [
+    {name = "bitcraft", email = "leif.theden@gmail.com"}
+]
+classifiers = [
+        "Intended Audience :: Developers",
+        "Development Status :: 5 - Production/Stable",
+        "License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
+        "Topic :: Games/Entertainment",
+        "Topic :: Multimedia :: Graphics",
+        "Topic :: Software Development :: Libraries :: pygame",
+]
+requires-python = ">=3.9"
+
+[project.urls]
+source = "https://github.com/bitcraft/pyscroll"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["pyscroll*"]
+
+[tool.black]
+line-length = 88
+target-version = ["py39"]
+
+[tool.isort]
+line_length = 88
+profile = "black"
+skip_gitignore = true

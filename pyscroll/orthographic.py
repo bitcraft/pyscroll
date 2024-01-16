@@ -3,18 +3,14 @@ from __future__ import annotations
 import logging
 import math
 import time
+from collections.abc import Callable
 from itertools import chain, product
-from typing import List, TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING
 
 import pygame
 from pygame import Rect, Surface
 
-from .common import (
-    surface_clipping_context,
-    RectLike,
-    Vector2D,
-    Vector2DInt,
-)
+from .common import RectLike, Vector2D, Vector2DInt, surface_clipping_context
 from .quadtree import FastQuadTree
 
 if TYPE_CHECKING:
@@ -33,6 +29,7 @@ class BufferedRenderer:
     created with Tiled.
 
     """
+
     _rgba_clear_color = 0, 0, 0, 0
     _rgb_clear_color = 0, 0, 0
 
@@ -40,14 +37,14 @@ class BufferedRenderer:
         self,
         data: PyscrollDataAdapter,
         size: Vector2DInt,
-        clamp_camera: bool=True,
+        clamp_camera: bool = True,
         colorkey=None,
-        alpha: bool=False,
-        time_source: Callable=time.time,
-        scaling_function: Callable=pygame.transform.scale,
-        tall_sprites: int=0,
-        sprite_damage_height: int=0,
-        zoom: float=1.0,
+        alpha: bool = False,
+        time_source: Callable[..., float] = time.time,
+        scaling_function: Callable[..., pygame.Surface] = pygame.transform.scale,
+        tall_sprites: int = 0,
+        sprite_damage_height: int = 0,
+        zoom: float = 1.0,
     ):
         """
         Constructor
@@ -76,11 +73,11 @@ class BufferedRenderer:
         self.scaling_function = scaling_function
         self.tall_sprites = tall_sprites
         self.sprite_damage_height = sprite_damage_height
-        self.map_rect = None
+        self.map_rect = Rect(0, 0, 0, 0)
 
         # internal private defaults
         if colorkey and alpha:
-            log.error('cannot select both colorkey and alpha')
+            log.error("cannot select both colorkey and alpha")
             raise ValueError
         elif colorkey:
             self._clear_color = colorkey
@@ -90,31 +87,43 @@ class BufferedRenderer:
             self._clear_color = None
 
         # private attributes
-        self._anchored_view = True    # if true, map is fixed to upper left corner
-        self._previous_blit = None    # rect of the previous map blit when map edges are visible
-        self._size = None             # actual pixel size of the view, as it occupies the screen
-        self._redraw_cutoff = None    # size of dirty tile edge that will trigger full redraw
-        self._x_offset = None         # offsets are used to scroll map in sub-tile increments
+        self._anchored_view = True  # if true, map is fixed to upper left corner
+        self._previous_blit = (
+            None  # rect of the previous map blit when map edges are visible
+        )
+        self._size = None  # actual pixel size of the view, as it occupies the screen
+        self._redraw_cutoff = (
+            None  # size of dirty tile edge that will trigger full redraw
+        )
+        self._x_offset = None  # offsets are used to scroll map in sub-tile increments
         self._y_offset = None
-        self._buffer = None           # complete rendering of tilemap
-        self._tile_view = None        # this rect represents each tile on the buffer
-        self._half_width = None       # 'half x' attributes are used to reduce division ops.
+        self._buffer = None  # complete rendering of tilemap
+        self._tile_view = Rect(
+            0, 0, 0, 0
+        )  # this rect represents each tile on the buffer
+        self._half_width = None  # 'half x' attributes are used to reduce division ops.
         self._half_height = None
-        self._tile_queue = None       # tiles queued to be draw onto buffer
-        self._animation_queue = None  # heap queue of animation token;  schedules tile changes
-        self._layer_quadtree = None   # used to draw tiles that overlap optional surfaces
-        self._zoom_buffer = None      # used to speed up zoom operations
+        self._tile_queue = None  # tiles queued to be draw onto buffer
+        self._animation_queue = (
+            None  # heap queue of animation token;  schedules tile changes
+        )
+        self._layer_quadtree = None  # used to draw tiles that overlap optional surfaces
+        self._zoom_buffer = None  # used to speed up zoom operations
         self._zoom_level = zoom
-        self._real_ratio_x = 1.0      # zooming slightly changes aspect ratio; this compensates
-        self._real_ratio_y = 1.0      # zooming slightly changes aspect ratio; this compensates
+        self._real_ratio_x = (
+            1.0  # zooming slightly changes aspect ratio; this compensates
+        )
+        self._real_ratio_y = (
+            1.0  # zooming slightly changes aspect ratio; this compensates
+        )
         self.view_rect = Rect(0, 0, 0, 0)  # this represents the viewable map pixels
 
         self.set_size(size)
 
         if self.tall_sprites != 0:
-            log.warning('using tall_sprites feature is not supported')
+            log.warning("using tall_sprites feature is not supported")
 
-    def reload(self):
+    def reload(self) -> None:
         """
         Reload tiles and animations for the data source.
 
@@ -131,8 +140,9 @@ class BufferedRenderer:
             vector: x, y
 
         """
-        self.center((vector[0] + self.view_rect.centerx,
-                     vector[1] + self.view_rect.centery))
+        self.center(
+            (vector[0] + self.view_rect.centerx, vector[1] + self.view_rect.centery)
+        )
 
     def center(self, coords: Vector2D):
         """
@@ -204,17 +214,11 @@ class BufferedRenderer:
             self._flush_tile_queue(self._buffer)
 
         elif view_change > self._redraw_cutoff:
-            log.debug('scrolling too quickly.  redraw forced')
+            log.debug("scrolling too quickly.  redraw forced")
             self._tile_view.move_ip(dx, dy)
             self.redraw_tiles(self._buffer)
 
-    def draw(
-        self,
-        surface: Surface,
-        rect: RectLike,
-        surfaces:
-        List[Surface]=None
-    ):
+    def draw(self, surface: Surface, rect: RectLike, surfaces: list[Surface] = None):
         """
         Draw the map onto a surface.
 
@@ -243,11 +247,7 @@ class BufferedRenderer:
         if self._zoom_level == 1.0:
             self._render_map(surface, rect, surfaces)
         else:
-            self._render_map(
-                self._zoom_buffer,
-                self._zoom_buffer.get_rect(),
-                surfaces
-            )
+            self._render_map(self._zoom_buffer, self._zoom_buffer.get_rect(), surfaces)
             self.scaling_function(self._zoom_buffer, rect.size, surface)
         return self._previous_blit.copy()
 
@@ -298,7 +298,7 @@ class BufferedRenderer:
 
         """
         # TODO/BUG: Animated tiles are getting reset here
-        log.debug('pyscroll buffer redraw')
+        log.debug("pyscroll buffer redraw")
         self._clear_surface(self._buffer)
         self._tile_queue = self.data.get_tile_images_by_rect(self._tile_view)
         self._flush_tile_queue(surface)
@@ -308,8 +308,10 @@ class BufferedRenderer:
         Return x, y pair that will change world coords to screen coords.
 
         """
-        return (-self.view_rect.centerx + self._half_width,
-                -self.view_rect.centery + self._half_height)
+        return (
+            -self.view_rect.centerx + self._half_width,
+            -self.view_rect.centery + self._half_height,
+        )
 
     def translate_point(self, point: Vector2D) -> Vector2DInt:
         """
@@ -325,7 +327,7 @@ class BufferedRenderer:
         else:
             return (
                 int(round((point[0] + mx)) * self._real_ratio_x),
-                int(round((point[1] + my) * self._real_ratio_y))
+                int(round((point[1] + my) * self._real_ratio_y)),
             )
 
     def translate_rect(self, rect: RectLike) -> Rect:
@@ -343,9 +345,11 @@ class BufferedRenderer:
         if self._zoom_level == 1.0:
             return Rect(x + mx, y + my, w, h)
         else:
-            return Rect(round((x + mx) * rx), round((y + my) * ry), round(w * rx), round(h * ry))
+            return Rect(
+                round((x + mx) * rx), round((y + my) * ry), round(w * rx), round(h * ry)
+            )
 
-    def translate_points(self, points: List[Vector2D]) -> List[Vector2DInt]:
+    def translate_points(self, points: list[Vector2D]) -> list[Vector2DInt]:
         """
         Translate coordinates and return screen coordinates.
 
@@ -366,7 +370,7 @@ class BufferedRenderer:
                 append((int(round((c[0] + sx) * rx)), int(round((c[1] + sy) * ry))))
         return retval
 
-    def translate_rects(self, rects: List[Rect]) -> List[Rect]:
+    def translate_rects(self, rects: list[Rect]) -> list[Rect]:
         """
         Translate rect position and size to screen coordinates.
 
@@ -391,17 +395,12 @@ class BufferedRenderer:
                         round((x + sx) * rx),
                         round((y + sy) * ry),
                         round(w * rx),
-                        round(h * ry)
+                        round(h * ry),
                     )
                 )
         return retval
 
-    def _render_map(
-        self,
-        surface: Surface,
-        rect: RectLike,
-        surfaces: List[Surface]
-    ):
+    def _render_map(self, surface: Surface, rect: RectLike, surfaces: list[Surface]):
         """
         Render the map and optional surfaces to destination surface.
 
@@ -435,7 +434,9 @@ class BufferedRenderer:
             area: area to clear
 
         """
-        clear_color = self._rgb_clear_color if self._clear_color is None else self._clear_color
+        clear_color = (
+            self._rgb_clear_color if self._clear_color is None else self._clear_color
+        )
         surface.fill(clear_color, area)
 
     def _draw_surfaces(self, surface: Surface, offset: Vector2DInt, surfaces):
@@ -472,7 +473,7 @@ class BufferedRenderer:
                         damage_rect.x,
                         damage_rect.y + (damage_rect.height - self.tall_sprites),
                         damage_rect.width,
-                        self.tall_sprites
+                        self.tall_sprites,
                     )
                 for hit_rect in hit(damage_rect):
                     sprite_damage.add((l, hit_rect))
@@ -541,10 +542,19 @@ class BufferedRenderer:
         self._tile_queue = iter([])
 
         def append(rect):
-            self._tile_queue = chain(self._tile_queue, self.data.get_tile_images_by_rect(rect))
+            self._tile_queue = chain(
+                self._tile_queue, self.data.get_tile_images_by_rect(rect)
+            )
             # TODO: optimize so fill is only used when map is smaller than buffer
-            self._clear_surface(self._buffer, ((rect[0] - v.left) * tw, (rect[1] - v.top) * th,
-                                               rect[2] * tw, rect[3] * th))
+            self._clear_surface(
+                self._buffer,
+                (
+                    (rect[0] - v.left) * tw,
+                    (rect[1] - v.top) * th,
+                    rect[2] * tw,
+                    rect[3] * th,
+                ),
+            )
 
         if dx > 0:  # right side
             append((v.right - 1, v.top, dx, v.height))
@@ -561,16 +571,12 @@ class BufferedRenderer:
     @staticmethod
     def _calculate_zoom_buffer_size(size: Vector2DInt, value: float):
         if value <= 0:
-            log.error('zoom level cannot be zero or less')
+            log.error("zoom level cannot be zero or less")
             raise ValueError
         value = 1.0 / value
         return int(size[0] * value), int(size[1] * value)
 
-    def _create_buffers(
-        self,
-        view_size: Vector2DInt,
-        buffer_size: Vector2DInt
-    ):
+    def _create_buffers(self, view_size: Vector2DInt, buffer_size: Vector2DInt):
         """
         Create the buffers, taking in account pixel alpha or colorkey.
 
@@ -608,7 +614,7 @@ class BufferedRenderer:
 
         """
 
-        def make_rect(x, y):
+        def make_rect(x: int, y: int) -> Rect:
             return Rect((x * tw, y * th), (tw, th))
 
         tw, th = self.data.tile_size
@@ -628,8 +634,10 @@ class BufferedRenderer:
         self._x_offset = 0
         self._y_offset = 0
 
-        rects = [make_rect(*i) for i in product(range(buffer_tile_width),
-                                                range(buffer_tile_height))]
+        rects = [
+            make_rect(*i)
+            for i in product(range(buffer_tile_width), range(buffer_tile_height))
+        ]
 
         # TODO: figure out what depth -actually- does
         # values <= 8 tend to reduce performance
@@ -651,5 +659,7 @@ class BufferedRenderer:
 
         self.data.prepare_tiles(self._tile_view)
 
-        blit_list = [(image, (x * tw - ltw, y * th - tth)) for x, y, l, image in self._tile_queue]
+        blit_list = [
+            (image, (x * tw - ltw, y * th - tth)) for x, y, l, image in self._tile_queue
+        ]
         surface.blits(blit_list, doreturn=False)

@@ -10,14 +10,15 @@ Window is resizable.
 See the "Quest" tutorial for a more simple use with
 pygame sprites and groups.
 """
-from pytmx.util_pygame import load_pygame
-import pygame
-import pyscroll
-import pyscroll.data
 import collections
 import logging
-from pygame.locals import *
 
+import pygame
+from pygame.locals import *
+from pytmx.util_pygame import load_pygame
+
+import pyscroll
+import pyscroll.data
 import pyscroll.orthographic
 
 logger = logging.getLogger(__name__)
@@ -35,11 +36,12 @@ def init_screen(width, height):
 
 
 class ScrollTest:
-    """ Test and demo of pyscroll
+    """Test and demo of pyscroll
 
     For normal use, please see the quest demo, not this.
 
     """
+
     def __init__(self, filename):
 
         # load data from pytmx
@@ -49,19 +51,22 @@ class ScrollTest:
         map_data = pyscroll.data.TiledMapData(tmx_data)
 
         # create new renderer
-        self.map_layer = pyscroll.orthographic.BufferedRenderer(map_data, screen.get_size())
+        self.map_layer = pyscroll.orthographic.BufferedRenderer(
+            map_data, screen.get_size()
+        )
 
         # create a font and pre-render some text to be displayed over the map
         f = pygame.font.Font(pygame.font.get_default_font(), 20)
-        t = ["scroll demo. press escape to quit",
-             "arrow keys move"]
+        t = ["scroll demo. press escape to quit", "arrow keys move"]
 
         # save the rendered text
         self.text_overlay = [f.render(i, 1, (180, 180, 0)) for i in t]
 
         # set our initial viewpoint in the center of the map
-        self.center = [self.map_layer.map_rect.width / 2,
-                       self.map_layer.map_rect.height / 2]
+        self.center = [
+            self.map_layer.map_rect.width / 2,
+            self.map_layer.map_rect.height / 2,
+        ]
 
         # the camera vector is used to handle camera movement
         self.camera_acc = [0, 0, 0]
@@ -86,9 +91,8 @@ class ScrollTest:
             surface.blit(text, (0, y))
             y += text.get_height()
 
-    def handle_input(self):
-        """ Simply handle pygame input events
-        """
+    def handle_input(self) -> None:
+        """Simply handle pygame input events"""
         for event in pygame.event.get():
             if event.type == QUIT:
                 self.running = False
@@ -128,7 +132,7 @@ class ScrollTest:
     def update(self, td):
         self.last_update_time = td
 
-        friction = pow(.0001, self.last_update_time)
+        friction = pow(0.0001, self.last_update_time)
 
         # update the camera vector
         self.camera_vel[0] += self.camera_acc[0] * td
@@ -163,21 +167,21 @@ class ScrollTest:
         # in a game, you would set center to a playable character
         self.map_layer.center(self.center)
 
-    def run(self):
+    def run(self) -> None:
         clock = pygame.time.Clock()
         self.running = True
-        fps = 60.
+        fps = 60.0
         fps_log = collections.deque(maxlen=20)
 
         try:
             while self.running:
                 # somewhat smoother way to get fps and limit the framerate
-                clock.tick(fps*2)
+                clock.tick(fps * 2)
 
                 try:
                     fps_log.append(clock.get_fps())
-                    fps = sum(fps_log)/len(fps_log)
-                    dt = 1/fps
+                    fps = sum(fps_log) / len(fps_log)
+                    dt = 1 / fps
                 except ZeroDivisionError:
                     continue
 
@@ -196,7 +200,7 @@ if __name__ == "__main__":
     pygame.init()
     pygame.font.init()
     screen = init_screen(800, 600)
-    pygame.display.set_caption('pyscroll Test')
+    pygame.display.set_caption("pyscroll Test")
 
     try:
         filename = sys.argv[1]

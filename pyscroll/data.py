@@ -9,7 +9,6 @@ from __future__ import annotations
 import time
 from heapq import heappop, heappush
 from itertools import product
-from typing import List, Tuple
 
 import pygame
 from pygame import Surface
@@ -20,8 +19,8 @@ try:
 except ImportError:
     pass
 
-from .common import rect_to_bb, RectLike, Vector2DInt
 from .animation import AnimationFrame, AnimationToken
+from .common import RectLike, Vector2DInt, rect_to_bb
 
 __all__ = (
     "PyscrollDataAdapter",
@@ -39,27 +38,31 @@ class PyscrollDataAdapter:
     source, it is only tested using Tiled maps, loaded with pytmx.
 
     """
+
     # the following can be class/instance attributes
     # or properties.  they are listed here as class
     # instances, but use as properties is fine, too.
 
-    tile_size = None             # (int, int): size of each tile in pixels
-    map_size = None              # (int, int): size of map in tiles
-    visible_tile_layers = None   # list of visible layer integers
+    # (int, int): size of each tile in pixels
+    tile_size: Vector2DInt = (0, 0)
+    # (int, int): size of map in tiles
+    map_size: Vector2DInt = (0, 0)
+    # list of visible layer integers
+    visible_tile_layers: list[int] = []
 
-    def __init__(self):
-        self._last_time = None           # last time map animations were updated
-        self._animation_queue = list()   # list of animation tokens
-        self._animated_tile = dict()     # mapping of tile substitutions when animated
-        self._tracked_tiles = set()      # track the tiles on screen with animations
+    def __init__(self) -> None:
+        self._last_time = None  # last time map animations were updated
+        self._animation_queue = list()  # list of animation tokens
+        self._animated_tile = dict()  # mapping of tile substitutions when animated
+        self._tracked_tiles = set()  # track the tiles on screen with animations
 
-    def reload_data(self):
+    def reload_data(self) -> None:
         raise NotImplementedError
 
     def process_animation_queue(
-            self,
-            tile_view: RectLike,
-    ) -> List[Tuple[int, int, int, Surface]]:
+        self,
+        tile_view: RectLike,
+    ) -> list[tuple[int, int, int, Surface]]:
         """
         Given the time and the tile view, process tile changes and return them
 
@@ -122,7 +125,7 @@ class PyscrollDataAdapter:
 
         return new_tiles
 
-    def _update_time(self):
+    def _update_time(self) -> None:
         """
         Update the internal clock.
 
@@ -131,7 +134,7 @@ class PyscrollDataAdapter:
         """
         self._last_time = time.time() * 1000
 
-    def prepare_tiles(self, tiles: RectLike):
+    def prepare_tiles(self, tiles: RectLike) -> None:
         """
         Somewhat experimental: The renderer will advise data layer of its view
 
@@ -147,7 +150,7 @@ class PyscrollDataAdapter:
         """
         pass
 
-    def reload_animations(self):
+    def reload_animations(self) -> None:
         """
         Reload animation information.
 
@@ -221,7 +224,7 @@ class PyscrollDataAdapter:
         """
         raise NotImplementedError
 
-    def _get_tile_image_by_id(self, id):
+    def _get_tile_image_by_id(self, id) -> None:
         """
         Return Image by a custom ID.
 
@@ -233,7 +236,7 @@ class PyscrollDataAdapter:
         """
         raise NotImplementedError
 
-    def get_animations(self):
+    def get_animations(self) -> None:
         """
         Get tile animation data.
 
@@ -277,8 +280,7 @@ class PyscrollDataAdapter:
         """
         x1, y1, x2, y2 = rect_to_bb(rect)
         for layer in self.visible_tile_layers:
-            for y, x in product(range(y1, y2 + 1),
-                                range(x1, x2 + 1)):
+            for y, x in product(range(y1, y2 + 1), range(x1, x2 + 1)):
                 tile = self.get_tile_image(x, y, layer)
                 if tile:
                     yield x, y, layer, tile
@@ -289,18 +291,19 @@ class TiledMapData(PyscrollDataAdapter):
     For data loaded from pytmx.
 
     """
-    def __init__(self, tmx):
+
+    def __init__(self, tmx: pytmx.TiledMap):
         super(TiledMapData, self).__init__()
         self.tmx = tmx
         self.reload_animations()
 
-    def reload_data(self):
+    def reload_data(self) -> None:
         self.tmx = pytmx.load_pygame(self.tmx.filename)
 
     def get_animations(self):
         for gid, d in self.tmx.tile_properties.items():
             try:
-                frames = d['frames']
+                frames = d["frames"]
             except KeyError:
                 continue
 
@@ -333,8 +336,11 @@ class TiledMapData(PyscrollDataAdapter):
 
     @property
     def visible_object_layers(self):
-        return (layer for layer in self.tmx.visible_layers
-                if isinstance(layer, pytmx.TiledObjectGroup))
+        return (
+            layer
+            for layer in self.tmx.visible_layers
+            if isinstance(layer, pytmx.TiledObjectGroup)
+        )
 
     def _get_tile_image(self, x: int, y: int, l: int):
         try:
@@ -349,7 +355,7 @@ class TiledMapData(PyscrollDataAdapter):
         def rev(seq, start, stop):
             if start < 0:
                 start = 0
-            return enumerate(seq[start:stop + 1], start)
+            return enumerate(seq[start : stop + 1], start)
 
         x1, y1, x2, y2 = rect_to_bb(rect)
         images = self.tmx.images
@@ -389,11 +395,12 @@ class MapAggregator(PyscrollDataAdapter):
     - Cannot remove maps once added
 
     """
-    def __init__(self, tile_size):
+
+    def __init__(self, tile_size: Vector2DInt):
         super().__init__()
         self.tile_size = tile_size
-        self.map_size = 0, 0
-        self.maps = list()
+        self.map_size: Vector2DInt = (0, 0)
+        self.maps: list[tuple[PyscrollDataAdapter, pygame.Rect]] = list()
         self._min_x = 0
         self._min_y = 0
 
@@ -404,7 +411,7 @@ class MapAggregator(PyscrollDataAdapter):
         """
         pass
 
-    def _get_tile_image_by_id(self, id):
+    def _get_tile_image_by_id(self, id: int):
         """
         Required for sprite collation - not implemented
 
@@ -450,14 +457,14 @@ class MapAggregator(PyscrollDataAdapter):
         """
         raise NotImplementedError
 
-    def get_animations(self):
+    def get_animations(self) -> None:
         """
         Get animations - not implemented
 
         """
         pass
 
-    def reload_data(self):
+    def reload_data(self) -> None:
         """
         Reload the tiles - not implemented
 
