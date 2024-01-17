@@ -1,7 +1,7 @@
 pyscroll
 ========
 
-For Python 3.7+ and pygame 2.0+
+For Python 3.9+ and pygame 2.0+
 
 __pygame-ce is supported__
 
@@ -105,7 +105,7 @@ class Sprite(pygame.sprite.Sprite):
     Simple Sprite class for on-screen things
     
     """
-    def __init__(self, surface):
+    def __init__(self, surface) -> None:
         self.image = surface
         self.rect = surface.get_rect()
 
