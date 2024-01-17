@@ -7,18 +7,22 @@ log = logging.getLogger(__file__)
 
 def vector3_to_iso(vector3):
     offset = 0, 0
-    return ((vector3[0] - vector3[1]) + offset[0],
-            ((vector3[0] + vector3[1]) >> 1) - vector3[2] + offset[1])
+    return (
+        (vector3[0] - vector3[1]) + offset[0],
+        ((vector3[0] + vector3[1]) >> 1) - vector3[2] + offset[1],
+    )
 
 
 def vector2_to_iso(vector2):
     offset = 0, 0
-    return ((vector2[0] - vector2[1]) + offset[0],
-            ((vector2[0] + vector2[1]) >> 1) + offset[1])
+    return (
+        (vector2[0] - vector2[1]) + offset[0],
+        ((vector2[0] + vector2[1]) >> 1) + offset[1],
+    )
 
 
 class IsometricBufferedRenderer(BufferedRenderer):
-    """ TEST ISOMETRIC
+    """TEST ISOMETRIC
 
     here be dragons.  lots of odd, untested, and unoptimised stuff.
 
@@ -26,12 +30,12 @@ class IsometricBufferedRenderer(BufferedRenderer):
     - drawing may have depth sorting issues
     """
 
-    def _draw_surfaces(self, surface, rect, surfaces):
+    def _draw_surfaces(self, surface, rect, surfaces) -> None:
         if surfaces is not None:
             [(surface.blit(i[0], i[1]), i[2]) for i in surfaces]
 
-    def _initialize_buffers(self, view_size):
-        """ Create the buffers to cache tile drawing
+    def _initialize_buffers(self, view_size) -> None:
+        """Create the buffers to cache tile drawing
 
         :param view_size: (int, int): size of the draw area
         :return: None
@@ -58,9 +62,8 @@ class IsometricBufferedRenderer(BufferedRenderer):
 
         self.redraw_tiles()
 
-    def _flush_tile_queue(self):
-        """ Blits (x, y, layer) tuples to buffer from iterator
-        """
+    def _flush_tile_queue(self) -> None:
+        """Blits (x, y, layer) tuples to buffer from iterator"""
         iterator = self._tile_queue
         surface_blit = self._buffer.blit
         map_get = self._animation_map.get
@@ -79,12 +82,11 @@ class IsometricBufferedRenderer(BufferedRenderer):
 
             # iso => cart
             iso_x = ((x - y) * twh) + bw
-            iso_y = ((x + y) * thh)
+            iso_y = (x + y) * thh
             surface_blit(tile, (iso_x, iso_y))
 
-    def center(self, coords):
-        """ center the map on a "map pixel"
-        """
+    def center(self, coords) -> None:
+        """center the map on a "map pixel" """
         x, y = [round(i, 0) for i in coords]
         self.view_rect.center = x, y
 

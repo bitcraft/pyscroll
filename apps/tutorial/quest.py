@@ -11,7 +11,6 @@ pip install pytmx
 from __future__ import annotations
 
 from pathlib import Path
-from typing import List
 
 import pygame
 from pygame.locals import (
@@ -70,6 +69,7 @@ class Hero(pygame.sprite.Sprite):
     it collides with level walls.
 
     """
+
     def __init__(self) -> None:
         super().__init__()
         self.image = load_image("hero.png").convert_alpha()
@@ -80,11 +80,11 @@ class Hero(pygame.sprite.Sprite):
         self.feet = pygame.Rect(0, 0, self.rect.width * 0.5, 8)
 
     @property
-    def position(self) -> List[float]:
+    def position(self) -> list[float]:
         return list(self._position)
 
     @position.setter
-    def position(self, value: List[float]) -> None:
+    def position(self, value: list[float]) -> None:
         self._position = list(value)
 
     def update(self, dt: float) -> None:
@@ -113,6 +113,7 @@ class QuestGame:
     Finally, it uses a pyscroll group to render the map and Hero.
 
     """
+
     map_path = RESOURCES_DIR / "grasslands.tmx"
 
     def __init__(self, screen: pygame.Surface) -> None:
@@ -206,7 +207,7 @@ class QuestGame:
         else:
             self.hero.velocity[0] = 0
 
-    def update(self, dt: float):
+    def update(self, dt: float) -> None:
         """
         Tasks that occur over time should be handled here
 
@@ -220,7 +221,7 @@ class QuestGame:
             if sprite.feet.collidelist(self.walls) > -1:
                 sprite.move_back(dt)
 
-    def run(self):
+    def run(self) -> None:
         """
         Run the game loop
 

@@ -7,8 +7,7 @@ import pygame
 
 
 class Dummy:
-
-    def run(self):
+    def run(self) -> None:
         surface = None
 
         for spr in self.sprites():

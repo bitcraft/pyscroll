@@ -15,14 +15,15 @@ classifiers = [
         "Intended Audience :: Developers",
         "Development Status :: 5 - Production/Stable",
         "License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)",
-        "Programming Language :: Python :: 3.7",
-        "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
         "Topic :: Games/Entertainment",
         "Topic :: Multimedia :: Graphics",
         "Topic :: Software Development :: Libraries :: pygame",
 ]
-requires-python = ">=3.7"
+requires-python = ">=3.9"
 
 [project.urls]
 source = "https://github.com/bitcraft/pyscroll"
@@ -36,7 +37,7 @@ include = ["pyscroll*"]
 
 [tool.black]
 line-length = 88
-target-version = ["py37"]
+target-version = ["py39"]
 
 [tool.isort]
 line_length = 88
