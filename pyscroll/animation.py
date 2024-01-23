@@ -1,19 +1,30 @@
 from __future__ import annotations
 
-from collections import namedtuple
 from collections.abc import Sequence
-from typing import Union
+from typing import NamedTuple, Union
 
-AnimationFrame = namedtuple("AnimationFrame", "image duration")
+from pygame import Surface
+
+
+class AnimationFrame(NamedTuple):
+    image: Surface
+    duration: float
+
+
 TimeLike = Union[float, int]
 
 __all__ = ("AnimationFrame", "AnimationToken")
 
 
 class AnimationToken:
-    __slots__ = ["next", "positions", "frames", "index"]
+    __slots__ = ["_next", "positions", "frames", "index"]
 
-    def __init__(self, positions, frames: Sequence, initial_time: int = 0) -> None:
+    def __init__(
+        self,
+        positions: set[tuple[int, int, int]],
+        frames: Sequence[AnimationFrame],
+        initial_time: float = 0.0,
+    ) -> None:
         """
         Constructor
 
@@ -26,10 +37,10 @@ class AnimationToken:
         frames = tuple(AnimationFrame(*i) for i in frames)
         self.positions = positions
         self.frames = frames
-        self.next = frames[0].duration + initial_time
+        self._next = frames[0].duration + initial_time
         self.index = 0
 
-    def advance(self, last_time: TimeLike):
+    def advance(self, last_time: TimeLike) -> AnimationFrame:
         """
         Advance the frame, and set timer for next frame
 
@@ -52,11 +63,8 @@ class AnimationToken:
 
         # set the timer for the next advance
         next_frame = self.frames[self.index]
-        self.next = next_frame.duration + last_time
+        self._next = next_frame.duration + last_time
         return next_frame
 
-    def __lt__(self, other):
-        try:
-            return self.next < other.next
-        except AttributeError:
-            return self.next < other
+    def __lt__(self, other: AnimationToken) -> bool:
+        return self._next < other._next
