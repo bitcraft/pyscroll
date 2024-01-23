@@ -40,7 +40,7 @@ class BufferedRenderer:
         clamp_camera: bool = True,
         colorkey=None,
         alpha: bool = False,
-        time_source: Callable = time.time,
+        time_source: Callable[[], float] = time.time,
         scaling_function: Callable = pygame.transform.scale,
         tall_sprites: int = 0,
         sprite_damage_height: int = 0,
@@ -73,7 +73,7 @@ class BufferedRenderer:
         self.scaling_function = scaling_function
         self.tall_sprites = tall_sprites
         self.sprite_damage_height = sprite_damage_height
-        self.map_rect = None
+        self.map_rect = Rect(0, 0, 0, 0)
 
         # internal private defaults
         if colorkey and alpha:

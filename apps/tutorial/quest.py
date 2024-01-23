@@ -26,7 +26,7 @@ from pygame.locals import (
     VIDEORESIZE,
     K_r,
 )
-from pytmx.util_pygame import load_pygame
+from pytmx.util_pygame import load_pygame  # type: ignore
 
 import pyscroll
 import pyscroll.data
@@ -76,7 +76,7 @@ class Hero(pygame.sprite.Sprite):
         self.velocity = [0, 0]
         self._position = [0.0, 0.0]
         self._old_position = self.position
-        self.rect = self.image.get_rect()
+        self.rect: pygame.Rect = self.image.get_rect()
         self.feet = pygame.Rect(0, 0, self.rect.width * 0.5, 8)
 
     @property
@@ -91,7 +91,7 @@ class Hero(pygame.sprite.Sprite):
         self._old_position = self._position[:]
         self._position[0] += self.velocity[0] * dt
         self._position[1] += self.velocity[1] * dt
-        self.rect.topleft = self._position
+        self.rect.topleft = (int(self._position[0]), int(self._position[1]))
         self.feet.midbottom = self.rect.midbottom
 
     def move_back(self, dt: float) -> None:
@@ -100,7 +100,7 @@ class Hero(pygame.sprite.Sprite):
 
         """
         self._position = self._old_position
-        self.rect.topleft = self._position
+        self.rect.topleft = (int(self._position[0]), int(self._position[1]))
         self.feet.midbottom = self.rect.midbottom
 
 
@@ -131,7 +131,7 @@ class QuestGame:
             self.walls.append(pygame.Rect(obj.x, obj.y, obj.width, obj.height))
 
         # create new renderer (camera)
-        self.map_layer = pyscroll.BufferedRenderer(
+        self.map_layer = pyscroll.orthographic.BufferedRenderer(
             data=pyscroll.data.TiledMapData(tmx_data),
             size=screen.get_size(),
             clamp_camera=False,
@@ -147,7 +147,8 @@ class QuestGame:
 
         # put the hero in the center of the map
         self.hero = Hero()
-        self.hero.position = self.map_layer.map_rect.center
+        _center = self.map_layer.map_rect.center
+        self.hero.position = [float(i) for i in _center]
 
         # add our hero to the group
         self.group.add(self.hero)

@@ -7,6 +7,7 @@ as a template.  Just fill in values that work for your game.
 from __future__ import annotations
 
 import time
+from collections.abc import Iterable
 from heapq import heappop, heappush
 from itertools import product
 
@@ -43,8 +44,10 @@ class PyscrollDataAdapter:
     # or properties.  they are listed here as class
     # instances, but use as properties is fine, too.
 
-    tile_size = None  # (int, int): size of each tile in pixels
-    map_size = None  # (int, int): size of map in tiles
+    # (int, int): size of each tile in pixels
+    tile_size: tuple[int, int] = (0, 0)
+    # (int, int): size of map in tiles
+    map_size: tuple[int, int] = (0, 0)
     visible_tile_layers = None  # list of visible layer integers
 
     def __init__(self) -> None:
@@ -289,7 +292,7 @@ class TiledMapData(PyscrollDataAdapter):
 
     """
 
-    def __init__(self, tmx) -> None:
+    def __init__(self, tmx: pytmx.TiledMap) -> None:
         super(TiledMapData, self).__init__()
         self.tmx = tmx
         self.reload_animations()
@@ -320,11 +323,11 @@ class TiledMapData(PyscrollDataAdapter):
         self.tmx.images = images
 
     @property
-    def tile_size(self):
+    def tile_size(self) -> tuple[int, int]:
         return self.tmx.tilewidth, self.tmx.tileheight
 
     @property
-    def map_size(self):
+    def map_size(self) -> tuple[int, int]:
         return self.tmx.width, self.tmx.height
 
     @property
@@ -332,7 +335,7 @@ class TiledMapData(PyscrollDataAdapter):
         return self.tmx.visible_tile_layers
 
     @property
-    def visible_object_layers(self):
+    def visible_object_layers(self) -> Iterable[pytmx.TiledObjectGroup]:
         return (
             layer
             for layer in self.tmx.visible_layers
@@ -349,10 +352,10 @@ class TiledMapData(PyscrollDataAdapter):
         return self.tmx.images[id]
 
     def get_tile_images_by_rect(self, rect: RectLike):
-        def rev(seq, start, stop):
+        def rev(seq:list[int], start:int, stop: int) -> enumerate[int]:
             if start < 0:
                 start = 0
-            return enumerate(seq[start : stop + 1], start)
+            return enumerate(seq[start:stop + 1], start)
 
         x1, y1, x2, y2 = rect_to_bb(rect)
         images = self.tmx.images
