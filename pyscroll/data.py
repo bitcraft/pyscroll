@@ -10,9 +10,10 @@ import time
 from collections.abc import Iterable
 from heapq import heappop, heappush
 from itertools import product
+from typing import Any
 
 import pygame
-from pygame import Surface
+from pygame import Rect, Surface
 
 try:
     # optional pytmx support
@@ -48,20 +49,25 @@ class PyscrollDataAdapter:
     tile_size: tuple[int, int] = (0, 0)
     # (int, int): size of map in tiles
     map_size: tuple[int, int] = (0, 0)
-    visible_tile_layers = None  # list of visible layer integers
+    # list of visible layer integers
+    visible_tile_layers: list[int] = []
 
     def __init__(self) -> None:
-        self._last_time = None  # last time map animations were updated
-        self._animation_queue = list()  # list of animation tokens
-        self._animated_tile = dict()  # mapping of tile substitutions when animated
-        self._tracked_tiles = set()  # track the tiles on screen with animations
+        # last time map animations were updated
+        self._last_time = 0.0
+        # list of animation tokens
+        self._animation_queue: list[AnimationToken] = []
+        # mapping of tile substitutions when animated
+        self._animated_tile: dict[tuple[int, int, int], Surface] = {}
+        # track the tiles on screen with animations
+        self._tracked_tiles = set()
 
     def reload_data(self) -> None:
         raise NotImplementedError
 
     def process_animation_queue(
         self,
-        tile_view: RectLike,
+        tile_view: Rect,
     ) -> list[tuple[int, int, int, Surface]]:
         """
         Given the time and the tile view, process tile changes and return them
@@ -75,7 +81,7 @@ class PyscrollDataAdapter:
         # verify that there are tile substitutions ready
         self._update_time()
         try:
-            if self._animation_queue[0].next > self._last_time:
+            if self._animation_queue[0]._next > self._last_time:
                 return new_tiles
 
         # raised with the animation queue is empty (no animations at all)
@@ -87,7 +93,7 @@ class PyscrollDataAdapter:
         get_tile_image = self.get_tile_image
 
         # test if the next scheduled tile change is ready
-        while self._animation_queue[0].next <= self._last_time:
+        while self._animation_queue[0]._next <= self._last_time:
 
             # get the next tile/frame which is ready to be changed
             token = heappop(self._animation_queue)
@@ -134,7 +140,7 @@ class PyscrollDataAdapter:
         """
         self._last_time = time.time() * 1000
 
-    def prepare_tiles(self, tiles: RectLike):
+    def prepare_tiles(self, tiles: RectLike) -> None:
         """
         Somewhat experimental: The renderer will advise data layer of its view
 
@@ -158,14 +164,13 @@ class PyscrollDataAdapter:
 
         """
         self._update_time()
-        self._animation_queue = list()
-        self._tracked_gids = set()
-        self._animation_map = dict()
+        self._tracked_gids: set[int] = set()
+        self._animation_map: dict[int, AnimationToken] = {}
 
         for gid, frame_data in self.get_animations():
             self._tracked_gids.add(gid)
 
-            frames = list()
+            frames: list[AnimationFrame] = []
             for frame_gid, frame_duration in frame_data:
                 image = self._get_tile_image_by_id(frame_gid)
                 frames.append(AnimationFrame(image, frame_duration))
@@ -177,7 +182,7 @@ class PyscrollDataAdapter:
             # locations of an animation, but searching for their locations
             # is slow. so it will be updated as the map is drawn.
 
-            positions = set()
+            positions: set[tuple[int, int, int]] = set()
             ani = AnimationToken(positions, frames, self._last_time)
             self._animation_map[gid] = ani
             heappush(self._animation_queue, ani)
@@ -224,7 +229,7 @@ class PyscrollDataAdapter:
         """
         raise NotImplementedError
 
-    def _get_tile_image_by_id(self, id):
+    def _get_tile_image_by_id(self, id: int) -> Any:
         """
         Return Image by a custom ID.
 
@@ -247,6 +252,9 @@ class PyscrollDataAdapter:
 
           Where Frames is:
           [ (ID, Duration), ... ]
+
+          [tuple[int, tuple[int, float]]]
+          [tuple[gid, tuple[frame_gid, frame_duration]]]
 
           And ID is a reference to a tile image.
           This will be something accessible using _get_tile_image_by_id
@@ -348,14 +356,14 @@ class TiledMapData(PyscrollDataAdapter):
         except ValueError:
             return None
 
-    def _get_tile_image_by_id(self, id) -> Surface:
+    def _get_tile_image_by_id(self, id: int) -> Surface:
         return self.tmx.images[id]
 
     def get_tile_images_by_rect(self, rect: RectLike):
-        def rev(seq:list[int], start:int, stop: int) -> enumerate[int]:
+        def rev(seq: list[int], start: int, stop: int) -> enumerate[int]:
             if start < 0:
                 start = 0
-            return enumerate(seq[start:stop + 1], start)
+            return enumerate(seq[start : stop + 1], start)
 
         x1, y1, x2, y2 = rect_to_bb(rect)
         images = self.tmx.images
@@ -411,7 +419,7 @@ class MapAggregator(PyscrollDataAdapter):
         """
         pass
 
-    def _get_tile_image_by_id(self, id) -> None:
+    def _get_tile_image_by_id(self, id: int) -> None:
         """
         Required for sprite collation - not implemented
 
