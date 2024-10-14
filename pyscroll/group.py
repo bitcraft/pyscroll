@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 import pygame
 
@@ -16,16 +16,12 @@ class PyscrollGroup(pygame.sprite.LayeredUpdates):
         map_layer: Pyscroll Renderer
 
     """
-    def __init__(
-        self,
-        map_layer: BufferedRenderer,
-        *args,
-        **kwargs
-    ):
+
+    def __init__(self, map_layer: BufferedRenderer, *args, **kwargs) -> None:
         pygame.sprite.LayeredUpdates.__init__(self, *args, **kwargs)
         self._map_layer = map_layer
 
-    def center(self, value):
+    def center(self, value) -> None:
         """
         Center the group/map on a pixel.
 
@@ -46,10 +42,7 @@ class PyscrollGroup(pygame.sprite.LayeredUpdates):
         """
         return self._map_layer.view_rect.copy()
 
-    def draw(
-        self,
-        surface: pygame.surface.Surface
-    ) -> List[pygame.rect.Rect]:
+    def draw(self, surface: pygame.surface.Surface) -> list[pygame.rect.Rect]:
         """
         Draw map and all sprites onto the surface.
 
@@ -59,6 +52,7 @@ class PyscrollGroup(pygame.sprite.LayeredUpdates):
         """
         ox, oy = self._map_layer.get_center_offset()
         draw_area = surface.get_rect()
+        view_rect = self.view
 
         new_surfaces = list()
         spritedict = self.spritedict
@@ -67,7 +61,7 @@ class PyscrollGroup(pygame.sprite.LayeredUpdates):
 
         for spr in self.sprites():
             new_rect = spr.rect.move(ox, oy)
-            if new_rect.colliderect(draw_area):
+            if spr.rect.colliderect(view_rect):
                 try:
                     new_surfaces_append((spr.image, new_rect, gl(spr), spr.blendmode))
                 except AttributeError:

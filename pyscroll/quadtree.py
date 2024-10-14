@@ -6,7 +6,8 @@ A quadtree is used with pyscroll to detect overlapping tiles.
 from __future__ import annotations
 
 import itertools
-from typing import TYPE_CHECKING, Tuple, Set, Sequence
+from collections.abc import Sequence
+from typing import TYPE_CHECKING
 
 from pygame import Rect
 
@@ -32,7 +33,7 @@ class FastQuadTree:
 
     __slots__ = ["items", "cx", "cy", "nw", "sw", "ne", "se"]
 
-    def __init__(self, items: Sequence, depth: int=4, boundary=None):
+    def __init__(self, items: Sequence, depth: int = 4, boundary=None) -> None:
         """Creates a quad-tree.
 
         Args:
@@ -88,18 +89,26 @@ class FastQuadTree:
 
         # Create the sub-quadrants, recursively.
         if nw_items:
-            self.nw = FastQuadTree(nw_items, depth, (boundary.left, boundary.top, cx, cy))
+            self.nw = FastQuadTree(
+                nw_items, depth, (boundary.left, boundary.top, cx, cy)
+            )
         if ne_items:
-            self.ne = FastQuadTree(ne_items, depth, (cx, boundary.top, boundary.right, cy))
+            self.ne = FastQuadTree(
+                ne_items, depth, (cx, boundary.top, boundary.right, cy)
+            )
         if se_items:
-            self.se = FastQuadTree(se_items, depth, (cx, cy, boundary.right, boundary.bottom))
+            self.se = FastQuadTree(
+                se_items, depth, (cx, cy, boundary.right, boundary.bottom)
+            )
         if sw_items:
-            self.sw = FastQuadTree(sw_items, depth, (boundary.left, cy, cx, boundary.bottom))
+            self.sw = FastQuadTree(
+                sw_items, depth, (boundary.left, cy, cx, boundary.bottom)
+            )
 
     def __iter__(self):
         return itertools.chain(self.items, self.nw, self.ne, self.se, self.sw)
 
-    def hit(self, rect: RectLike) -> Set[Tuple[int, int, int, int]]:
+    def hit(self, rect: RectLike) -> set[tuple[int, int, int, int]]:
         """
         Returns the items that overlap a bounding rectangle.
 

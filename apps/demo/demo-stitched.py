@@ -9,20 +9,21 @@ Very basic!  No animations.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import List
 
 import pygame
 from pygame.locals import (
-    K_UP,
     K_DOWN,
-    K_LEFT,
-    K_RIGHT,
-    K_MINUS,
     K_EQUALS,
     K_ESCAPE,
+    K_LEFT,
+    K_MINUS,
+    K_RIGHT,
+    K_UP,
+    KEYDOWN,
+    QUIT,
+    VIDEORESIZE,
     K_r,
 )
-from pygame.locals import KEYDOWN, VIDEORESIZE, QUIT
 from pytmx.util_pygame import load_pygame
 
 import pyscroll
@@ -55,11 +56,11 @@ class Hero(pygame.sprite.Sprite):
         self.feet = pygame.Rect(0, 0, self.rect.width * 0.5, 8)
 
     @property
-    def position(self) -> List[float]:
+    def position(self) -> list[float]:
         return list(self._position)
 
     @position.setter
-    def position(self, value: List[float]) -> None:
+    def position(self, value: list[float]) -> None:
         self._position = list(value)
 
     def update(self, dt: float) -> None:
@@ -165,14 +166,14 @@ class QuestGame:
         else:
             self.hero.velocity[0] = 0
 
-    def update(self, dt: float):
+    def update(self, dt: float) -> None:
         """
         Tasks that occur over time should be handled here
 
         """
         self.group.update(dt)
 
-    def run(self):
+    def run(self) -> None:
         clock = pygame.time.Clock()
         self.running = True
 

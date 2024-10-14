@@ -1,7 +1,9 @@
 pyscroll
 ========
 
-For Python 3.7+ and pygame 2.0+
+For Python 3.9+ and pygame 2.0+
+
+__pygame-ce is supported__
 
 A simple and fast module for animated scrolling maps for your new or existing
 game.
@@ -103,7 +105,7 @@ class Sprite(pygame.sprite.Sprite):
     Simple Sprite class for on-screen things
     
     """
-    def __init__(self, surface):
+    def __init__(self, surface) -> None:
         self.image = surface
         self.rect = surface.get_rect()
 
@@ -113,8 +115,8 @@ tmx_data = load_pygame("desert.tmx")
 
 # Make the scrolling layer
 map_layer = pyscroll.BufferedRenderer(
-    map_data=pyscroll.TiledMapData(tmx_data),
-    screen_size=(400,400),
+    data=pyscroll.TiledMapData(tmx_data),
+    size=(400,400),
 )
 
 # make the pygame SpriteGroup with a scrolling map
