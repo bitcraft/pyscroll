@@ -6,6 +6,7 @@ Rendering demo showing 9 TMX maps rendered at once
 Very basic!  No animations.
 
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -24,7 +25,7 @@ from pygame.locals import (
     VIDEORESIZE,
     K_r,
 )
-from pytmx.util_pygame import load_pygame
+from pytmx.util_pygame import load_pygame  # type: ignore
 
 import pyscroll
 from pyscroll.data import MapAggregator, TiledMapData
@@ -52,7 +53,7 @@ class Hero(pygame.sprite.Sprite):
         self.velocity = [0, 0]
         self._position = [0.0, 0.0]
         self._old_position = self.position
-        self.rect = self.image.get_rect()
+        self.rect: pygame.Rect = self.image.get_rect()
         self.feet = pygame.Rect(0, 0, self.rect.width * 0.5, 8)
 
     @property
@@ -99,7 +100,7 @@ class QuestGame:
             pyscroll_data = TiledMapData(tmx_data)
             world_data.add_map(pyscroll_data, offset)
 
-        self.map_layer = pyscroll.BufferedRenderer(
+        self.map_layer = pyscroll.orthographic.BufferedRenderer(
             data=world_data,
             size=screen.get_size(),
             clamp_camera=True,
@@ -110,7 +111,7 @@ class QuestGame:
         # put the hero in the center of the map
         self.hero = Hero()
         self.hero.layer = 0
-        self.hero.position = (400, 400)
+        self.hero.position = [400.0, 400.0]
 
         # add our hero to the group
         self.group.add(self.hero)

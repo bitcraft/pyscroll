@@ -155,7 +155,7 @@ map_layer = pyscroll.BufferedRenderer(map_data, map_size)
 # just an example for clarity.  here's a made up game engine:
 
 def game_engine_draw():
-   surfaces = list()
+   surfaces = []
    for game_object in my_game_engine:
 
       # pyscroll uses normal pygame surfaces.

@@ -10,12 +10,14 @@ Window is resizable.
 See the "Quest" tutorial for a more simple use with
 pygame sprites and groups.
 """
+
 import collections
 import logging
+from typing import Deque
 
 import pygame
 from pygame.locals import *
-from pytmx.util_pygame import load_pygame
+from pytmx.util_pygame import load_pygame  # type: ignore
 
 import pyscroll
 import pyscroll.data
@@ -31,7 +33,7 @@ SCROLL_SPEED = 5000
 
 
 # simple wrapper to keep the screen resizeable
-def init_screen(width, height):
+def init_screen(width: int, height: int) -> pygame.Surface:
     return pygame.display.set_mode((width, height), pygame.RESIZABLE)
 
 
@@ -42,7 +44,7 @@ class ScrollTest:
 
     """
 
-    def __init__(self, filename) -> None:
+    def __init__(self, filename: str) -> None:
 
         # load data from pytmx
         tmx_data = load_pygame(filename)
@@ -60,7 +62,7 @@ class ScrollTest:
         t = ["scroll demo. press escape to quit", "arrow keys move"]
 
         # save the rendered text
-        self.text_overlay = [f.render(i, 1, (180, 180, 0)) for i in t]
+        self.text_overlay = [f.render(i, True, (180, 180, 0)) for i in t]
 
         # set our initial viewpoint in the center of the map
         self.center = [
@@ -71,12 +73,12 @@ class ScrollTest:
         # the camera vector is used to handle camera movement
         self.camera_acc = [0, 0, 0]
         self.camera_vel = [0, 0, 0]
-        self.last_update_time = 0
+        self.last_update_time = 0.0
 
         # true when running
         self.running = False
 
-    def draw(self, surface) -> None:
+    def draw(self, surface: pygame.Surface) -> None:
 
         # tell the map_layer (BufferedRenderer) to draw to the surface
         # the draw function requires a rect to draw to.
@@ -85,7 +87,7 @@ class ScrollTest:
         # blit our text over the map
         self.draw_text(surface)
 
-    def draw_text(self, surface) -> None:
+    def draw_text(self, surface: pygame.Surface) -> None:
         y = 0
         for text in self.text_overlay:
             surface.blit(text, (0, y))
@@ -129,7 +131,7 @@ class ScrollTest:
         else:
             self.camera_acc[0] = 0
 
-    def update(self, td) -> None:
+    def update(self, td: float) -> None:
         self.last_update_time = td
 
         friction = pow(0.0001, self.last_update_time)
@@ -165,13 +167,13 @@ class ScrollTest:
 
         # set the center somewhere else
         # in a game, you would set center to a playable character
-        self.map_layer.center(self.center)
+        self.map_layer.center((self.center[0], self.center[1]))
 
     def run(self) -> None:
         clock = pygame.time.Clock()
         self.running = True
         fps = 60.0
-        fps_log = collections.deque(maxlen=20)
+        fps_log: Deque[float] = collections.deque(maxlen=20)
 
         try:
             while self.running:
