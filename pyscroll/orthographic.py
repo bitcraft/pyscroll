@@ -569,7 +569,7 @@ class BufferedRenderer:
             append((v.left, v.top, v.width, -dy))
 
     @staticmethod
-    def _calculate_zoom_buffer_size(size: Vector2DInt, value: float) -> tuple[int, int]:
+    def _calculate_zoom_buffer_size(size: Vector2DInt, value: float) -> Vector2DInt:
         if value <= 0:
             log.error("zoom level cannot be zero or less")
             raise ValueError
