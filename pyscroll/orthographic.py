@@ -330,7 +330,7 @@ class BufferedRenderer:
             return int(point[0] + mx), int(point[1] + my)
         else:
             return (
-                int(round((point[0] + mx)) * self._real_ratio_x),
+                int(round((point[0] + mx) * self._real_ratio_x)),
                 int(round((point[1] + my) * self._real_ratio_y)),
             )
 
