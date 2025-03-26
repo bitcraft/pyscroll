@@ -3,6 +3,7 @@ For testing the translate methods
 
 incomplete
 """
+
 import pygame
 
 
@@ -18,7 +19,7 @@ class Dummy:
             r = self._map_layer.translate_point(spr.rect.topleft)
             pygame.draw.circle(surface, (20, 20, 20), r, 3)
 
-        spr_list = list()
+        spr_list = []
         for spr in self.sprites():
             spr_list.append(spr.rect)
 
