@@ -1,0 +1,99 @@
+"""
+Translate test using real pyscroll BufferedRenderer.
+
+Draws translated rectangles and points for dummy sprites on a TMX map.
+"""
+
+from pathlib import Path
+
+import pygame
+from pygame.locals import QUIT
+from pytmx.util_pygame import load_pygame  # type: ignore
+
+import pyscroll
+from pyscroll.data import TiledMapData
+
+# Constants
+RESOURCES_DIR = Path(__file__).parent
+TMX_FILE = RESOURCES_DIR / "desert.tmx"
+WINDOW_SIZE = (800, 600)
+
+
+class DummySprite(pygame.sprite.Sprite):
+    def __init__(self, x: int, y: int, w: int = 32, h: int = 32) -> None:
+        super().__init__()
+        self.rect = pygame.Rect(x, y, w, h)
+
+
+class TranslateTest:
+    def __init__(self, screen: pygame.Surface) -> None:
+        self.screen = screen
+
+        # Load TMX map
+        if not TMX_FILE.exists():
+            raise FileNotFoundError(f"TMX file not found: {TMX_FILE}")
+        tmx_data = load_pygame(str(TMX_FILE))
+        map_data = TiledMapData(tmx_data)
+
+        # Create real renderer
+        self.map_layer = pyscroll.orthographic.BufferedRenderer(
+            map_data, screen.get_size()
+        )
+        self.map_layer.zoom = 1.5
+        self.map_layer.center((400, 300))  # Center camera
+
+        # Dummy sprites
+        self.sprites = pygame.sprite.Group(
+            DummySprite(420, 320),
+            DummySprite(460, 360),
+            DummySprite(500, 400),
+        )
+
+    def run(self) -> None:
+        clock = pygame.time.Clock()
+        running = True
+
+        while running:
+            for event in pygame.event.get():
+                if event.type == QUIT:
+                    running = False
+
+            self.screen.fill((30, 30, 30))
+
+            # Draw map
+            self.map_layer.draw(self.screen, self.screen.get_rect())
+
+            # Draw translated rects
+            for spr in self.sprites:
+                r = self.map_layer.translate_rect(spr.rect)
+                pygame.draw.rect(self.screen, (20, 200, 20), r, 2)
+
+            # Draw translated points
+            for spr in self.sprites:
+                p = self.map_layer.translate_point(spr.rect.topleft)
+                pygame.draw.circle(self.screen, (20, 20, 200), p, 4)
+
+            # Batch rects
+            rects = [spr.rect for spr in self.sprites]
+            for r in self.map_layer.translate_rects(rects):
+                pygame.draw.rect(self.screen, (200, 10, 10), r, 1)
+
+            # Batch points
+            points = [r.topleft for r in rects]
+            for p in self.map_layer.translate_points(points):
+                pygame.draw.circle(self.screen, (200, 10, 10), p, 3)
+
+            pygame.display.flip()
+            clock.tick(60)
+
+
+def main() -> None:
+    pygame.init()
+    screen = pygame.display.set_mode(WINDOW_SIZE)
+    pygame.display.set_caption("Real Translate Test")
+    TranslateTest(screen).run()
+    pygame.quit()
+
+
+if __name__ == "__main__":
+    main()
