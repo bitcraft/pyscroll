@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import pygame
 
@@ -14,7 +14,6 @@ class PyscrollGroup(pygame.sprite.LayeredUpdates):
 
     Args:
         map_layer: Pyscroll Renderer
-
     """
 
     def __init__(self, map_layer: BufferedRenderer, *args, **kwargs) -> None:
@@ -30,7 +29,6 @@ class PyscrollGroup(pygame.sprite.LayeredUpdates):
 
         Args:
             value: x, y coordinates to center the camera on
-
         """
         self._map_layer.center(value)
 
@@ -38,7 +36,6 @@ class PyscrollGroup(pygame.sprite.LayeredUpdates):
     def view(self) -> pygame.Rect:
         """
         Return a Rect representing visible portion of map.
-
         """
         return self._map_layer.view_rect.copy()
 
@@ -48,25 +45,23 @@ class PyscrollGroup(pygame.sprite.LayeredUpdates):
 
         Args:
             surface: Surface to draw to
-
         """
         ox, oy = self._map_layer.get_center_offset()
         draw_area = surface.get_rect()
         view_rect = self.view
 
-        new_surfaces = list()
+        new_surfaces: list[tuple[pygame.Surface, pygame.Rect, int, Any]] = []
         spritedict = self.spritedict
         gl = self.get_layer_of_sprite
-        new_surfaces_append = new_surfaces.append
 
         for spr in self.sprites():
             new_rect = spr.rect.move(ox, oy)
             if spr.rect.colliderect(view_rect):
                 try:
-                    new_surfaces_append((spr.image, new_rect, gl(spr), spr.blendmode))
+                    new_surfaces.append((spr.image, new_rect, gl(spr), spr.blendmode))
                 except AttributeError:
                     # should only fail when no blendmode available
-                    new_surfaces_append((spr.image, new_rect, gl(spr)))
+                    new_surfaces.append((spr.image, new_rect, gl(spr)))
                 spritedict[spr] = new_rect
 
         self.lostsprites = []
