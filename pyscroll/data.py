@@ -77,7 +77,7 @@ class PyscrollDataAdapter:
             tile_view: Rect representing tiles on the screen
 
         """
-        new_tiles = []
+        new_tiles = list()
 
         # verify that there are tile substitutions ready
         self._update_time()
@@ -320,7 +320,7 @@ class TiledMapData(PyscrollDataAdapter):
                 yield gid, frames
 
     def convert_surfaces(self, parent: Surface, alpha: bool = False) -> None:
-        images = []
+        images = list()
         for i in self.tmx.images:
             try:
                 if alpha:
