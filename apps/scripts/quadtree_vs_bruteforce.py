@@ -16,7 +16,7 @@ Features:
 import random
 import timeit
 
-from pygame import Rect
+from pygame.rect import Rect
 
 from pyscroll.quadtree import FastQuadTree
 

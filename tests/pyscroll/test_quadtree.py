@@ -1,6 +1,6 @@
 import unittest
 
-from pygame import Rect
+from pygame.rect import Rect
 
 from pyscroll.quadtree import FastQuadTree
 

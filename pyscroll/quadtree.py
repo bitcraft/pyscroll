@@ -10,7 +10,7 @@ import itertools
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Optional
 
-from pygame import Rect
+from pygame.rect import Rect
 
 if TYPE_CHECKING:
     from .common import RectLike

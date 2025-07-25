@@ -20,7 +20,7 @@ Features:
 import random
 
 import pygame
-from pygame import Rect
+from pygame.rect import Rect
 
 from pyscroll.quadtree import FastQuadTree
 
