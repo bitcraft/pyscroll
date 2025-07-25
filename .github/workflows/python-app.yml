@@ -34,4 +34,4 @@ jobs:
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Test
       run: |
-         python -m unittest tests/pyscroll/test_pyscroll.py
+         python -m unittest discover -s tests/pyscroll -p "test_*.py"
