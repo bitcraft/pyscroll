@@ -17,7 +17,23 @@ from pathlib import Path
 from typing import Deque
 
 import pygame
-from pygame.locals import *
+from pygame.font import Font
+from pygame.locals import (
+    K_DOWN,
+    K_ESCAPE,
+    K_LEFT,
+    K_RIGHT,
+    K_UP,
+    KEYDOWN,
+    QUIT,
+    VIDEORESIZE,
+    K_a,
+    K_d,
+    K_s,
+    K_w,
+)
+from pygame.math import Vector2
+from pygame.surface import Surface
 from pytmx.util_pygame import load_pygame  # type: ignore
 
 import pyscroll
@@ -36,7 +52,7 @@ WINDOW_SIZE = (800, 600)
 
 
 # simple wrapper to keep the screen resizeable
-def init_screen(width: int, height: int) -> pygame.Surface:
+def init_screen(width: int, height: int) -> Surface:
     return pygame.display.set_mode((width, height), pygame.RESIZABLE)
 
 
@@ -47,7 +63,7 @@ class ScrollTest:
 
     """
 
-    def __init__(self, filename: Path, screen: pygame.Surface) -> None:
+    def __init__(self, filename: Path, screen: Surface) -> None:
         self.screen = screen
 
         # Load TMX map
@@ -58,17 +74,17 @@ class ScrollTest:
         )
 
         # Text overlay
-        font = pygame.font.Font(pygame.font.get_default_font(), FONT_SIZE)
+        font = Font(pygame.font.get_default_font(), FONT_SIZE)
         messages = ["Scroll demo. Press ESC to quit", "Arrow keys or WASD to move"]
         self.text_overlay = [font.render(msg, True, TEXT_COLOR) for msg in messages]
         self.font = font
 
         # Camera setup
-        self.center = pygame.Vector2(
+        self.center = Vector2(
             self.map_layer.map_rect.width / 2, self.map_layer.map_rect.height / 2
         )
-        self.camera_acc = pygame.Vector2(0, 0)
-        self.camera_vel = pygame.Vector2(0, 0)
+        self.camera_acc = Vector2(0, 0)
+        self.camera_vel = Vector2(0, 0)
         self.last_update_time = 0.0
 
         self.running = False
@@ -96,7 +112,7 @@ class ScrollTest:
                 self.map_layer.set_size((event.w, event.h))
 
         pressed = pygame.key.get_pressed()
-        self.camera_acc = pygame.Vector2(0, 0)
+        self.camera_acc = Vector2(0, 0)
 
         if pressed[K_UP] or pressed[K_w]:
             self.camera_acc.y = -SCROLL_SPEED * self.last_update_time

@@ -25,6 +25,10 @@ from pygame.locals import (
     VIDEORESIZE,
     K_r,
 )
+from pygame.math import Vector2
+from pygame.rect import Rect
+from pygame.sprite import Sprite
+from pygame.surface import Surface
 from pytmx.util_pygame import load_pygame  # type: ignore
 
 import pyscroll
@@ -40,26 +44,26 @@ ZOOM_STEP = 0.25
 INITIAL_ZOOM = 2.0
 
 
-def init_screen(width: int, height: int) -> pygame.Surface:
+def init_screen(width: int, height: int) -> Surface:
     return pygame.display.set_mode((width, height), pygame.RESIZABLE)
 
 
-def load_image(filename: str) -> pygame.Surface:
+def load_image(filename: str) -> Surface:
     path = RESOURCES_DIR / filename
     if not path.exists():
         raise FileNotFoundError(f"Image not found: {path}")
     return pygame.image.load(str(path)).convert_alpha()
 
 
-class Hero(pygame.sprite.Sprite):
+class Hero(Sprite):
     def __init__(self) -> None:
         super().__init__()
         self.image = load_image("hero.png")
-        self.velocity = pygame.Vector2(0, 0)
-        self.position = pygame.Vector2(400.0, 400.0)
+        self.velocity = Vector2(0, 0)
+        self.position = Vector2(400.0, 400.0)
         self.old_position = self.position.copy()
         self.rect = self.image.get_rect(topleft=self.position)
-        self.feet = pygame.Rect(0, 0, self.rect.width * 0.5, 8)
+        self.feet = Rect(0, 0, self.rect.width * 0.5, 8)
         self.update_feet()
 
     def update_feet(self) -> None:
@@ -86,7 +90,7 @@ class Hero(pygame.sprite.Sprite):
 
 
 class QuestGame:
-    def __init__(self, screen: pygame.Surface) -> None:
+    def __init__(self, screen: Surface) -> None:
         self.screen = screen
         self.running = False
 

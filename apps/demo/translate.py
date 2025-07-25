@@ -6,27 +6,31 @@ Draws translated rectangles and points for dummy sprites.
 
 import pygame
 from pygame.locals import QUIT
+from pygame.math import Vector2
+from pygame.rect import Rect
+from pygame.sprite import Group, Sprite
+from pygame.surface import Surface
 
 
-class DummySprite(pygame.sprite.Sprite):
+class DummySprite(Sprite):
     def __init__(self, x: int, y: int, w: int = 32, h: int = 32) -> None:
         super().__init__()
-        self.rect = pygame.Rect(x, y, w, h)
+        self.rect = Rect(x, y, w, h)
 
 
 class DummyMapLayer:
     """Mock map layer with translate methods for testing."""
 
-    def __init__(self, offset: pygame.Vector2 = pygame.Vector2(100, 100)) -> None:
+    def __init__(self, offset: Vector2 = Vector2(100, 100)) -> None:
         self.offset = offset
 
-    def translate_rect(self, rect: pygame.Rect) -> pygame.Rect:
+    def translate_rect(self, rect: Rect) -> Rect:
         return rect.move(-self.offset.x, -self.offset.y)
 
     def translate_point(self, point: tuple[int, int]) -> tuple[int, int]:
         return (point[0] - int(self.offset.x), point[1] - int(self.offset.y))
 
-    def translate_rects(self, rects: list[pygame.Rect]) -> list[pygame.Rect]:
+    def translate_rects(self, rects: list[Rect]) -> list[Rect]:
         return [self.translate_rect(r) for r in rects]
 
     def translate_points(self, points: list[tuple[int, int]]) -> list[tuple[int, int]]:
@@ -34,10 +38,10 @@ class DummyMapLayer:
 
 
 class Dummy:
-    def __init__(self, screen: pygame.Surface) -> None:
+    def __init__(self, screen: Surface) -> None:
         self.screen = screen
         self._map_layer = DummyMapLayer()
-        self._sprites = pygame.sprite.Group(
+        self._sprites = Group(
             DummySprite(150, 150),
             DummySprite(200, 180),
             DummySprite(250, 220),

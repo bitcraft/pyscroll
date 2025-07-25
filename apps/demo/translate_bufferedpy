@@ -7,6 +7,9 @@ Draws translated rectangles and points for dummy sprites on a TMX map.
 from pathlib import Path
 
 import pygame
+from pygame.sprite import Sprite, Group
+from pygame.rect import Rect
+from pygame.surface import Surface
 from pygame.locals import QUIT
 from pytmx.util_pygame import load_pygame  # type: ignore
 
@@ -19,14 +22,14 @@ TMX_FILE = RESOURCES_DIR / "desert.tmx"
 WINDOW_SIZE = (800, 600)
 
 
-class DummySprite(pygame.sprite.Sprite):
+class DummySprite(Sprite):
     def __init__(self, x: int, y: int, w: int = 32, h: int = 32) -> None:
         super().__init__()
-        self.rect = pygame.Rect(x, y, w, h)
+        self.rect = Rect(x, y, w, h)
 
 
 class TranslateTest:
-    def __init__(self, screen: pygame.Surface) -> None:
+    def __init__(self, screen: Surface) -> None:
         self.screen = screen
 
         # Load TMX map
@@ -43,7 +46,7 @@ class TranslateTest:
         self.map_layer.center((400, 300))  # Center camera
 
         # Dummy sprites
-        self.sprites = pygame.sprite.Group(
+        self.sprites = Group(
             DummySprite(420, 320),
             DummySprite(460, 360),
             DummySprite(500, 400),

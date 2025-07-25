@@ -1,7 +1,7 @@
 import unittest
 from unittest import mock
 
-import pygame
+from pygame.rect import Rect
 
 from pyscroll.common import Vector2DInt
 from pyscroll.data import PyscrollDataAdapter
@@ -14,14 +14,14 @@ class DummyDataAdapter(PyscrollDataAdapter):
     visible_tile_layers = [1]
 
     def get_animations(self):
-        return []
+        return list()
 
     def get_tile_image(self, *position):
         return position[0] * position[1]
 
 
 class DummyBufferer:
-    _tile_view = pygame.Rect(2, 2, 2, 2)
+    _tile_view = Rect(2, 2, 2, 2)
     _clear_color = None
     _buffer = mock.Mock()
     _clear_surface = mock.Mock()

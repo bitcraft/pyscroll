@@ -27,6 +27,9 @@ from pygame.locals import (
     VIDEORESIZE,
     K_r,
 )
+from pygame.rect import Rect
+from pygame.sprite import Sprite
+from pygame.surface import Surface
 from pytmx.util_pygame import load_pygame  # type: ignore
 
 import pyscroll
@@ -40,17 +43,17 @@ HERO_MOVE_SPEED = 200  # pixels per second
 
 
 # simple wrapper to keep the screen resizeable
-def init_screen(width: int, height: int) -> pygame.Surface:
+def init_screen(width: int, height: int) -> Surface:
     screen = pygame.display.set_mode((width, height), pygame.RESIZABLE)
     return screen
 
 
 # make loading images a little easier
-def load_image(filename: str) -> pygame.Surface:
-    return pygame.image.load(str(RESOURCES_DIR / filename))
+def load_image(filename: str) -> Surface:
+    return pygame.image.load(RESOURCES_DIR / filename).convert_alpha()
 
 
-class Hero(pygame.sprite.Sprite):
+class Hero(Sprite):
     """
     Our Hero
 
@@ -68,40 +71,38 @@ class Hero(pygame.sprite.Sprite):
 
     There is also an old_rect that is used to reposition the sprite if
     it collides with level walls.
-
     """
 
     def __init__(self) -> None:
         super().__init__()
-        self.image = load_image("hero.png").convert_alpha()
-        self.velocity = [0, 0]
-        self._position = [0.0, 0.0]
-        self._old_position = self.position
-        self.rect: pygame.Rect = self.image.get_rect()
-        self.feet = pygame.Rect(0, 0, self.rect.width * 0.5, 8)
+        self.image: Surface = load_image("hero.png")
+        self.velocity: list[float] = [0.0, 0.0]
+        self._position: list[float] = [0.0, 0.0]
+        self._old_position: list[float] = self._position.copy()
+        self.rect: Rect = self.image.get_rect()
+        self.feet: Rect = Rect(0, 0, self.rect.width * 0.5, 8)
 
     @property
     def position(self) -> list[float]:
-        return list(self._position)
+        return self._position.copy()
 
     @position.setter
     def position(self, value: list[float]) -> None:
-        self._position = list(value)
+        self._position = value.copy()
 
     def update(self, dt: float) -> None:
-        self._old_position = self._position[:]
+        self._old_position = self._position.copy()
         self._position[0] += self.velocity[0] * dt
         self._position[1] += self.velocity[1] * dt
-        self.rect.topleft = self._position
+        self.rect.topleft = (int(self._position[0]), int(self._position[1]))
         self.feet.midbottom = self.rect.midbottom
 
     def move_back(self, dt: float) -> None:
         """
         If called after an update, the sprite can move back
-
         """
-        self._position = self._old_position
-        self.rect.topleft = self._position
+        self._position = self._old_position.copy()
+        self.rect.topleft = (int(self._position[0]), int(self._position[1]))
         self.feet.midbottom = self.rect.midbottom
 
 
@@ -112,24 +113,21 @@ class QuestGame:
     This class will load data, create a pyscroll group, a hero object.
     It also reads input and moves the Hero around the map.
     Finally, it uses a pyscroll group to render the map and Hero.
-
     """
 
     map_path = RESOURCES_DIR / "grasslands.tmx"
 
-    def __init__(self, screen: pygame.Surface) -> None:
+    def __init__(self, screen: Surface) -> None:
         self.screen = screen
-
-        # true while running
         self.running = False
 
         # load data from pytmx
         tmx_data = load_pygame(self.map_path)
 
         # setup level geometry with simple pygame rects, loaded from pytmx
-        self.walls = []
-        for obj in tmx_data.objects:
-            self.walls.append(pygame.Rect(obj.x, obj.y, obj.width, obj.height))
+        self.walls = [
+            Rect(obj.x, obj.y, obj.width, obj.height) for obj in tmx_data.objects
+        ]
 
         # create new renderer (camera)
         self.map_layer = pyscroll.orthographic.BufferedRenderer(
@@ -147,15 +145,14 @@ class QuestGame:
         self.group = PyscrollGroup(map_layer=self.map_layer, default_layer=2)
 
         # put the hero in the center of the map
+        cx, cy = self.map_layer.map_rect.center
         self.hero = Hero()
-        _center = self.map_layer.map_rect.center
-        self.hero.position = [float(i) for i in _center]
+        self.hero.position = [float(cx), float(cy)]
 
         # add our hero to the group
         self.group.add(self.hero)
 
     def draw(self) -> None:
-
         # center the map/screen on our Hero
         self.group.center(self.hero.rect.center)
 
@@ -165,7 +162,6 @@ class QuestGame:
     def handle_input(self) -> None:
         """
         Handle pygame input events
-
         """
         for event in pygame.event.get():
             if event.type == QUIT:
@@ -195,24 +191,20 @@ class QuestGame:
 
         # use `get_pressed` for an easy way to detect held keys
         pressed = pygame.key.get_pressed()
-        if pressed[K_UP]:
-            self.hero.velocity[1] = -HERO_MOVE_SPEED
-        elif pressed[K_DOWN]:
-            self.hero.velocity[1] = HERO_MOVE_SPEED
-        else:
-            self.hero.velocity[1] = 0
-
-        if pressed[K_LEFT]:
-            self.hero.velocity[0] = -HERO_MOVE_SPEED
-        elif pressed[K_RIGHT]:
-            self.hero.velocity[0] = HERO_MOVE_SPEED
-        else:
-            self.hero.velocity[0] = 0
+        self.hero.velocity[1] = (
+            -HERO_MOVE_SPEED
+            if pressed[K_UP]
+            else HERO_MOVE_SPEED if pressed[K_DOWN] else 0
+        )
+        self.hero.velocity[0] = (
+            -HERO_MOVE_SPEED
+            if pressed[K_LEFT]
+            else HERO_MOVE_SPEED if pressed[K_RIGHT] else 0
+        )
 
     def update(self, dt: float) -> None:
         """
         Tasks that occur over time should be handled here
-
         """
         self.group.update(dt)
 
@@ -226,7 +218,6 @@ class QuestGame:
     def run(self) -> None:
         """
         Run the game loop
-
         """
         clock = pygame.time.Clock()
         self.running = True
