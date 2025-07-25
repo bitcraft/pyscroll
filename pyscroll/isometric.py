@@ -1,20 +1,33 @@
 import logging
 
+from pyscroll.common import Vector2D, Vector2DInt
 from pyscroll.orthographic import BufferedRenderer
 
 log = logging.getLogger(__file__)
 
 
-def vector3_to_iso(vector3):
-    offset = 0, 0
+def vector3_to_iso(
+    vector3: tuple[int, int, int], offset: tuple[int, int] = (0, 0)
+) -> tuple[int, int]:
+    """
+    Convert 3D cartesian coordinates to isometric coordinates.
+    """
+    if len(vector3) != 3:
+        raise ValueError("Input tuple must have exactly 3 elements")
     return (
         (vector3[0] - vector3[1]) + offset[0],
         ((vector3[0] + vector3[1]) >> 1) - vector3[2] + offset[1],
     )
 
 
-def vector2_to_iso(vector2):
-    offset = 0, 0
+def vector2_to_iso(
+    vector2: tuple[int, int], offset: tuple[int, int] = (0, 0)
+) -> tuple[int, int]:
+    """
+    Convert 2D cartesian coordinates to isometric coordinates.
+    """
+    if len(vector2) != 2:
+        raise ValueError("Input tuple must have exactly 2 elements")
     return (
         (vector2[0] - vector2[1]) + offset[0],
         ((vector2[0] + vector2[1]) >> 1) + offset[1],
@@ -34,7 +47,7 @@ class IsometricBufferedRenderer(BufferedRenderer):
         if surfaces is not None:
             [(surface.blit(i[0], i[1]), i[2]) for i in surfaces]
 
-    def _initialize_buffers(self, view_size) -> None:
+    def _initialize_buffers(self, view_size: Vector2DInt) -> None:
         """Create the buffers to cache tile drawing
 
         :param view_size: (int, int): size of the draw area
@@ -85,7 +98,7 @@ class IsometricBufferedRenderer(BufferedRenderer):
             iso_y = (x + y) * thh
             surface_blit(tile, (iso_x, iso_y))
 
-    def center(self, coords) -> None:
+    def center(self, coords: Vector2D) -> None:
         """center the map on a "map pixel" """
         x, y = [round(i, 0) for i in coords]
         self.view_rect.center = x, y
@@ -102,6 +115,7 @@ class IsometricBufferedRenderer(BufferedRenderer):
         self._y_offset = iso[1]
 
         print(self._tile_view.size)
+        assert self._buffer
         print(self._buffer.get_size())
 
         # center the buffer on the screen
@@ -134,7 +148,7 @@ class IsometricBufferedRenderer(BufferedRenderer):
     #         self._buffer.fill(self._clear_color)
     #
     #     v = self._tile_view
-    #     self._tile_queue = list()
+    #     self._tile_queue = []
     #     for x in range(v.left, v.right):
     #         for y in range(v.top, v.bottom):
     #             ix, iy = vector2_to_iso((x, y))
