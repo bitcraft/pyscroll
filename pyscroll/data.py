@@ -156,6 +156,7 @@ class PyscrollDataAdapter:
         """
         self._update_time()
         self._animation_queue = list()
+        self._animated_tile = dict()
         self._tracked_gids = set()
         self._animation_map = dict()
 
