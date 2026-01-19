@@ -3,9 +3,8 @@ from __future__ import annotations
 import logging
 import math
 import time
-from collections.abc import Callable
 from itertools import chain, product
-from typing import TYPE_CHECKING
+from typing import Any, Callable, Optional, TYPE_CHECKING, Union
 
 import pygame
 from pygame import Rect, Surface
@@ -15,6 +14,7 @@ from .quadtree import FastQuadTree
 
 if TYPE_CHECKING:
     from .data import PyscrollDataAdapter
+
 
 log = logging.getLogger(__file__)
 
@@ -74,6 +74,9 @@ class BufferedRenderer:
         self.tall_sprites = tall_sprites
         self.sprite_damage_height = sprite_damage_height
         self.map_rect = None
+        self.blit_list_sort_key: Optional[
+            Callable[[tuple[int, int, int, int, int, Surface, Optional[int]]], Any]
+        ] = None
 
         # internal private defaults
         if colorkey and alpha:
@@ -216,7 +219,14 @@ class BufferedRenderer:
             self._tile_view.move_ip(dx, dy)
             self.redraw_tiles(self._buffer)
 
-    def draw(self, surface: Surface, rect: RectLike, surfaces: list[Surface] = None):
+    def draw(
+        self,
+        surface: Surface,
+        rect: RectLike,
+        surfaces: Optional[
+            list[Union[tuple[Surface, Rect, int], tuple[Surface, Rect, int, int]]]
+        ] = None,
+    ):
         """
         Draw the map onto a surface.
 
@@ -399,7 +409,12 @@ class BufferedRenderer:
         return retval
 
     def _render_map(
-        self, surface: Surface, rect: RectLike, surfaces: list[Surface]
+        self,
+        surface: Surface,
+        rect: RectLike,
+        surfaces: Optional[
+            list[Union[tuple[Surface, Rect, int], tuple[Surface, Rect, int, int]]]
+        ],
     ) -> None:
         """
         Render the map and optional surfaces to destination surface.
@@ -439,7 +454,14 @@ class BufferedRenderer:
         )
         surface.fill(clear_color, area)
 
-    def _draw_surfaces(self, surface: Surface, offset: Vector2DInt, surfaces) -> None:
+    def _draw_surfaces(
+        self,
+        surface: Surface,
+        offset: Vector2DInt,
+        surfaces: list[
+            Union[tuple[Surface, Rect, int], tuple[Surface, Rect, int, int]]
+        ],
+    ) -> None:
         """
         Draw surfaces while correcting overlapping tile layers.
 
@@ -455,7 +477,7 @@ class BufferedRenderer:
         get_tile = self.data.get_tile_image
         tile_layers = tuple(sorted(self.data.visible_tile_layers))
         top_layer = tile_layers[-1]
-        blit_list = list()
+        blit_list = []
         sprite_damage = set()
         order = 0
 
@@ -479,10 +501,7 @@ class BufferedRenderer:
                     sprite_damage.add((l, hit_rect))
 
             # add surface to draw list
-            try:
-                blend = i[3]
-            except IndexError:
-                blend = None
+            blend = i[3] if len(i) >= 4 else None
             x, y, w, h = r
             blit_op = l, 1, x, y, order, s, blend
             blit_list.append(blit_op)
@@ -495,38 +514,49 @@ class BufferedRenderer:
         # equal to the damaged layer, then add the entire column of
         # tiles to the blit_list.  if not, then discard the column and
         # do not update the screen when the damage was done.
-        column = list()
-        is_over = False
         for dl, damage_rect in sprite_damage:
             x, y, w, h = damage_rect
             tx = x // w + left
             ty = y // h + top
             # TODO: heightmap
-            for l in tile_layers:
+            for l in [l for l in tile_layers if dl <= l]:
                 tile = get_tile(tx, ty, l)
                 if tile:
                     sx = x - ox
                     sy = y - oy
-                    if dl <= l:
-                        is_over = True
                     blit_op = l, 0, sx, sy, order, tile, None
-                    column.append(blit_op)
+                    blit_list.append(blit_op)
                     order += 1
-            if is_over:
-                blit_list.extend(column)
-            column.clear()
-            is_over = False
 
         # finally sort and do the thing
-        blit_list.sort()
-        draw_list2 = list()
-        for l, priority, x, y, order, s, blend in blit_list:
-            if blend is not None:
-                blit_op = s, (x, y), None, blend
-            else:
-                blit_op = s, (x, y)
-            draw_list2.append(blit_op)
+        blit_list.sort(key=self.blit_list_sort_key)
+        draw_list2 = [(s, (x, y), None, blend) if blend else (s, (x, y)) for _, _, x, y, _, s, blend in blit_list]
         surface.blits(draw_list2, doreturn=False)
+
+    def set_blit_list_sort_key(
+        self,
+        key: Optional[
+            Callable[[tuple[int, int, int, int, int, Surface, Optional[int]]], Any]
+        ],
+    ) -> None:
+        """Set the key function for sorting list of blit operations on sprites
+        and tiles overlaying sprites in the _draw_surfaces method.  The elements
+        in the list are 7-tuples with the following contents:
+            element 0 (int): layer number
+            element 1 (int): priority - 0 for tile, 1 for sprite
+            element 2 (int): x coordinate for the left  corner of the surface
+            element 3 (int): y coordinate for the top-left corner of the surface
+            element 4 (int): the pre-sorted order of elements in the list
+            element 5 (Surface): the source image for the blit
+            element 6 (int): Special flags for blit operation
+
+        The default key is None, yeilding a sort first on element 0, then 1, 2, ..., 6.
+
+        To alternatinely sort first on layer, then bottom y coordinate, then priority,
+        the key function could be set to the following lambda function:
+            lambda x: (x[0], x[3]+x[5].get_height(), x[1])
+        """
+        self.blit_list_sort_key = key
 
     def _queue_edge_tiles(self, dx: int, dy: int) -> None:
         """
