@@ -246,7 +246,17 @@ class BufferedRenderer:
             self._render_map(surface, rect, surfaces)
         else:
             self._render_map(self._zoom_buffer, self._zoom_buffer.get_rect(), surfaces)
-            self.scaling_function(self._zoom_buffer, rect.size, surface)
+            rect = Rect(rect)
+            if rect == surface.get_rect() and rect == surface.get_clip():
+                self.scaling_function(self._zoom_buffer, rect.size, surface)
+                return rect.copy()
+            scaled = Surface(
+                rect.size, self._zoom_buffer.get_flags(), self._zoom_buffer
+            )
+            self.scaling_function(self._zoom_buffer, rect.size, scaled)
+            scaled.set_colorkey(self._zoom_buffer.get_colorkey())
+            scaled.set_alpha(self._zoom_buffer.get_alpha())
+            return surface.blit(scaled, rect)
         return self._previous_blit.copy()
 
     @property
