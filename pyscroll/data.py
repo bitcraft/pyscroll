@@ -426,26 +426,22 @@ class MapAggregator(PyscrollDataAdapter):
         """
         assert data.tile_size == self.tile_size
         rect = pygame.Rect(offset, data.map_size)
-        ox = self._min_x - offset[0]
-        oy = self._min_y - offset[1]
-        self._min_x = min(self._min_x, offset[0])
-        self._min_y = min(self._min_y, offset[1])
-        mx = 0
-        my = 0
+        min_x = min(self._min_x, offset[0])
+        min_y = min(self._min_y, offset[1])
+        shift = self._min_x - min_x, self._min_y - min_y
         # the renderer cannot deal with negative tile coordinates,
         # so we must move all the offsets if there is a negative so
         # that all the tile coordinates are >= (0, 0)
+        if shift != (0, 0):
+            for _, previous in self.maps:
+                previous.move_ip(shift)
+        rect.move_ip(-min_x, -min_y)
+        self._min_x, self._min_y = min_x, min_y
         self.maps.append((data, rect))
-        if ox > 0 or oy > 0:
-            for data, rect in self.maps:
-                rect.move_ip((ox, oy))
-                mx = max(mx, rect.right)
-                my = max(my, rect.bottom)
-        else:
-            rect.move_ip(-self._min_x, -self._min_y)
-            mx = max(mx, rect.right)
-            my = max(my, rect.bottom)
-        self.map_size = mx, my
+        self.map_size = (
+            max(bounds.right for _, bounds in self.maps),
+            max(bounds.bottom for _, bounds in self.maps),
+        )
 
     def remove_map(self, data: PyscrollDataAdapter):
         """
